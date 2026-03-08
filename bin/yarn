@@ -1,9 +1,13 @@
 #!/usr/bin/env ruby
 VENDOR_PATH = File.expand_path('..', __dir__)
 Dir.chdir(VENDOR_PATH) do
-  begin
-    exec "yarnpkg #{ARGV.join(" ")}"
-  rescue Errno::ENOENT
+  yarn = ['yarn', 'yarnpkg'].find do |cmd|
+    system("which #{cmd} > /dev/null 2>&1")
+  end
+
+  if yarn
+    exec "#{yarn} #{ARGV.join(" ")}"
+  else
     $stderr.puts "Yarn executable was not detected in the system."
     $stderr.puts "Download Yarn at https://yarnpkg.com/en/docs/install"
     exit 1

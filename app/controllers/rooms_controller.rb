@@ -15,7 +15,7 @@ class RoomsController < ApplicationController
   helper_method :crossword_identifier
 
   def crossword
-    if redis.exists(crossword_identifier)
+    if redis.exists?(crossword_identifier)
       redis.get(crossword_identifier)
     else
       get_crossword_data.tap {|data| redis.set(crossword_identifier, data) }
@@ -23,11 +23,15 @@ class RoomsController < ApplicationController
   end
 
   def get_crossword_data
-    response = Faraday.get(url)
-    html = Nokogiri::HTML(response.body)
-    crossword_element = html.css('.js-crossword')
-    raise ActionController::RoutingError.new('Element not Found') unless crossword_element.any?
-    crossword_element.first['data-crossword-data']
+      response = Faraday.get(url)
+      html = Nokogiri::HTML(response.body)
+      island = html.css('gu-island[name="CrosswordComponent"]')
+      raise ActionController::RoutingError.new('Element not Found') unless island.any?
+      props = island.first['props']
+      raise ActionController::RoutingError.new('Props not Found') unless props
+      # props is HTML-entity-encoded JSON — parse the outer wrapper and extract the crossword data
+      outer = JSON.parse(CGI.unescapeHTML(props))
+      outer['data'].to_json
   end
 
   def url
