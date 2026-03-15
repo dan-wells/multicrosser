@@ -4,6 +4,10 @@ This is a Rails Application that uses WebSockets and the [react-crossword](https
 
 You can see a demo at [multicrosser.chriszetter.com](https://multicrosser.chriszetter.com).
 
+## The Source of the Crosswords Data
+
+Crosswords are scraped from the Guardian Crossword pages which contain a JSON representation of each crossword. The crosswords are re-used following their [Open Licence Terms](https://syndication.theguardian.com/open-licence-terms/).
+
 ## Setup
 
 To run this project:
@@ -63,6 +67,17 @@ The `react-crossword` component bundles its own CSS, which is injected into the 
 
 In production, both pipelines are compiled into static files by `bin/rails assets:precompile`.
 
+## Testing
+
+Make sure Redis is running, then:
+
+```
+bundle exec rails test                              # all tests
+bundle exec rails test test/models/crossword_test.rb  # a single file
+```
+
+Tests use a separate Redis database (db 1) so they won't affect your development data.
+
 ## How it works
 
 ### Sending a Move
@@ -105,7 +120,3 @@ Redis is used for three purposes:
 + **Homepage crossword lists** — keyed by `crossword-series-{name}` (e.g. `crossword-series-quiptic`). Each key holds a JSON array of crossword metadata objects (title, source, series, identifier, date), ordered most recent first.
 + **Cached puzzle data** — keyed by `{source}/{series}/{identifier}` (e.g. `guardian/quiptic/1289`). Each key holds the full crossword JSON fetched from the Guardian. Populated lazily the first time a crossword is opened.
 + **Room grid state** — keyed by `moves_channel-{crossword}-{room}`. A Redis hash mapping cell coordinates (`x-y`) to their current values. This is the authoritative state of each multiplayer solving session.
-
-## The Source of the Crosswords Data
-
-Crosswords are scraped from the Guardian Crossword pages which contain a JSON representation of each crossword. The crosswords are re-used following their [Open Licence Terms](https://syndication.theguardian.com/open-licence-terms/).

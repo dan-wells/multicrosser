@@ -15,7 +15,7 @@ class Crossword
   end
 
   def name
-    formatted_time = date.strftime("%A %-d %b")
+    formatted_time = date.strftime("%A %-d %B")
     if title.include?(' No ')
       number = title.split(' No ').last
       "#{formatted_time} (No #{number})"
@@ -48,7 +48,7 @@ class Crossword
   end
 
   def redis
-    @redis ||= Redis.new
+    ::REDIS
   end
 
 end

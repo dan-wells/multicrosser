@@ -37,6 +37,6 @@ class RoomsController < ApplicationController
   end
 
   def redis
-    @redis ||= Redis.new
+    ::REDIS
   end
 end

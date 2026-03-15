@@ -19,7 +19,7 @@ class CrosswordFeed
   end
 
   def self.redis
-    @redis ||= Redis.new
+    ::REDIS
   end
 
 end

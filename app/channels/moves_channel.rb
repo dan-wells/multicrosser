@@ -32,6 +32,6 @@ class MovesChannel < ApplicationCable::Channel
   end
 
   def redis
-    @redis ||= Redis.new
+    ::REDIS
   end
 end
