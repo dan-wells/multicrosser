@@ -2,7 +2,6 @@ class RoomsController < ApplicationController
   rescue_from ActionController::RoutingError, with: :puzzle_not_found
 
   def show
-    raise ActionController::RoutingError.new('Source not Found') unless params[:source] == 'guardian'
     raise ActionController::RoutingError.new('Series not Found') unless params[:series].in?(Series::SERIES.keys)
     @crossword = crossword
     @parsed_crossword = JSON.parse(crossword)
@@ -10,7 +9,7 @@ class RoomsController < ApplicationController
   end
 
   def crossword_identifier
-    [params[:source], params[:series], params[:identifier]].join('/')
+    [params[:series], params[:identifier]].join('/')
   end
   helper_method :crossword_identifier
 

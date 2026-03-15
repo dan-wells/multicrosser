@@ -2,13 +2,12 @@ class Crossword
 
   def initialize(crossword_data)
     @title = crossword_data.fetch('title')
-    @source = crossword_data.fetch('source')
     @series = crossword_data.fetch('series')
     @identifier = crossword_data.fetch('identifier')
     @date = crossword_data.fetch('date')
   end
 
-  attr_reader :title, :source, :series, :identifier
+  attr_reader :title, :series, :identifier
 
   def date
     (Time.xmlschema(@date).utc + 2.hours).to_date
@@ -31,7 +30,6 @@ class Crossword
   def to_json
     {
       title: @title,
-      source: @source,
       series: @series,
       identifier: @identifier,
       date: @date

@@ -1,10 +1,9 @@
 class CrosswordsController < ApplicationController
   def show
     redirect_to room_path(
-      source: params[:source],
       series: params[:series],
       identifier: params[:identifier],
-      room: SecureRandom.uuid
+      room: SecureRandom.hex(4)
     )
   end
 end

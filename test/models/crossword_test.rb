@@ -8,7 +8,6 @@ class CrosswordTest < ActiveSupport::TestCase
   def valid_data(overrides = {})
     {
       'title' => 'Quiptic crossword No 1,234',
-      'source' => 'guardian',
       'series' => 'quiptic',
       'identifier' => '1234',
       'date' => '2024-06-10T06:00:00.000Z'
@@ -18,7 +17,6 @@ class CrosswordTest < ActiveSupport::TestCase
   test "initialize extracts all fields" do
     cw = Crossword.new(valid_data)
     assert_equal 'Quiptic crossword No 1,234', cw.title
-    assert_equal 'guardian', cw.source
     assert_equal 'quiptic', cw.series
     assert_equal '1234', cw.identifier
   end
@@ -76,7 +74,6 @@ class CrosswordTest < ActiveSupport::TestCase
     restored = Crossword.new(JSON.parse(original.to_json))
     assert_equal original, restored
     assert_equal original.title, restored.title
-    assert_equal original.source, restored.source
     assert_equal original.series, restored.series
   end
 

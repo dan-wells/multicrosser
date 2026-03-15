@@ -31,7 +31,7 @@
       <ul>
       <%- crosswords.each do |crossword| -%>
         <li>
-          <%= link_to(crossword.name, crossword_path(crossword.source, crossword.series, crossword.identifier)) %>
+          <%= link_to(crossword.name, crossword_path(crossword.series, crossword.identifier)) %>
         </li>
       <%- end -%>
       </ul>
@@ -68,7 +68,7 @@
     }
     errorEl.textContent = '';
 
-    var url = '/crossword/guardian/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
+    var url = '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
     if (room) url += '/' + encodeURIComponent(room);
     window.location = url;
     return false;

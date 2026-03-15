@@ -9,7 +9,6 @@ class CrosswordFeed
 
       crossword = Crossword.new(
         "title" => element.css('title').text,
-        "source" => 'guardian',
         "series" => series,
         "identifier" => identifier,
         "date" => element.at('dc|date').text
