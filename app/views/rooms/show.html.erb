@@ -1,11 +1,9 @@
 <h1><%= @parsed_crossword['name'] %></h1>
 <p>
-  <%= Time.at(@parsed_crossword['date']/1000).to_date.strftime("%A %-d %B") %> -
+  <%= Time.at(@parsed_crossword['date']/1000).to_date.strftime("%a %-d %b %Y") %> |
   <%- if @parsed_crossword['creator'] -%>
     Set by <%= @parsed_crossword['creator']['name'] %>
-    -
   <%- end -%>
-  <a href="<%= @url %>">Published by the Guardian</a>
 </p>
 
 <%= content_tag(:div, '', class: 'js-crossword', data: {
@@ -16,4 +14,7 @@
 
 <%= javascript_pack_tag "application", "data-turbolinks-track": "reload" %>
 
-<p>Share this page with others to solve this crossword with them.</p>
+<p style="clear: both;">
+  Share this page with others to solve this crossword with them.
+  <br><a href="<%= @url %>">Published by the Guardian</a>
+</p>

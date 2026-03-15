@@ -1,6 +1,7 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
 import Crossword from 'react-crossword';
+import '../crossword-overrides.scss';
 import { createSubscription } from 'subscription';
 
 const crosswordElement = document.getElementsByClassName('js-crossword')[0];

@@ -1,5 +1,3 @@
-
-
 class RoomsController < ApplicationController
   def show
     raise ActionController::RoutingError.new('Source not Found') unless params[:source] == 'guardian'

@@ -1,0 +1,6 @@
+/* Override react-crossword's fixed table layout so clue columns size to their content */
+@media (min-width: 71.25em) {
+  .crossword__clues {
+    display: flex;
+  }
+}
