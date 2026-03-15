@@ -1,4 +1,6 @@
 class RoomsController < ApplicationController
+  rescue_from ActionController::RoutingError, with: :puzzle_not_found
+
   def show
     raise ActionController::RoutingError.new('Source not Found') unless params[:source] == 'guardian'
     raise ActionController::RoutingError.new('Series not Found') unless params[:series].in?(Series::SERIES.keys)
@@ -38,5 +40,11 @@ class RoomsController < ApplicationController
 
   def redis
     ::REDIS
+  end
+
+  def puzzle_not_found
+    @series = params[:series]
+    @identifier = params[:identifier]
+    render 'puzzle_not_found', status: :not_found
   end
 end

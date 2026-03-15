@@ -10,10 +10,11 @@
         <%- end -%>
       </select>
 
-      <label for="goto-number">Puzzle number</label>
+      <label for="goto-number">Puzzle</label>
       <input type="text" id="goto-number" name="number" required>
+      <div id="goto-error" class="form-error"></div>
 
-      <label for="goto-room">Room ID <span class="optional">(optional)</span></label>
+      <label for="goto-room">Room <span class="optional">(optional)</span></label>
       <input type="text" id="goto-room" name="room" placeholder="e.g. my-room">
 
       <button type="submit">Go</button>
@@ -60,10 +61,12 @@
     var option = form.series.options[form.series.selectedIndex];
     var firstPuzzle = parseInt(option.getAttribute('data-first-puzzle'), 10);
     var num = parseInt(number, 10);
+    var errorEl = document.getElementById('goto-error');
     if (isNaN(num) || num < firstPuzzle) {
-      alert(series.charAt(0).toUpperCase() + series.slice(1) + ' puzzles start at #' + firstPuzzle);
+      errorEl.textContent = series.charAt(0).toUpperCase() + series.slice(1) + ' puzzles start at No ' + firstPuzzle;
       return false;
     }
+    errorEl.textContent = '';
 
     var url = '/crossword/guardian/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
     if (room) url += '/' + encodeURIComponent(room);

@@ -137,6 +137,16 @@ body {
   background-color: #4c79c4;
 }
 
+.not-found h1 {
+  font-size: 1.5em;
+}
+
+.form-error {
+  color: #b00;
+  font-size: 0.85em;
+  margin-top: 3px;
+}
+
 @media (max-width: 600px) {
   .homepage {
     flex-direction: column;

@@ -1,11 +1,10 @@
-- [ ] Add text boxes for room ID and puzzle number to homepage
-    * should check if puzzle exists before trying to jump there? well, any number below the latest is fine, so maybe not
+- [x] Add text boxes for room ID and puzzle number to homepage
+- [x] Add 404 page for unavailable puzzles
 - [ ] Shorten the length of random room IDs -- we won't have that many users
 - [ ] Add links to setter pages
 - [x] Fix bad spacing between crossword controls and text below crossword
+- [ ] Fix bad spacing between crossword grid and buttons in narrow viewports
 - [x] Reduce horizontal spacing between Across and Down clues columns
-    * should be able to have some smaller minimum page width, e.g. 1200 pixels?
-    * or no, just want there to be only a little spacing
 - [ ] Add puzzle timer
     * should only count time actively on the page
     * probably don't want to show it while running, but have final time display on final check
