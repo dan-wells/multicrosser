@@ -1,4 +1,5 @@
 <% series_config = Series::SERIES %>
+<% latest_by_series = @series_with_crosswords.to_h { |name, crosswords| [name, crosswords.first&.identifier] } %>
 <div class="homepage">
   <div class="homepage-sidebar">
     <h3>Go to puzzle</h3>
@@ -6,18 +7,21 @@
       <label for="goto-series">Series</label>
       <select id="goto-series" name="series" onchange="updatePuzzlePlaceholder()">
         <%- series_config.each do |name, meta| -%>
-          <option value="<%= name %>" data-first-puzzle="<%= meta[:first_puzzle] %>"><%= name.titleize %></option>
+          <option value="<%= name %>"
+                  data-first-puzzle="<%= meta[:first_puzzle] %>"
+                  data-latest-puzzle="<%= latest_by_series[name] %>"><%= name.titleize %></option>
         <%- end -%>
       </select>
 
       <label for="goto-number">Puzzle</label>
-      <input type="text" id="goto-number" name="number" required>
+      <input type="text" id="goto-number" name="number">
       <div id="goto-error" class="form-error"></div>
 
-      <label for="goto-room">Room <span class="optional">(optional)</span></label>
+      <label for="goto-room">Room</label>
       <input type="text" id="goto-room" name="room" placeholder="e.g. my-room">
 
       <button type="submit">Go</button>
+      <p>If <strong>puzzle</strong> is empty, go to the most recent in the series.<br>If <strong>room</strong> is empty, go to a random room number.</p>
     </form>
   </div>
 
@@ -56,18 +60,26 @@
     var series = form.series.value;
     var number = form.number.value.trim();
     var room = form.room.value.trim();
-    if (!number) return false;
-
-    var option = form.series.options[form.series.selectedIndex];
-    var firstPuzzle = parseInt(option.getAttribute('data-first-puzzle'), 10);
-    var num = parseInt(number, 10);
     var errorEl = document.getElementById('goto-error');
-    if (isNaN(num) || num < firstPuzzle) {
-      errorEl.textContent = series.charAt(0).toUpperCase() + series.slice(1) + ' puzzles start at No ' + firstPuzzle;
-      return false;
-    }
-    errorEl.textContent = '';
+    var option = form.series.options[form.series.selectedIndex];
 
+    if (!number) {
+      var latest = option.getAttribute('data-latest-puzzle');
+      if (!latest) {
+        errorEl.textContent = 'No puzzles available for ' + series.charAt(0).toUpperCase() + series.slice(1);
+        return false;
+      }
+      number = latest;
+    } else {
+      var firstPuzzle = parseInt(option.getAttribute('data-first-puzzle'), 10);
+      var num = parseInt(number, 10);
+      if (isNaN(num) || num < firstPuzzle) {
+        errorEl.textContent = series.charAt(0).toUpperCase() + series.slice(1) + ' puzzles start at No ' + firstPuzzle;
+        return false;
+      }
+    }
+
+    errorEl.textContent = '';
     var url = '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
     if (room) url += '/' + encodeURIComponent(room);
     window.location = url;
