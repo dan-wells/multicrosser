@@ -1,18 +1,73 @@
-<p class="intro">
-  Pick one of the crosswords below then share the link with friends to solve together.
-</p>
+<% series_config = Series::SERIES %>
+<div class="homepage">
+  <div class="homepage-sidebar">
+    <h3>Go to puzzle</h3>
+    <form onsubmit="return goToPuzzle(this)">
+      <label for="goto-series">Series</label>
+      <select id="goto-series" name="series" onchange="updatePuzzlePlaceholder()">
+        <%- series_config.each do |name, meta| -%>
+          <option value="<%= name %>" data-first-puzzle="<%= meta[:first_puzzle] %>"><%= name.titleize %></option>
+        <%- end -%>
+      </select>
 
-<%- @series_with_crosswords.each do |series, crosswords| -%>
-  <h3><%= series.titleize %></h3>
-  <ul>
-  <%- crosswords.each do |crossword| -%>
-    <li>
-      <%= link_to(crossword.name, crossword_path(crossword.source, crossword.series, crossword.identifier)) %>
-    </li>
-  <%- end -%>
-  </ul>
-<%- end -%>
+      <label for="goto-number">Puzzle number</label>
+      <input type="text" id="goto-number" name="number" required>
 
-<p class="about">
-  <strong>Several People are Solving</strong> is an experiment with multiplayer crosswords created by <a href="https://chriszetter.com">Chris Zetter</a>. You can <a href="https://github.com/zetter/multicrosser">view the code on GitHub</a>.
-</p>
+      <label for="goto-room">Room ID <span class="optional">(optional)</span></label>
+      <input type="text" id="goto-room" name="room" placeholder="e.g. my-room">
+
+      <button type="submit">Go</button>
+    </form>
+  </div>
+
+  <div class="homepage-main">
+    <p class="intro">
+      Pick one of the crosswords below then share the link with friends to solve together.
+    </p>
+
+    <%- @series_with_crosswords.each do |series, crosswords| -%>
+      <h3><%= series.titleize %></h3>
+      <ul>
+      <%- crosswords.each do |crossword| -%>
+        <li>
+          <%= link_to(crossword.name, crossword_path(crossword.source, crossword.series, crossword.identifier)) %>
+        </li>
+      <%- end -%>
+      </ul>
+    <%- end -%>
+
+    <p class="about">
+      <strong>Several People are Solving</strong> is an experiment with multiplayer crosswords created by <a href="https://chriszetter.com">Chris Zetter</a>. You can <a href="https://github.com/zetter/multicrosser">view the code on GitHub</a>.
+    </p>
+  </div>
+</div>
+
+<script>
+  function updatePuzzlePlaceholder() {
+    var select = document.getElementById('goto-series');
+    var option = select.options[select.selectedIndex];
+    var first = option.getAttribute('data-first-puzzle');
+    document.getElementById('goto-number').placeholder = first + ' onwards';
+  }
+  updatePuzzlePlaceholder();
+
+  function goToPuzzle(form) {
+    var series = form.series.value;
+    var number = form.number.value.trim();
+    var room = form.room.value.trim();
+    if (!number) return false;
+
+    var option = form.series.options[form.series.selectedIndex];
+    var firstPuzzle = parseInt(option.getAttribute('data-first-puzzle'), 10);
+    var num = parseInt(number, 10);
+    if (isNaN(num) || num < firstPuzzle) {
+      alert(series.charAt(0).toUpperCase() + series.slice(1) + ' puzzles start at #' + firstPuzzle);
+      return false;
+    }
+
+    var url = '/crossword/guardian/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
+    if (room) url += '/' + encodeURIComponent(room);
+    window.location = url;
+    return false;
+  }
+</script>

@@ -84,3 +84,66 @@ body {
 .about {
   margin-top: 50px;
 }
+
+.homepage {
+  display: flex;
+  gap: 40px;
+}
+
+.homepage-main {
+  flex: 1;
+}
+
+.homepage-sidebar {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.homepage-sidebar h3 {
+  margin-top: 0;
+}
+
+.homepage-sidebar label {
+  display: block;
+  margin-top: 10px;
+  margin-bottom: 2px;
+  font-size: 0.9em;
+}
+
+.homepage-sidebar .optional {
+  color: #888;
+  font-size: 0.9em;
+}
+
+.homepage-sidebar select,
+.homepage-sidebar input[type="text"] {
+  width: 100%;
+  padding: 5px;
+  box-sizing: border-box;
+  font-size: 0.95em;
+}
+
+.homepage-sidebar button {
+  margin-top: 14px;
+  padding: 6px 20px;
+  background-color: #66a0ff;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  font-size: 0.95em;
+}
+
+.homepage-sidebar button:hover {
+  background-color: #4c79c4;
+}
+
+@media (max-width: 600px) {
+  .homepage {
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .homepage-sidebar {
+    width: 100%;
+  }
+}

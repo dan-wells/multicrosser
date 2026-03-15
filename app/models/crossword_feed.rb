@@ -5,7 +5,7 @@ class CrosswordFeed
     xml.css('item').each do |element|
       link = element.css('link').text
       series, identifier = link.split('/').last(2)
-      next unless series.in?(Series::SERIES)
+      next unless series.in?(Series::SERIES.keys)
 
       crossword = Crossword.new(
         "title" => element.css('title').text,
