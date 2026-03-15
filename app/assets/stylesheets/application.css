@@ -118,18 +118,32 @@ body {
   font-size: 0.95em;
 }
 
-.homepage-sidebar button {
+.homepage-sidebar .goto-buttons {
+  display: flex;
+  gap: 8px;
   margin-top: 14px;
+}
+
+.homepage-sidebar button {
   padding: 6px 20px;
-  background-color: #66a0ff;
-  color: #fff;
   border: none;
   cursor: pointer;
   font-size: 0.95em;
+  background-color: #66a0ff;
+  color: #fff;
 }
 
 .homepage-sidebar button:hover {
   background-color: #4c79c4;
+}
+
+.homepage-sidebar button.random {
+  background-color: #e0e0e0;
+  color: #000;
+}
+
+.homepage-sidebar button.random:hover {
+  background-color: #c8c8c8;
 }
 
 .not-found h1 {

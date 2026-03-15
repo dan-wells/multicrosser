@@ -9,7 +9,9 @@
         <%- series_config.each do |name, meta| -%>
           <option value="<%= name %>"
                   data-first-puzzle="<%= meta[:first_puzzle] %>"
-                  data-latest-puzzle="<%= latest_by_series[name] %>"><%= name.titleize %></option>
+                  data-latest-puzzle="<%= latest_by_series[name] %>"
+                  data-skip-period="<%= meta[:skip_period] %>"
+                  data-skip-ref="<%= meta[:skip_ref] %>"><%= name.titleize %></option>
         <%- end -%>
       </select>
 
@@ -20,8 +22,17 @@
       <label for="goto-room">Room</label>
       <input type="text" id="goto-room" name="room" placeholder="e.g. my-room">
 
-      <button type="submit">Go</button>
-      <p>If <strong>puzzle</strong> is empty, go to the most recent in the series.<br>If <strong>room</strong> is empty, go to a random room number.</p>
+      <div class="goto-buttons">
+        <button type="submit">Go</button>
+        <button type="button" class="random" onclick="return goToRandomPuzzle(this.form)">Random</button>
+      </div>
+      <p>
+        If <strong>puzzle</strong> is empty, go to the most recent in the series.
+        <br>
+        If <strong>room</strong> is empty, go to a random room number.
+        <br>
+        Hit <strong>random</strong> to go to a random puzzle in the series.
+      </p>
     </form>
   </div>
 
@@ -79,6 +90,34 @@
       }
     }
 
+    errorEl.textContent = '';
+    var url = '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
+    if (room) url += '/' + encodeURIComponent(room);
+    window.location = url;
+    return false;
+  }
+
+  function goToRandomPuzzle(form) {
+    var series = form.series.value;
+    var room = form.room.value.trim();
+    var errorEl = document.getElementById('goto-error');
+    var option = form.series.options[form.series.selectedIndex];
+    var first = parseInt(option.getAttribute('data-first-puzzle'), 10);
+    var latest = parseInt(option.getAttribute('data-latest-puzzle'), 10);
+
+    if (!latest) {
+      errorEl.textContent = 'No puzzles available for ' + series.charAt(0).toUpperCase() + series.slice(1);
+      return false;
+    }
+
+    var skipPeriod = parseInt(option.getAttribute('data-skip-period'), 10);
+    var skipRef    = parseInt(option.getAttribute('data-skip-ref'),    10);
+
+    var number;
+    do {
+      number = Math.floor(Math.random() * (latest - first + 1)) + first;
+    } while (skipPeriod && skipRef &&
+             ((number - skipRef) % skipPeriod + skipPeriod) % skipPeriod === skipPeriod - 1);
     errorEl.textContent = '';
     var url = '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
     if (room) url += '/' + encodeURIComponent(room);

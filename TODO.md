@@ -17,3 +17,6 @@
 - [ ] Change URLs on web server
     * [ ] crosswords.wellsd.net -> wellsd.net/crosswords
     * [x] simplify, remove `crossword/` part from individual puzzle URLs
+- [ ] limit random puzzle button to avoid any puzzles which have been completed in the specified room
+    * -> need to track puzzle completion in redis ?
+    * maybe also have an explicit "mark complete" button in case you come across one you've already done
