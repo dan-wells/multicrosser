@@ -8,9 +8,60 @@ You can see a demo at [multicrosser.chriszetter.com](https://multicrosser.chrisz
 
 To run this project:
 + Install Redis and make sure the server is running
-+ Run `./bin/setup` to install dependencies
++ Run `./bin/setup` to install dependencies (Ruby gems and JavaScript packages)
 + Run `./bin/rails crosswords:load_from_feed` to load the latest crosswords to display on the homepage
 + Run `./bin/rails server` to start the project
+
+After pulling changes, run `./bin/update` to install any new dependencies and precompile static CSS and JavaScript assets.
+
+## Codebase Overview
+
+### URL Routing (`config/routes.rb`)
+
+- `/` — the homepage
+- `/crossword/:source/:series/:identifier` — generates a random room ID and redirects to the URL below (so each visitor gets a fresh private session unless they share the link)
+- `/crossword/:source/:series/:identifier/:room` — the actual multiplayer crossword page
+
+### Backend: Controllers (`app/controllers/`)
+
+- `page_controller.rb` — serves the homepage; asks `Series` for the list of recent crosswords to display
+- `crosswords_controller.rb` — handles crossword URLs that don't yet have a room ID; generates a random room ID and redirects
+- `rooms_controller.rb` — serves the crossword page; fetches the puzzle JSON from the Guardian (or from Redis if already cached) and passes it to the view
+
+### Backend: Models (`app/models/`)
+
+- `series.rb` — holds the list of active crossword series (quiptic, quick, weekend, etc.); `get_all` reads their metadata from Redis and returns the most recent 5 per series
+- `crossword.rb` — represents a crossword's metadata (title, series, identifier, date); `save` writes it to the Redis series list
+- `crossword_feed.rb` — fetches the Guardian's RSS feed and saves metadata for recent crosswords into Redis
+
+### Backend: Channel (`app/channels/moves_channel.rb`)
+
+Handles the WebSocket connection for a room:
+
+- When a client joins: sends them the current grid state from Redis
+- When a client sends a move: records the letter in Redis and broadcasts it to everyone else in the room
+
+### Frontend (`app/javascript/`)
+
+- `packs/application.js` — entry point; renders the React crossword component into the page
+- `subscription.js` — connects to the server over WebSocket; sends moves the user types, and applies moves received from other players
+- `move_buffer.js` — queues moves in the browser's local storage while offline; replays them when the connection is restored
+
+### Views (`app/views/`)
+
+- `page/index.html.erb` — the homepage: lists recent crosswords grouped by series
+- `rooms/show.html.erb` — the crossword page: shows the title, date, setter, and the interactive grid
+
+### Styling
+
+There are two separate CSS pipelines:
+
+- `app/assets/stylesheets/application.css` — processed by the Rails asset pipeline (Sprockets). Contains global styles for layout, typography, and the homepage.
+- `app/javascript/crossword-overrides.scss` — processed by webpack (imported in `packs/application.js`). Contains overrides for styles that come from the `react-crossword` component. This file is imported *after* the component so that its rules take precedence in the cascade.
+
+The `react-crossword` component bundles its own CSS, which is injected into the page at runtime by JavaScript. Any overrides for component styles must go through the webpack pipeline (not `application.css`) to ensure they are loaded after the component's styles.
+
+In production, both pipelines are compiled into static files by `bin/rails assets:precompile`.
 
 ## How it works
 
@@ -30,6 +81,12 @@ Here's what happens when a player types a character:
   * `onReceiveMove` calls `setCellValue` with the `triggerOnMoveCallback` option set to `false` so `onMove` isn't called again
   * `setCellValue` updates the crossword gird
 
+### Loading Crosswords
+
+The homepage displays a list of recent crosswords per series. This metadata (title, series, identifier, date) is loaded from the Guardian's RSS feed by the `crosswords:load_from_feed` rake task, which stores the most recent 5 crosswords per series in Redis.
+
+Any crossword can also be accessed directly by URL (e.g. `/rooms/guardian/quiptic/1`) without appearing on the homepage. The first time a crossword is opened, `RoomsController` fetches the puzzle data from the Guardian website, extracts the JSON from the page's `CrosswordComponent` element, and caches it in Redis for subsequent visits.
+
 ### Working with Intermittent Connections
 
 If the move can't be broadcast with Action Cable it's stored in the `MoveBuffer`. On reconnection:
@@ -40,6 +97,14 @@ If the move can't be broadcast with Action Cable it's stored in the `MoveBuffer`
 When the move `MoveBuffer` is replayed, moves will only apply if the cell they change still has the same character in it when the move was made. For example, if you change an 'A' to a 'B' while offline this move will be discarded if someone has since changed the 'A' to a 'C' and broadcast it to the server before you.
 
 The `MoveBuffer` uses local storage so will persist if the page is refreshed or the browser is closed.
+
+### Redis
+
+Redis is used for three purposes:
+
++ **Homepage crossword lists** — keyed by `crossword-series-{name}` (e.g. `crossword-series-quiptic`). Each key holds a JSON array of crossword metadata objects (title, source, series, identifier, date), ordered most recent first.
++ **Cached puzzle data** — keyed by `{source}/{series}/{identifier}` (e.g. `guardian/quiptic/1289`). Each key holds the full crossword JSON fetched from the Guardian. Populated lazily the first time a crossword is opened.
++ **Room grid state** — keyed by `moves_channel-{crossword}-{room}`. A Redis hash mapping cell coordinates (`x-y`) to their current values. This is the authoritative state of each multiplayer solving session.
 
 ## The Source of the Crosswords Data
 
