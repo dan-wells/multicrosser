@@ -65,7 +65,11 @@ There are two separate CSS pipelines:
 
 The `react-crossword` component bundles its own CSS, which is injected into the page at runtime by JavaScript. Any overrides for component styles must go through the webpack pipeline (not `application.css`) to ensure they are loaded after the component's styles.
 
-In production, both pipelines are compiled into static files by `bin/rails assets:precompile`.
+In production, both pipelines are compiled into static files by:
+
+```
+NODE_OPTIONS=--openssl-legacy-provider RAILS_ENV=production bundle exec rails assets:precompile
+```
 
 ## Testing
 

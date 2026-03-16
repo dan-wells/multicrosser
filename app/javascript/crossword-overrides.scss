@@ -50,15 +50,19 @@
      so a single-line clue sits close to the grid rather than floating in
      the centre. The library uses display:table; we switch to flex for
      alignment. padding-top on the game must stay 52px to match the
-     absolutely-positioned clue bar's height. */
-  .crossword__sticky-clue {
+     absolutely-positioned clue bar's height.
+     2-class selector beats the library's 1-class .crossword__sticky-clue rule,
+     necessary because in production the library injects its CSS at JS runtime
+     (after our static link tag), so equal specificity would let it win. */
+  .crossword__sticky-clue-wrapper .crossword__sticky-clue {
     display: flex;
     align-items: flex-end;
   }
 
   /* Remove unused bottom padding — only the top padding is needed
-     for the sticky clue bar. Controls have their own margin-top:12px. */
-  .crossword__container__game {
+     for the sticky clue bar. Controls have their own margin-top:12px.
+     2-class selector for the same production cascade reason as above. */
+  .crossword__container .crossword__container__game {
     padding-bottom: 0;
   }
 
