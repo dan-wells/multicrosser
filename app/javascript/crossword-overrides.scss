@@ -5,6 +5,19 @@
   }
 }
 
+/* The grid is a black background rect with white cell rects on top; gridlines
+   are the 1-unit SVG gaps between cells. At any width other than the native
+   481px (or 417px), those gaps scale below 1 CSS pixel and disappear.
+   vector-effect:non-scaling-stroke keeps the stroke at exactly 1 CSS pixel
+   regardless of scale, so cell borders are always visible.
+   stroke-width: 0 is a bit of a hack: 0.5 or 1 lead to heavier 2-pixel gridlines,
+   but technically the behaviour when set to 0 is undefined. */
+.crossword__cell {
+  stroke: #000000;
+  stroke-width: 0;
+  vector-effect: non-scaling-stroke;
+}
+
 @media (max-width: 46.24em) {
   /* Remove fixed height so wrapper sizes to SVG content.
      The library's rules use two-class selectors (specificity 0,2,0), so we must
