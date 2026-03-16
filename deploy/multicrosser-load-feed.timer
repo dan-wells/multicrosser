@@ -1,0 +1,10 @@
+# Place at: /etc/systemd/system/multicrosser-load-feed.timer
+[Unit]
+Description=Run multicrosser-load-feed daily at 00:05
+
+[Timer]
+OnCalendar=*-*-* 00:05:00
+Persistent=true
+
+[Install]
+WantedBy=timers.target

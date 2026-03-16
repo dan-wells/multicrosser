@@ -1,0 +1,10 @@
+# Place at: /etc/systemd/system/multicrosser-load-feed.service
+[Unit]
+Description=Multicrosser load crossword feed
+
+[Service]
+Type=oneshot
+WorkingDirectory=/var/www/multicrosser
+Environment=RAILS_ENV=production
+EnvironmentFile=/var/www/multicrosser/.env.production
+ExecStart=conda run -n multicrosser bundle exec rails crosswords:load_from_feed

@@ -1,0 +1,15 @@
+# Place at: /etc/systemd/system/multicrosser-web.service
+[Unit]
+Description=Multicrosser Rails app
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/var/www/multicrosser
+EnvironmentFile=/var/www/multicrosser/.env.production
+ExecStart=conda run -n multicrosser bundle exec puma -C config/puma.rb
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
