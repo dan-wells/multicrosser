@@ -4,3 +4,65 @@
     display: flex;
   }
 }
+
+@media (max-width: 46.24em) {
+  /* Remove fixed height so wrapper sizes to SVG content.
+     The library's rules use two-class selectors (specificity 0,2,0), so we must
+     match that specificity here — a single-class selector would lose to them.
+     These rules appear after the library's injected CSS in the cascade, so with
+     equal specificity our 'height: auto' wins. The JS inline style (which sets
+     height = offsetWidth to make the wrapper square) still takes precedence at
+     runtime, since inline styles beat all author CSS. */
+  .crossword__container--cryptic .crossword__container__grid-wrapper,
+  .crossword__container--prize .crossword__container__grid-wrapper,
+  .crossword__container--quiptic .crossword__container__grid-wrapper,
+  .crossword__container--genius .crossword__container__grid-wrapper,
+  .crossword__container--everyman .crossword__container__grid-wrapper,
+  .crossword__container--quick .crossword__container__grid-wrapper,
+  .crossword__container--speedy .crossword__container__grid-wrapper,
+  .crossword__container--weekend .crossword__container__grid-wrapper {
+    height: auto;
+  }
+
+  /* Force SVG to fill wrapper width and stay square.
+     aspect-ratio:1 overrides any implicit fixed height the browser
+     might derive, keeping input overlay positioning correct at all widths. */
+  .crossword__grid {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 1;
+  }
+
+  /* Remove the border and align clue text to the bottom of the 52px bar,
+     so a single-line clue sits close to the grid rather than floating in
+     the centre. The library uses display:table; we switch to flex for
+     alignment. padding-top on the game must stay 52px to match the
+     absolutely-positioned clue bar's height. */
+  .crossword__sticky-clue {
+    display: flex;
+    align-items: flex-end;
+  }
+
+  /* Remove unused bottom padding — only the top padding is needed
+     for the sticky clue bar. Controls have their own margin-top:12px. */
+  .crossword__container__game {
+    padding-bottom: 0;
+  }
+
+  /* Cap the game container (not the grid wrapper) at the designed grid size.
+     This keeps the sticky clue bar border co-extensive with the grid,
+     preventing it from appearing as a black line extending past the grid edge. */
+  .crossword__container--cryptic .crossword__container__game,
+  .crossword__container--prize .crossword__container__game,
+  .crossword__container--quiptic .crossword__container__game,
+  .crossword__container--genius .crossword__container__game,
+  .crossword__container--everyman .crossword__container__game {
+    max-width: 481px;
+  }
+
+  .crossword__container--quick .crossword__container__game,
+  .crossword__container--speedy .crossword__container__game,
+  .crossword__container--weekend .crossword__container__game {
+    max-width: 417px;
+  }
+}

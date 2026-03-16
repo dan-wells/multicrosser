@@ -3,7 +3,7 @@
 - [x] Shorten the length of random room IDs -- we won't have that many users
 - [ ] Add links to setter pages
 - [x] Fix bad spacing between crossword controls and text below crossword
-- [ ] Fix bad spacing between crossword grid and buttons in narrow viewports
+- [x] Fix bad spacing between crossword grid and buttons in narrow viewports
 - [x] Reduce horizontal spacing between Across and Down clues columns
 - [ ] Add puzzle timer
     * should only count time actively on the page
@@ -13,6 +13,7 @@
     * RSS feed here: http://www.fifteensquared.net/feed/
     * For old puzzles, need to see about parsing the archive, e.g. for Quiptics: https://www.fifteensquared.net/category/guardian/guardianquiptic/
 - [ ] Update package versions to be recent enough for easy installation/maintenance
+    * guardian website doesn't have the issue of flipping between across/down directions
     * decide whether we want to keep tabbing through clues or update to [] to navigate
 - [ ] Change URLs on web server
     * [ ] crosswords.wellsd.net -> wellsd.net/crosswords
