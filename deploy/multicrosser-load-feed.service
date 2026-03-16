@@ -7,4 +7,4 @@ Type=oneshot
 WorkingDirectory=/var/www/multicrosser
 Environment=RAILS_ENV=production
 EnvironmentFile=/var/www/multicrosser/.env.production
-ExecStart=conda run -n multicrosser bundle exec rails crosswords:load_from_feed
+ExecStart=/root/miniconda3/envs/multicrosser/share/rubygems/bin/bundle exec rails crosswords:load_from_feed
