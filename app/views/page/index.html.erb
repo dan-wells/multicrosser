@@ -13,6 +13,18 @@
         <%- end -%>
       </select>
 
+      <fieldset id="day-filter" class="day-filter" hidden>
+        <legend>Day</legend>
+        <div class="day-options">
+          <label><input type="radio" name="day" value="" checked> Any</label>
+          <label><input type="radio" name="day" value="1"> Mon</label>
+          <label><input type="radio" name="day" value="2"> Tue</label>
+          <label><input type="radio" name="day" value="3"> Wed</label>
+          <label><input type="radio" name="day" value="4"> Thu</label>
+          <label><input type="radio" name="day" value="5"> Fri</label>
+        </div>
+      </fieldset>
+
       <label for="goto-number">Puzzle</label>
       <div class="history-wrap">
         <input type="text" id="goto-number" name="number" autocomplete="off">
@@ -68,7 +80,23 @@
     var option = select.options[select.selectedIndex];
     var first = option.getAttribute('data-first-puzzle');
     document.getElementById('goto-number').placeholder = first + ' onwards';
+    updateDayFilter();
   }
+
+  function updateDayFilter() {
+    var select = document.getElementById('goto-series');
+    var dayFilter = document.getElementById('day-filter');
+    dayFilter.hidden = (select.value !== 'cryptic');
+    if (dayFilter.hidden) {
+      dayFilter.querySelector('input[value=""]').checked = true;
+    }
+  }
+
+  document.getElementById('day-filter').addEventListener('change', function() {
+    var checked = document.querySelector('input[name="day"]:checked');
+    localStorage.setItem('last-day', checked ? checked.value : '');
+  });
+
   updatePuzzlePlaceholder();
 
   var links = Array.from(document.querySelectorAll('.homepage-main a'));
@@ -143,6 +171,11 @@
         if (sel.options[i].value === lastSeries) { sel.selectedIndex = i; break; }
       }
       updatePuzzlePlaceholder();
+      var lastDay = localStorage.getItem('last-day');
+      if (lastDay !== null && !document.getElementById('day-filter').hidden) {
+        var dayRadio = document.querySelector('input[name="day"][value="' + lastDay + '"]');
+        if (dayRadio) dayRadio.checked = true;
+      }
     }
 
     // room autocomplete items are loaded on focus via getItems callback
@@ -204,6 +237,10 @@
     var pathPrefix = '<%= Rails.application.config.relative_url_root.to_s %>';
     var url = pathPrefix + '/' + encodeURIComponent(series) + '/random';
     if (room) url += '/' + encodeURIComponent(room);
+    var dayInput = form.querySelector('input[name="day"]:checked');
+    if (dayInput && dayInput.value) {
+      url += '?day=' + dayInput.value;
+    }
     window.location = url;
     return false;
   }

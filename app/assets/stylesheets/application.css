@@ -110,6 +110,31 @@ a {
   font-size: 0.9em;
 }
 
+.homepage-sidebar .day-filter {
+  border: none;
+  padding: 0;
+  margin: 10px 0 0 0;
+}
+
+.homepage-sidebar .day-filter legend {
+  font-size: 0.9em;
+  margin-bottom: 2px;
+  padding: 0;
+}
+
+.homepage-sidebar .day-filter .day-options {
+  display: grid;
+  grid-template-columns: repeat(3, auto);
+  gap: 2px 4px;
+  justify-content: start;
+}
+
+.homepage-sidebar .day-filter label {
+  display: inline-block;
+  margin-top: 0;
+  margin-right: 0;
+}
+
 .homepage-sidebar select,
 .homepage-sidebar input[type="text"] {
   width: 100%;
