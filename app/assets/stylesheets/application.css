@@ -63,10 +63,10 @@ body {
   padding: 7px;
   padding-top: 15px;
 }
- a {
-   text-decoration: none;
-   color: #4c79c4;
- }
+a {
+  text-decoration: none;
+  color: #4c79c4;
+}
 
 .banner {
   background-color: #66a0ff;
@@ -152,8 +152,7 @@ body {
 
 .form-error {
   color: #b00;
-  font-size: 0.85em;
-  margin-top: 3px;
+  margin-top: 8px;
 }
 
 @media (max-width: 600px) {

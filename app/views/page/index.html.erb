@@ -9,16 +9,13 @@
         <%- series_config.each do |name, meta| -%>
           <option value="<%= name %>"
                   data-first-puzzle="<%= meta[:first_puzzle] %>"
-                  data-latest-puzzle="<%= latest_by_series[name] %>"
-                  data-skip-period="<%= meta[:skip_period] %>"
-                  data-skip-ref="<%= meta[:skip_ref] %>"><%= name.titleize %></option>
+                  data-latest-puzzle="<%= latest_by_series[name] %>"><%= name.titleize %></option>
         <%- end -%>
       </select>
 
       <label for="goto-number">Puzzle</label>
       <input type="text" id="goto-number" name="number" autocomplete="off" list="puzzle-suggestions">
       <datalist id="puzzle-suggestions"></datalist>
-      <div id="goto-error" class="form-error"></div>
 
       <label for="goto-room">Room</label>
       <input type="text" id="goto-room" name="room" placeholder="e.g. my-room" autocomplete="off" list="room-suggestions">
@@ -28,6 +25,7 @@
         <button type="submit">Go</button>
         <button type="button" class="random" onclick="return goToRandomPuzzle(this.form)">Random</button>
       </div>
+      <div id="goto-error" class="form-error"></div>
       <p>
         If <strong>puzzle</strong> is empty, go to the most recent in the series.
         <br>
@@ -138,9 +136,15 @@
       number = latest;
     } else {
       var firstPuzzle = parseInt(option.getAttribute('data-first-puzzle'), 10);
+      var latestPuzzle = parseInt(option.getAttribute('data-latest-puzzle'), 10);
+      var seriesName = series.charAt(0).toUpperCase() + series.slice(1);
       var num = parseInt(number, 10);
       if (isNaN(num) || num < firstPuzzle) {
-        errorEl.textContent = series.charAt(0).toUpperCase() + series.slice(1) + ' puzzles start at No ' + firstPuzzle;
+        errorEl.textContent = seriesName + ' puzzles start at No\u00A0' + firstPuzzle;
+        return false;
+      }
+      if (!isNaN(latestPuzzle) && num > latestPuzzle) {
+        errorEl.textContent = seriesName + ' puzzles only go up to No\u00A0' + latestPuzzle;
         return false;
       }
     }
@@ -158,27 +162,24 @@
     var room = form.room.value.trim();
     var errorEl = document.getElementById('goto-error');
     var option = form.series.options[form.series.selectedIndex];
-    var first = parseInt(option.getAttribute('data-first-puzzle'), 10);
-    var latest = parseInt(option.getAttribute('data-latest-puzzle'), 10);
+    var latest = option.getAttribute('data-latest-puzzle');
 
     if (!latest) {
       errorEl.textContent = 'No puzzles available for ' + series.charAt(0).toUpperCase() + series.slice(1);
       return false;
     }
 
-    var skipPeriod = parseInt(option.getAttribute('data-skip-period'), 10);
-    var skipRef    = parseInt(option.getAttribute('data-skip-ref'),    10);
-
-    var number;
-    do {
-      number = Math.floor(Math.random() * (latest - first + 1)) + first;
-    } while (skipPeriod && skipRef &&
-             ((number - skipRef) % skipPeriod + skipPeriod) % skipPeriod === skipPeriod - 1);
     errorEl.textContent = '';
     var pathPrefix = '<%= Rails.application.config.relative_url_root.to_s %>';
-    var url = pathPrefix + '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
+    var url = pathPrefix + '/' + encodeURIComponent(series) + '/random';
     if (room) url += '/' + encodeURIComponent(room);
     window.location = url;
     return false;
+  }
+
+  var errorParams = new URLSearchParams(window.location.search);
+  if (errorParams.get('error') === 'random_failed') {
+    document.getElementById('goto-error').textContent = "Couldn't find a random puzzle — please try again.";
+    history.replaceState(null, '', window.location.pathname);
   }
 </script>
