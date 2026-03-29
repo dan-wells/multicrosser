@@ -14,12 +14,16 @@
       </select>
 
       <label for="goto-number">Puzzle</label>
-      <input type="text" id="goto-number" name="number" autocomplete="off" list="puzzle-suggestions">
-      <datalist id="puzzle-suggestions"></datalist>
+      <div class="history-wrap">
+        <input type="text" id="goto-number" name="number" autocomplete="off">
+        <div id="puzzle-suggestions" class="history-list" hidden></div>
+      </div>
 
       <label for="goto-room">Room</label>
-      <input type="text" id="goto-room" name="room" placeholder="e.g. my-room" autocomplete="off" list="room-suggestions">
-      <datalist id="room-suggestions"></datalist>
+      <div class="history-wrap">
+        <input type="text" id="goto-room" name="room" placeholder="e.g. my-room" autocomplete="off">
+        <div id="room-suggestions" class="history-list" hidden></div>
+      </div>
 
       <div class="goto-buttons">
         <button type="submit">Go</button>
@@ -70,17 +74,51 @@
   var links = Array.from(document.querySelectorAll('.homepage-main a'));
   var originalHrefs = links.map(function(a) { return a.href; });
 
-  function populatePuzzleDatalist() {
-    var series   = document.getElementById('goto-series').value;
-    var puzzles  = JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]');
-    var datalist = document.getElementById('puzzle-suggestions');
-    datalist.innerHTML = '';
-    puzzles.forEach(function(num) {
-      var opt = document.createElement('option');
-      opt.value = num;
-      datalist.appendChild(opt);
+  function makeHistory(inputId, listId, getItems) {
+    var input = document.getElementById(inputId);
+    var list  = document.getElementById(listId);
+    var items = [];
+
+    function refresh() { items = getItems(); }
+    function show(filtered) {
+      list.innerHTML = '';
+      filtered.forEach(function(val) {
+        var div = document.createElement('div');
+        div.textContent = val;
+        div.addEventListener('mousedown', function(e) {
+          e.preventDefault();
+          input.value = val;
+          list.hidden = true;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        list.appendChild(div);
+      });
+      list.hidden = filtered.length === 0;
+    }
+
+    input.addEventListener('focus', function() {
+      refresh();
+      show(items);
     });
+    input.addEventListener('input', function() {
+      var q = input.value.toLowerCase();
+      show(q ? items.filter(function(v) { return String(v).toLowerCase().includes(q); }) : items);
+    });
+    input.addEventListener('blur', function() { list.hidden = true; });
+
+    return { refresh: refresh };
   }
+
+  var puzzleAC = makeHistory('goto-number', 'puzzle-suggestions', function() {
+    var series = document.getElementById('goto-series').value;
+    return JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]');
+  });
+
+  makeHistory('goto-room', 'room-suggestions', function() {
+    return JSON.parse(localStorage.getItem('previous-rooms') || '[]');
+  });
+
+  function populatePuzzleDatalist() { puzzleAC.refresh(); }
   document.getElementById('goto-series').addEventListener('change', populatePuzzleDatalist);
 
   function rewriteLinks() {
@@ -107,14 +145,7 @@
       updatePuzzlePlaceholder();
     }
 
-    var roomDatalist = document.getElementById('room-suggestions');
-    roomDatalist.innerHTML = '';
-    rooms.forEach(function(name) {
-      var opt = document.createElement('option');
-      opt.value = name;
-      roomDatalist.appendChild(opt);
-    });
-
+    // room autocomplete items are loaded on focus via getItems callback
     populatePuzzleDatalist();
     rewriteLinks();
   }

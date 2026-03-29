@@ -155,6 +155,33 @@ a {
   margin-top: 8px;
 }
 
+.history-wrap {
+  position: relative;
+}
+
+.history-list {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-top: none;
+  max-height: 160px;
+  overflow-y: auto;
+  z-index: 100;
+  box-sizing: border-box;
+}
+
+.history-list div {
+  padding: 5px;
+  cursor: pointer;
+}
+
+.history-list div:hover {
+  background-color: #e8f0ff;
+}
+
 @media (max-width: 600px) {
   .homepage {
     flex-direction: column;
