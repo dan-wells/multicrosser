@@ -2,7 +2,7 @@
 <p>
   <%= Time.at(@parsed_crossword['date']/1000).to_date.strftime("%a %-d %b %Y") %> |
   <%- if @parsed_crossword['creator'] -%>
-    Set by <%= @parsed_crossword['creator']['name'] %>
+    Set by <%= link_to @parsed_crossword['creator']['name'], @parsed_crossword['creator']['webUrl'] %>
   <%- end -%>
 </p>
 

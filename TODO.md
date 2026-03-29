@@ -7,7 +7,7 @@
 - [ ] Reduce margin after/around dateline on puzzle pages
     * specifically want to reduce whitespace before one-line sticky clue
     * set to 0px only in one-column view (on resize breakpoint)
-- [ ] Add links to setter pages
+- [x] Add links to setter pages
 - [ ] Add links to fifteensquared posts per puzzle
     * RSS feed here: http://www.fifteensquared.net/feed/
     * For old puzzles, need to see about parsing the archive, e.g. for Quiptics: https://www.fifteensquared.net/category/guardian/guardianquiptic/
