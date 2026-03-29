@@ -16,11 +16,13 @@
       </select>
 
       <label for="goto-number">Puzzle</label>
-      <input type="text" id="goto-number" name="number">
+      <input type="text" id="goto-number" name="number" autocomplete="off" list="puzzle-suggestions">
+      <datalist id="puzzle-suggestions"></datalist>
       <div id="goto-error" class="form-error"></div>
 
       <label for="goto-room">Room</label>
-      <input type="text" id="goto-room" name="room" placeholder="e.g. my-room">
+      <input type="text" id="goto-room" name="room" placeholder="e.g. my-room" autocomplete="off" list="room-suggestions">
+      <datalist id="room-suggestions"></datalist>
 
       <div class="goto-buttons">
         <button type="submit">Go</button>
@@ -66,6 +68,59 @@
     document.getElementById('goto-number').placeholder = first + ' onwards';
   }
   updatePuzzlePlaceholder();
+
+  var links = Array.from(document.querySelectorAll('.homepage-main a'));
+  var originalHrefs = links.map(function(a) { return a.href; });
+
+  function populatePuzzleDatalist() {
+    var series   = document.getElementById('goto-series').value;
+    var puzzles  = JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]');
+    var datalist = document.getElementById('puzzle-suggestions');
+    datalist.innerHTML = '';
+    puzzles.forEach(function(num) {
+      var opt = document.createElement('option');
+      opt.value = num;
+      datalist.appendChild(opt);
+    });
+  }
+  document.getElementById('goto-series').addEventListener('change', populatePuzzleDatalist);
+
+  function rewriteLinks() {
+    var room = document.getElementById('goto-room').value.trim();
+    links.forEach(function(a, i) {
+      a.href = room ? originalHrefs[i] + '/' + encodeURIComponent(room) : originalHrefs[i];
+    });
+  }
+  document.getElementById('goto-room').addEventListener('input', rewriteLinks);
+
+  function initFromStorage() {
+    var lastRoom   = localStorage.getItem('last-room');
+    var lastSeries = localStorage.getItem('last-series');
+    var lastPuzzle = localStorage.getItem('last-puzzle');
+    var rooms      = JSON.parse(localStorage.getItem('previous-rooms') || '[]');
+
+    if (lastRoom)   document.getElementById('goto-room').value   = lastRoom;
+    if (lastPuzzle) document.getElementById('goto-number').value = lastPuzzle;
+    if (lastSeries) {
+      var sel = document.getElementById('goto-series');
+      for (var i = 0; i < sel.options.length; i++) {
+        if (sel.options[i].value === lastSeries) { sel.selectedIndex = i; break; }
+      }
+      updatePuzzlePlaceholder();
+    }
+
+    var roomDatalist = document.getElementById('room-suggestions');
+    roomDatalist.innerHTML = '';
+    rooms.forEach(function(name) {
+      var opt = document.createElement('option');
+      opt.value = name;
+      roomDatalist.appendChild(opt);
+    });
+
+    populatePuzzleDatalist();
+    rewriteLinks();
+  }
+  window.addEventListener('pageshow', initFromStorage);
 
   function goToPuzzle(form) {
     var series = form.series.value;
