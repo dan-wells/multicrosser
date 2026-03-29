@@ -91,7 +91,8 @@
     }
 
     errorEl.textContent = '';
-    var url = '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
+    var pathPrefix = '<%= Rails.application.config.relative_url_root.to_s %>';
+    var url = pathPrefix + '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
     if (room) url += '/' + encodeURIComponent(room);
     window.location = url;
     return false;
@@ -119,7 +120,8 @@
     } while (skipPeriod && skipRef &&
              ((number - skipRef) % skipPeriod + skipPeriod) % skipPeriod === skipPeriod - 1);
     errorEl.textContent = '';
-    var url = '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
+    var pathPrefix = '<%= Rails.application.config.relative_url_root.to_s %>';
+    var url = pathPrefix + '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
     if (room) url += '/' + encodeURIComponent(room);
     window.location = url;
     return false;
