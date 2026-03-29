@@ -61,7 +61,7 @@
       <h3><%= series.titleize %></h3>
       <ul>
       <%- crosswords.each do |crossword| -%>
-        <li>
+        <li class="crossword-link">
           <%= link_to(crossword.name, crossword_path(crossword.series, crossword.identifier)) %>
         </li>
       <%- end -%>
@@ -99,7 +99,7 @@
 
   updatePuzzlePlaceholder();
 
-  var links = Array.from(document.querySelectorAll('.homepage-main a'));
+  var links = Array.from(document.querySelectorAll('.crossword-link a'));
   var originalHrefs = links.map(function(a) { return a.href; });
 
   function makeHistory(inputId, listId, getItems) {
