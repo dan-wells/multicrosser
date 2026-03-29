@@ -14,10 +14,10 @@ class Crossword
   end
 
   def name
-    formatted_time = date.strftime("%A %-d %B")
+    formatted_time = date.strftime("%a %-d %b")
     if title.include?(' No ')
       number = title.split(' No ').last
-      "#{formatted_time} (No #{number})"
+      "No #{number} \u2013 #{formatted_time}"
     else
       "#{formatted_time}"
     end
