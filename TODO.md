@@ -8,7 +8,7 @@
     * specifically want to reduce whitespace before one-line sticky clue
     * set to 0px only in one-column view (on resize breakpoint)
 - [x] Add links to setter pages
-- [ ] Add links to fifteensquared posts per puzzle
+- [x] Add links to fifteensquared posts per puzzle
     * RSS feed here: http://www.fifteensquared.net/feed/
     * For old puzzles, need to see about parsing the archive, e.g. for Quiptics: https://www.fifteensquared.net/category/guardian/guardianquiptic/
 - [ ] Add puzzle timer

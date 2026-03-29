@@ -1,9 +1,12 @@
 # Place at: /etc/systemd/system/multicrosser-load-feed.timer
+# Runs at midnight for Guardian crossword posts then throughout 
+# the morning to pick up blogs from Fifteensquared
 [Unit]
-Description=Run multicrosser-load-feed daily at 00:05
+Description=Run multicrosser-load-feed daily at 00:05 and hourly 07:00-12:00
 
 [Timer]
 OnCalendar=*-*-* 00:05:00
+OnCalendar=*-*-* 07..12:00:00
 Persistent=true
 
 [Install]

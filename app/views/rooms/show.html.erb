@@ -2,8 +2,9 @@
 <p>
   <%= Time.at(@parsed_crossword['date']/1000).to_date.strftime("%a %-d %b %Y") %> |
   <%- if @parsed_crossword['creator'] -%>
-    Set by <%= link_to @parsed_crossword['creator']['name'], @parsed_crossword['creator']['webUrl'] %>
+    Set by <%= link_to @parsed_crossword['creator']['name'], @parsed_crossword['creator']['webUrl'] %> |
   <%- end -%>
+  <%= link_to "Fifteensquared", @fifteensquared_url %>
 </p>
 
 <%= content_tag(:div, '', class: 'js-crossword', data: {
