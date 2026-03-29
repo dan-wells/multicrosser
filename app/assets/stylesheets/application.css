@@ -149,6 +149,10 @@ a {
   margin-top: 14px;
 }
 
+.homepage-sidebar .goto-buttons button {
+  width: 100px;
+}
+
 .homepage-sidebar button {
   padding: 6px 20px;
   border: none;
@@ -215,5 +219,10 @@ a {
 
   .homepage-sidebar {
     width: 100%;
+  }
+
+  .homepage-sidebar .day-filter .day-options {
+    display: flex;
+    text-align: center;
   }
 }
