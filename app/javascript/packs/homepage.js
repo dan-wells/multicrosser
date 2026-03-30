@@ -1,0 +1,188 @@
+function updatePuzzlePlaceholder() {
+  var select = document.getElementById('goto-series');
+  var option = select.options[select.selectedIndex];
+  var first = option.getAttribute('data-first-puzzle');
+  document.getElementById('goto-number').placeholder = first + ' onwards';
+  updateDayFilter();
+}
+
+function updateDayFilter() {
+  var select = document.getElementById('goto-series');
+  var dayFilter = document.getElementById('day-filter');
+  dayFilter.hidden = (select.value !== 'cryptic');
+  if (dayFilter.hidden) {
+    dayFilter.querySelector('input[value=""]').checked = true;
+  }
+}
+
+document.getElementById('day-filter').addEventListener('change', function() {
+  var checked = document.querySelector('input[name="day"]:checked');
+  localStorage.setItem('last-day', checked ? checked.value : '');
+});
+
+updatePuzzlePlaceholder();
+
+var links = Array.from(document.querySelectorAll('.crossword-link a'));
+var originalHrefs = links.map(function(a) { return a.href; });
+
+function makeHistory(inputId, listId, getItems) {
+  var input = document.getElementById(inputId);
+  var list  = document.getElementById(listId);
+  var items = [];
+
+  function refresh() { items = getItems(); }
+  function show(filtered) {
+    list.innerHTML = '';
+    filtered.forEach(function(val) {
+      var div = document.createElement('div');
+      div.textContent = val;
+      div.addEventListener('mousedown', function(e) {
+        e.preventDefault();
+        input.value = val;
+        list.hidden = true;
+        input.dispatchEvent(new Event('input', { bubbles: true }));
+      });
+      list.appendChild(div);
+    });
+    list.hidden = filtered.length === 0;
+  }
+
+  input.addEventListener('focus', function() {
+    refresh();
+    show(items);
+  });
+  input.addEventListener('input', function() {
+    var q = input.value.toLowerCase();
+    show(q ? items.filter(function(v) { return String(v).toLowerCase().includes(q); }) : items);
+  });
+  input.addEventListener('blur', function() { list.hidden = true; });
+
+  return { refresh: refresh };
+}
+
+var puzzleAC = makeHistory('goto-number', 'puzzle-suggestions', function() {
+  var series = document.getElementById('goto-series').value;
+  return JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]');
+});
+
+makeHistory('goto-room', 'room-suggestions', function() {
+  return JSON.parse(localStorage.getItem('previous-rooms') || '[]');
+});
+
+function populatePuzzleDatalist() { puzzleAC.refresh(); }
+document.getElementById('goto-series').addEventListener('change', function() {
+  updatePuzzlePlaceholder();
+  populatePuzzleDatalist();
+});
+
+function rewriteLinks() {
+  var room = document.getElementById('goto-room').value.trim();
+  links.forEach(function(a, i) {
+    a.href = room ? originalHrefs[i] + '/' + encodeURIComponent(room) : originalHrefs[i];
+  });
+}
+document.getElementById('goto-room').addEventListener('input', rewriteLinks);
+
+function initFromStorage() {
+  var lastRoom   = localStorage.getItem('last-room');
+  var lastSeries = localStorage.getItem('last-series');
+  var lastPuzzle = localStorage.getItem('last-puzzle');
+  var rooms      = JSON.parse(localStorage.getItem('previous-rooms') || '[]');
+
+  if (lastRoom)   document.getElementById('goto-room').value   = lastRoom;
+  if (lastPuzzle) document.getElementById('goto-number').value = lastPuzzle;
+  if (lastSeries) {
+    var sel = document.getElementById('goto-series');
+    for (var i = 0; i < sel.options.length; i++) {
+      if (sel.options[i].value === lastSeries) { sel.selectedIndex = i; break; }
+    }
+    updatePuzzlePlaceholder();
+    var lastDay = localStorage.getItem('last-day');
+    if (lastDay !== null && !document.getElementById('day-filter').hidden) {
+      var dayRadio = document.querySelector('input[name="day"][value="' + lastDay + '"]');
+      if (dayRadio) dayRadio.checked = true;
+    }
+  }
+
+  // room autocomplete items are loaded on focus via getItems callback
+  populatePuzzleDatalist();
+  rewriteLinks();
+}
+window.addEventListener('pageshow', initFromStorage);
+
+var form = document.getElementById('goto-form');
+form.addEventListener('submit', function(e) {
+  e.preventDefault();
+  goToPuzzle(this);
+});
+
+document.getElementById('random-btn').addEventListener('click', function() {
+  goToRandomPuzzle(this.form);
+});
+
+function goToPuzzle(form) {
+  var series = form.series.value;
+  var number = form.number.value.trim();
+  var room = form.room.value.trim();
+  var errorEl = document.getElementById('goto-error');
+  var option = form.series.options[form.series.selectedIndex];
+
+  if (!number) {
+    var latest = option.getAttribute('data-latest-puzzle');
+    if (!latest) {
+      errorEl.textContent = 'No puzzles available for ' + series.charAt(0).toUpperCase() + series.slice(1);
+      return false;
+    }
+    number = latest;
+  } else {
+    var firstPuzzle = parseInt(option.getAttribute('data-first-puzzle'), 10);
+    var latestPuzzle = parseInt(option.getAttribute('data-latest-puzzle'), 10);
+    var seriesName = series.charAt(0).toUpperCase() + series.slice(1);
+    var num = parseInt(number, 10);
+    if (isNaN(num) || num < firstPuzzle) {
+      errorEl.textContent = seriesName + ' puzzles start at No\u00A0' + firstPuzzle;
+      return false;
+    }
+    if (!isNaN(latestPuzzle) && num > latestPuzzle) {
+      errorEl.textContent = seriesName + ' puzzles only go up to No\u00A0' + latestPuzzle;
+      return false;
+    }
+  }
+
+  errorEl.textContent = '';
+  var pathPrefix = form.dataset.pathPrefix || '';
+  var url = pathPrefix + '/' + encodeURIComponent(series) + '/' + encodeURIComponent(number);
+  if (room) url += '/' + encodeURIComponent(room);
+  window.location = url;
+  return false;
+}
+
+function goToRandomPuzzle(form) {
+  var series = form.series.value;
+  var room = form.room.value.trim();
+  var errorEl = document.getElementById('goto-error');
+  var option = form.series.options[form.series.selectedIndex];
+  var latest = option.getAttribute('data-latest-puzzle');
+
+  if (!latest) {
+    errorEl.textContent = 'No puzzles available for ' + series.charAt(0).toUpperCase() + series.slice(1);
+    return false;
+  }
+
+  errorEl.textContent = '';
+  var pathPrefix = form.dataset.pathPrefix || '';
+  var url = pathPrefix + '/' + encodeURIComponent(series) + '/random';
+  if (room) url += '/' + encodeURIComponent(room);
+  var dayInput = form.querySelector('input[name="day"]:checked');
+  if (dayInput && dayInput.value) {
+    url += '?day=' + dayInput.value;
+  }
+  window.location = url;
+  return false;
+}
+
+var errorParams = new URLSearchParams(window.location.search);
+if (errorParams.get('error') === 'random_failed') {
+  document.getElementById('goto-error').textContent = "Couldn't find a random puzzle — please try again.";
+  history.replaceState(null, '', window.location.pathname);
+}
