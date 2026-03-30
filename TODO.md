@@ -25,7 +25,7 @@
 - [ ] Limit random puzzle button to avoid any puzzles which have been completed in the specified room
     * -> need to track puzzle completion in redis ?
     * maybe also have an explicit "mark complete" button in case you come across one you've already done
-- [ ] Allow specifying day of the week for random Cryptics -- include/exclude checkboxes
+- [x] Allow specifying day of the week for random Cryptics -- include/exclude checkboxes
 - [x] Track previous room names and put into a dropdown on homepage ?
     * but might need a way to clean those up, and don't track any random ones
     * is there such a thing as a combined text input/dropdown? maybe just a radio button to toggle between them

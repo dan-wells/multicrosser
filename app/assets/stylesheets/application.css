@@ -59,10 +59,12 @@ body {
   margin:0;
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;
 }
+
 .main-container {
   padding: 7px;
   padding-top: 15px;
 }
+
 a {
   text-decoration: none;
   color: #4c79c4;
@@ -209,6 +211,10 @@ a {
 
 .history-list div:hover {
   background-color: #e8f0ff;
+}
+
+.crossword-info {
+    margin-top: 0px;
 }
 
 @media (max-width: 600px) {

@@ -1,5 +1,5 @@
 <h1><%= @parsed_crossword['name'] %></h1>
-<p>
+<p class="crossword-info">
   <%= Time.at(@parsed_crossword['date']/1000).to_date.strftime("%a %-d %b %Y") %> |
   <%- if @parsed_crossword['creator'] -%>
     Set by <%= link_to @parsed_crossword['creator']['name'], @parsed_crossword['creator']['webUrl'] %> |
@@ -16,7 +16,7 @@
 <%= stylesheet_pack_tag "application" %>
 <%= javascript_pack_tag "application", "data-turbolinks-track": "reload" %>
 
-<p style="clear: both;">
+<p class="crossword-info" style="clear: both;">
   Share this page with others to solve this crossword with them.
   <br><a href="<%= @url %>">Published by the Guardian</a>
 </p>
