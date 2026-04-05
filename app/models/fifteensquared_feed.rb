@@ -2,8 +2,8 @@ class FifteensquaredFeed
   FEED_URL = 'https://www.fifteensquared.net/feed/'
 
   SERIES_PATTERNS = {
-    'quiptic' => /guardian\s+quiptic\s+([\d,]+)/i,
-    'cryptic' => /guardian\s+cryptic\s+(?:no\.?\s*)?([\d,]+)/i,
+    'quiptic' => /(?:guardian\s+)?quiptic(?:\s+no\.?)?\s+([\d,.]+)/i,
+    'cryptic' => /guardian(?:\s+cryptic)?(?:\s+crossword)?(?:\s+no\.?)?\s+([\d,.]+)/i,
   }
 
   def self.load
@@ -14,7 +14,7 @@ class FifteensquaredFeed
       link  = item.css('link').text
       SERIES_PATTERNS.each do |series, pattern|
         if (m = title.match(pattern))
-          number = m[1].delete(',')
+          number = m[1].delete(',.')
           redis.set("fifteensquared-#{series}/#{number}", link)
         end
       end
