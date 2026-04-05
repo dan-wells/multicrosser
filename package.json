@@ -15,6 +15,7 @@
   },
   "scripts": {
     "build": "esbuild app/javascript/crossword.js app/javascript/homepage.js --bundle --sourcemap --outdir=app/assets/builds --loader:.css=css --loader:.js=jsx",
-    "lint": "yarn run eslint -- --ext .js --ext .jsx app/javascript"
-  }
+    "lint": "eslint --ext .js --ext .jsx app/javascript"
+  },
+  "packageManager": "yarn@4.13.0"
 }
