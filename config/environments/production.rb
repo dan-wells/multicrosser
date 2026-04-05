@@ -23,10 +23,6 @@ Rails.application.configure do
   # Apache or NGINX already handles this.
   config.public_file_server.enabled = ENV['RAILS_SERVE_STATIC_FILES'].present?
 
-  # Compress JavaScripts and CSS.
-  # Updated: terser replaces uglifier (uglifier requires old ExecJS, incompatible with Ruby 3)
-  config.assets.js_compressor = :terser
-
   # Do not fallback to assets pipeline if a precompiled asset is missed.
   config.assets.compile = false
 

@@ -16,7 +16,7 @@ class MovesChannel < ApplicationCable::Channel
   end
 
   def move(data)
-    redis.hmset(channel_name, "#{data['x']}-#{data['y']}", data['value'])
+    redis.hset(channel_name, "#{data['x']}-#{data['y']}", data['value'])
     ActionCable.server.broadcast(channel_name, data)
   end
 
