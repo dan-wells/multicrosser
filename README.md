@@ -12,11 +12,22 @@ Crosswords are scraped from the Guardian Crossword pages which contain a JSON re
 
 To run this project:
 + Install Redis and make sure the server is running
-+ Run `./bin/setup` to install dependencies (Ruby gems and JavaScript packages)
++ Run `./bin/setup` to install Ruby and JavaScript dependencies
 + Run `./bin/rails crosswords:load_from_feed` to load the latest crosswords to display on the homepage
-+ Run `./bin/rails server` to start the project
++ Run `yarn build` to compile JavaScript and CSS assets
++ Run `bin/dev` to start the Rails server and esbuild watch process together (or run `bin/rails server` and `yarn build --watch` in separate terminals)
 
-After pulling changes, run `./bin/update` to install any new dependencies and precompile static CSS and JavaScript assets.
+After pulling changes, run `./bin/update` to install any new dependencies, rebuild assets, and restart the server.
+
+## Deployment
+
+On the production server, from `/var/www/multicrosser`:
+
+```
+sh deploy/deploy.sh
+```
+
+This pulls the latest code, installs dependencies, builds JS/CSS assets, precompiles for the asset pipeline, and restarts the app.
 
 ## Codebase Overview
 
@@ -47,9 +58,10 @@ Handles the WebSocket connection for a room:
 
 ### Frontend (`app/javascript/`)
 
-- `packs/application.js` — entry point; renders the React crossword component into the page
-- `subscription.js` — connects to the server over WebSocket; sends moves the user types, and applies moves received from other players
-- `move_buffer.js` — queues moves in the browser's local storage while offline; replays them when the connection is restored
+- `crossword.js` — entry point; renders the React crossword component into the page
+- `homepage.js` — entry point for the homepage; handles form state, puzzle/room history, and navigation
+- `lib/subscription.js` — connects to the server over WebSocket; sends moves the user types, and applies moves received from other players
+- `lib/move_buffer.js` — queues moves in the browser's local storage while offline; replays them when the connection is restored
 
 ### Views (`app/views/`)
 
@@ -60,16 +72,17 @@ Handles the WebSocket connection for a room:
 
 There are two separate CSS pipelines:
 
-- `app/assets/stylesheets/application.css` — processed by the Rails asset pipeline (Sprockets). Contains global styles for layout, typography, and the homepage.
-- `app/javascript/crossword-overrides.scss` — processed by webpack (imported in `packs/application.js`). Contains overrides for styles that come from the `react-crossword` component. This file is imported *after* the component so that its rules take precedence in the cascade.
+- `app/assets/stylesheets/application.css` — processed by Sprockets (the Rails asset pipeline). Contains global styles for layout, typography, and the homepage.
+- `app/javascript/lib/crossword-overrides.css` — bundled by esbuild (imported in `crossword.js`). Contains overrides for styles injected at runtime by the `react-crossword` component.
 
-The `react-crossword` component bundles its own CSS, which is injected into the page at runtime by JavaScript. Any overrides for component styles must go through the webpack pipeline (not `application.css`) to ensure they are loaded after the component's styles.
-
-In production, both pipelines are compiled into static files by:
+In production, assets are compiled in two steps:
 
 ```
-NODE_OPTIONS=--openssl-legacy-provider RAILS_ENV=production bundle exec rails assets:precompile
+RAILS_ENV=production yarn build
+RAILS_ENV=production bundle exec rails assets:precompile
 ```
+
+`yarn build` runs esbuild and outputs `crossword.js`, `crossword.css`, and `homepage.js` to `app/assets/builds/`. Sprockets then fingerprints everything (including those files) into `public/assets/`.
 
 ## Testing
 

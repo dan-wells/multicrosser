@@ -39,6 +39,9 @@ yarn-debug.log*
 .yarn-integrity
 .yarn/install-state.gz
 
+/app/assets/builds/*
+!/app/assets/builds/.keep
+
 .tags
 dump.rdb
 CLAUDE.md
