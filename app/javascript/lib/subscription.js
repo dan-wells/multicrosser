@@ -1,9 +1,9 @@
-import ActionCable from 'actioncable';
+import { createConsumer } from '@rails/actioncable';
 import MoveBuffer from './move_buffer';
 
 const createSubscription = function createSubscription(crossword, room, onReceiveMove, onReplayMove, onInitialState) {
   const cableUrl = document.querySelector('meta[name="cable-url"]')?.content;
-  const cable = ActionCable.createConsumer(cableUrl);
+  const cable = createConsumer(cableUrl);
   const moveBuffer = new MoveBuffer(room);
 
   return cable.subscriptions.create(

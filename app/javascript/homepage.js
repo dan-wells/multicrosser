@@ -87,7 +87,6 @@ function initFromStorage() {
   var lastRoom   = localStorage.getItem('last-room');
   var lastSeries = localStorage.getItem('last-series');
   var lastPuzzle = localStorage.getItem('last-puzzle');
-  var rooms      = JSON.parse(localStorage.getItem('previous-rooms') || '[]');
 
   if (lastRoom)   document.getElementById('goto-room').value   = lastRoom;
   if (lastPuzzle) document.getElementById('goto-number').value = lastPuzzle;

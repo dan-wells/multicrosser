@@ -2,7 +2,7 @@
   "name": "multicrosser",
   "private": true,
   "dependencies": {
-    "actioncable": "^5.2.1",
+    "@rails/actioncable": "^8.0.0",
     "prop-types": "^15.6.2",
     "react": "^16.6.3",
     "react-crossword": "^0.2.0",
@@ -10,12 +10,8 @@
   },
   "devDependencies": {
     "esbuild": "^0.28.0",
-    "eslint": "^5.9.0",
-    "eslint-config-airbnb": "^17.1.0",
-    "eslint-import-resolver-alias": "^1.1.1",
-    "eslint-plugin-import": "^2.14.0",
-    "eslint-plugin-jsx-a11y": "^6.1.2",
-    "eslint-plugin-react": "^7.11.1"
+    "eslint": "^8.0.0",
+    "eslint-plugin-react": "^7.37.0"
   },
   "scripts": {
     "build": "esbuild app/javascript/crossword.js app/javascript/homepage.js --bundle --sourcemap --outdir=app/assets/builds --loader:.css=css --loader:.js=jsx",
