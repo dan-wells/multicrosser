@@ -1,8 +1,9 @@
 import ActionCable from 'actioncable';
-import MoveBuffer from 'move_buffer';
+import MoveBuffer from './move_buffer';
 
 const createSubscription = function createSubscription(crossword, room, onReceiveMove, onReplayMove, onInitialState) {
-  const cable = ActionCable.createConsumer(process.env.WEBSOCKET_URL);
+  const cableUrl = document.querySelector('meta[name="cable-url"]')?.content;
+  const cable = ActionCable.createConsumer(cableUrl);
   const moveBuffer = new MoveBuffer(room);
 
   return cable.subscriptions.create(
