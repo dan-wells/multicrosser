@@ -1,5 +1,6 @@
 import React from 'react';
-import ReactDOM from 'react-dom';
+import { createRoot } from 'react-dom/client';
+import { flushSync } from 'react-dom';
 import Crossword from 'react-crossword';
 import './lib/crossword-overrides.css';
 import { createSubscription } from './lib/subscription';
@@ -37,13 +38,18 @@ const onReplayMove = (move) => {
   }
 };
 
+const root = createRoot(crosswordElement);
 const subscription = createSubscription(crosswordIdentifier, room, onReceiveMove, onReplayMove, (initialState) => {
-  ReactDOM.render(<Crossword
-    ref={crosswordRef}
-    data={crosswordData}
-    loadGrid={() => {}}
-    saveGrid={() => {}}
-    onMove={(move) => { subscription.move(move); }}
-  />, crosswordElement);
+  // flushSync ensures the component is mounted synchronously so crosswordRef.current
+  // is populated before updateGrid is called (root.render is async in React 18)
+  flushSync(() => {
+    root.render(<Crossword
+      ref={crosswordRef}
+      data={crosswordData}
+      loadGrid={() => {}}
+      saveGrid={() => {}}
+      onMove={(move) => { subscription.move(move); }}
+    />);
+  });
   crosswordRef.current.updateGrid(initialState);
 });
