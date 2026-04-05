@@ -4,7 +4,11 @@
   <%- if @parsed_crossword['creator'] -%>
     Set by <%= link_to @parsed_crossword['creator']['name'], @parsed_crossword['creator']['webUrl'] %> |
   <%- end -%>
-  <%= link_to "Fifteensquared", @fifteensquared_url %>
+  <%- if @fifteensquared_is_search -%>
+    Search on <%= link_to "Fifteensquared", @fifteensquared_url %>
+  <%- else -%>
+    <%= link_to "Fifteensquared", @fifteensquared_url %>
+  <%- end -%>
 </p>
 
 <%= content_tag(:div, '', class: 'js-crossword', data: {

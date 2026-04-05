@@ -6,7 +6,9 @@ class RoomsController < ApplicationController
     @crossword = crossword
     @parsed_crossword = JSON.parse(crossword)
     @url = "https://www.theguardian.com/crosswords/#{params[:series]}/#{params[:identifier]}"
-    @fifteensquared_url = REDIS.get("fifteensquared-#{crossword_identifier}") ||
+    direct_url = REDIS.get("fifteensquared-#{crossword_identifier}")
+    @fifteensquared_is_search = direct_url.nil?
+    @fifteensquared_url = direct_url ||
       "https://www.fifteensquared.net/?s=#{CGI.escape("guardian #{params[:series]} #{params[:identifier]}")}"
   end
 
