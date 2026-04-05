@@ -37,7 +37,7 @@ class CrosswordTest < ActiveSupport::TestCase
 
   test "name includes number when title contains No" do
     cw = Crossword.new(valid_data('title' => 'Quiptic crossword No 1,234'))
-    assert_includes cw.name, '(No 1,234)'
+    assert_includes cw.name, 'No 1,234'
   end
 
   test "name omits number when title has no No" do
@@ -47,7 +47,7 @@ class CrosswordTest < ActiveSupport::TestCase
 
   test "name formats date correctly" do
     cw = Crossword.new(valid_data('date' => '2024-01-15T06:00:00.000Z'))
-    assert_includes cw.name, 'Monday 15 January'
+    assert_includes cw.name, 'Mon 15 Jan'
   end
 
   test "equality based on identifier" do

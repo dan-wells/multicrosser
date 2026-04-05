@@ -37,3 +37,9 @@
 /node_modules
 yarn-debug.log*
 .yarn-integrity
+.yarn/install-state.gz
+
+.tags
+dump.rdb
+CLAUDE.md
+deploy/nginx-local-test.conf
