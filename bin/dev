@@ -3,4 +3,4 @@
 export PORT="${PORT:-3000}"
 
 yarn build --watch &
-bundle exec rails server -p $PORT
+bundle exec rails server -p $PORT -b 0.0.0.0

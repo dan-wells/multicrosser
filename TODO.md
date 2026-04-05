@@ -31,3 +31,5 @@
     * is there such a thing as a combined text input/dropdown? maybe just a radio button to toggle between them
     * or just cookies to remember what you last put in there? same for puzzle number -> quick continue
     * -- same time though, don't keep _everything_ you ever wrote there !
+- [ ] app/channels/moves_channel.rb operates with a 20x20 grid -- check out why
+    * could be some puzzles are bigger than others? 

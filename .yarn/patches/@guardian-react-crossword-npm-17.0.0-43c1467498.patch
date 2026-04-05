@@ -1,0 +1,264 @@
+diff --git a/dist/components/Crossword.js b/dist/components/Crossword.js
+index 307a4b3cf548398845198bb8d24b2370c60df211..bf3d6469df3cbb23bc1700465787c7a02cb00567 100644
+--- a/dist/components/Crossword.js
++++ b/dist/components/Crossword.js
+@@ -1,9 +1,8 @@
+-import { jsx } from '@emotion/react/jsx-runtime';
++import { jsx, Fragment, jsxs } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { useMemo } from 'react';
++import { useMemo, forwardRef, useRef, useImperativeHandle } from 'react';
+ import { ContextProvider } from '../context/ContextProvider.js';
+ import { useProgress } from '../context/Progress.js';
+-import { useTheme } from '../context/Theme.js';
+ import { ScreenLayout } from '../layouts/ScreenLayout.js';
+ import { defaultTheme } from '../theme.js';
+ import { AnagramHelper } from './AnagramHelper.js';
+@@ -12,19 +11,7 @@ import { Controls } from './Controls.js';
+ import { FocusedClue } from './FocusedClue.js';
+ import { Grid } from './Grid.js';
+ 
+-const SavedMessage = () => {
+-  const { isStored } = useProgress();
+-  const { textColor } = useTheme();
+-  return /* @__PURE__ */ jsx(
+-    "p",
+-    {
+-      css: css`
+-				color: ${textColor};
+-			`,
+-      children: isStored ? "Crosswords are saved automatically." : "Crossword will not be saved."
+-    }
+-  );
+-};
++const SavedMessage = () => null;
+ const layoutComponents = {
+   Grid,
+   Controls,
+@@ -33,14 +20,40 @@ const layoutComponents = {
+   Clues,
+   SavedMessage
+ };
+-const Crossword = ({
++
++const CrosswordHandle = forwardRef((_, ref) => {
++  const { progress, updateProgress } = useProgress();
++  const progressRef = useRef(progress);
++  progressRef.current = progress;
++
++  useImperativeHandle(ref, () => ({
++    setCellValue(x, y, value) {
++      const newProgress = progressRef.current.map(col => [...col]);
++      newProgress[x][y] = value;
++      progressRef.current = newProgress;
++      updateProgress(newProgress);
++    },
++    getCellValue(x, y) {
++      return progressRef.current[x]?.[y] ?? '';
++    },
++    updateGrid(newProgress) {
++      progressRef.current = newProgress;
++      updateProgress(newProgress);
++    },
++  }));
++
++  return null;
++});
++
++const Crossword = forwardRef(({
+   children,
+   data,
+   progress,
++  onMove,
+   Layout,
+   MobileBannerAd,
+   ...userTheme
+-}) => {
++}, ref) => {
+   const LayoutComponent = Layout ?? ScreenLayout;
+   const theme = useMemo(
+     () => ({ ...defaultTheme, ...userTheme }),
+@@ -55,11 +68,16 @@ const Crossword = ({
+     theme.gridMinWidth,
+     data.dimensions.cols
+   ]);
+-  return /* @__PURE__ */ jsx(ContextProvider, { theme, data, userProgress: progress, children: /* @__PURE__ */ jsx(
+-    "div",
++  return /* @__PURE__ */ jsx(ContextProvider, { theme, data, userProgress: progress, onMove, children: /* @__PURE__ */ jsxs(
++    Fragment,
+     {
+-      "data-link-name": "Crosswords",
+-      css: css`
++      children: [
++        /* @__PURE__ */ jsx(CrosswordHandle, { ref }),
++        /* @__PURE__ */ jsx(
++          "div",
++          {
++            "data-link-name": "Crosswords",
++            css: css`
+ 					*,
+ 					*::before,
+ 					*::after {
+@@ -73,16 +91,19 @@ const Crossword = ({
+ 					container-type: inline-size;
+ 					position: relative;
+ 				`,
+-      children: children ?? /* @__PURE__ */ jsx(
+-        LayoutComponent,
+-        {
+-          ...layoutComponents,
+-          gridWidth,
+-          MobileBannerAd
+-        }
+-      )
++            children: children ?? /* @__PURE__ */ jsx(
++              LayoutComponent,
++              {
++                ...layoutComponents,
++                gridWidth,
++                MobileBannerAd
++              }
++            )
++          }
++        )
++      ]
+     }
+   ) });
+-};
++});
+ 
+ export { Crossword };
+diff --git a/dist/context/ContextProvider.js b/dist/context/ContextProvider.js
+index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf20505bc7 100644
+--- a/dist/context/ContextProvider.js
++++ b/dist/context/ContextProvider.js
+@@ -1,4 +1,5 @@
+ import { jsx } from '@emotion/react/jsx-runtime';
++import { createContext, useContext } from 'react';
+ import { CurrentCellProvider } from './CurrentCell.js';
+ import { CurrentClueProvider } from './CurrentClue.js';
+ import { DataProvider } from './Data.js';
+@@ -7,11 +8,15 @@ import { ShowAnagramHelperProvider } from './ShowAnagramHelper.js';
+ import { ThemeProvider } from './Theme.js';
+ import { ValidAnswersProvider } from './ValidAnswers.js';
+ 
++const OnMoveContext = createContext(undefined);
++const useOnMove = () => useContext(OnMoveContext);
++
+ const ContextProvider = ({
+   data,
+   selectedEntryId,
+   userProgress,
+   theme,
++  onMove,
+   children
+ }) => {
+   const { entries, dimensions, solutionAvailable, id } = data;
+@@ -28,11 +33,11 @@ const ContextProvider = ({
+           id,
+           dimensions,
+           progress: userProgress,
+-          children: /* @__PURE__ */ jsx(CurrentCellProvider, { children: /* @__PURE__ */ jsx(CurrentClueProvider, { selectedEntryId, children: /* @__PURE__ */ jsx(ValidAnswersProvider, { children }) }) })
++          children: /* @__PURE__ */ jsx(CurrentCellProvider, { children: /* @__PURE__ */ jsx(CurrentClueProvider, { selectedEntryId, children: /* @__PURE__ */ jsx(ValidAnswersProvider, { children: /* @__PURE__ */ jsx(OnMoveContext.Provider, { value: onMove, children }) }) }) })
+         }
+       )
+     }
+   ) }) });
+ };
+ 
+-export { ContextProvider };
++export { ContextProvider, useOnMove };
+diff --git a/dist/context/Progress.js b/dist/context/Progress.js
+index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..3643cd3a93c6b1faa874a0ba7a0d151f0c415fcd 100644
+--- a/dist/context/Progress.js
++++ b/dist/context/Progress.js
+@@ -1,7 +1,6 @@
+ import { jsx } from '@emotion/react/jsx-runtime';
+ import { log } from '@guardian/libs';
+-import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
+-import useLocalStorageState from '../node_modules/.pnpm/use-local-storage-state@19.5.0_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/use-local-storage-state/src/useLocalStorageState.js';
++import { createContext, useContext, useState, useCallback, useMemo } from 'react';
+ import { getNewProgress } from '../utils/getNewProgress.js';
+ 
+ const serializer = {
+@@ -51,31 +50,19 @@ const ProgressProvider = ({
+ }) => {
+   const defaultValue = getInitialProgress({ dimensions, userProgress });
+   const [progress, setProgress] = useState(defaultValue);
+-  const [storedProgress, setStoredProgress, rest] = useLocalStorageState(`crosswords.${id}`, {
+-    defaultValue,
+-    serializer
+-  });
+   const updateProgress = useCallback(
+     (newProgress) => {
+-      setStoredProgress(newProgress);
+       setProgress(newProgress);
+     },
+-    [setStoredProgress]
++    []
+   );
+-  useEffect(() => {
+-    if (isValid(storedProgress, { dimensions })) {
+-      setProgress(storedProgress);
+-    } else {
+-      updateProgress(defaultValue);
+-    }
+-  }, [defaultValue, dimensions, storedProgress, updateProgress]);
+   const contextValue = useMemo(
+     () => ({
+       progress,
+       updateProgress,
+-      isStored: rest.isPersistent
++      isStored: false
+     }),
+-    [progress, updateProgress, rest.isPersistent]
++    [progress, updateProgress]
+   );
+   return /* @__PURE__ */ jsx(ProgressContext.Provider, { value: contextValue, children });
+ };
+diff --git a/dist/hooks/useUpdateCell.js b/dist/hooks/useUpdateCell.js
+index 5e0749115ef26ec12ae125c11c87498c1907c784..73178073cb27ff8505ddea26a12a25e129ab7a1d 100644
+--- a/dist/hooks/useUpdateCell.js
++++ b/dist/hooks/useUpdateCell.js
+@@ -1,5 +1,6 @@
+ import { isUndefined } from '@guardian/libs';
+ import { useCallback } from 'react';
++import { useOnMove } from '../context/ContextProvider.js';
+ import { useData } from '../context/Data.js';
+ import { useProgress } from '../context/Progress.js';
+ import { useValidAnswers } from '../context/ValidAnswers.js';
+@@ -8,6 +9,7 @@ const useUpdateCell = () => {
+   const { progress, updateProgress } = useProgress();
+   const { setValidAnswers, validAnswers } = useValidAnswers();
+   const { cells } = useData();
++  const onMove = useOnMove();
+   const updateCell = useCallback(
+     ({ x, y, value }) => {
+       const cell = cells.getByCoords({ x, y });
+@@ -15,6 +17,7 @@ const useUpdateCell = () => {
+       if (isUndefined(cellGroup)) {
+         return;
+       }
++      const previousValue = progress[x]?.[y] ?? '';
+       const newProgress = [...progress];
+       if (isUndefined(newProgress[x])) {
+         throw new Error("Invalid x coordinate");
+@@ -24,6 +27,9 @@ const useUpdateCell = () => {
+       }
+       newProgress[x][y] = value;
+       updateProgress(newProgress);
++      if (onMove) {
++        onMove({ x, y, value, previousValue });
++      }
+       for (const entryId of cellGroup) {
+         if (validAnswers.has(entryId)) {
+           setValidAnswers((prev) => {
+@@ -34,7 +40,7 @@ const useUpdateCell = () => {
+         }
+       }
+     },
+-    [cells, progress, setValidAnswers, updateProgress, validAnswers]
++    [cells, onMove, progress, setValidAnswers, updateProgress, validAnswers]
+   );
+   return { updateCell };
+ };
