@@ -198,6 +198,18 @@ index 0c9372d69dcbe2fec3d85435aaf67923d12887c0..6d61015578584d01908c7658d02c9b53
    ] });
  };
  const CrosswordButton = memo(ButtonComponent);
+diff --git a/dist/components/SolutionDisplay.js b/dist/components/SolutionDisplay.js
+index 92435a7018a084ab6dcf6f3be51edbaab17f65c6..fb4d7f609213844baff92790330a9d0750777e36 100644
+--- a/dist/components/SolutionDisplay.js
++++ b/dist/components/SolutionDisplay.js
+@@ -36,6 +36,7 @@ const SolutionDisplayCell = ({
+   return /* @__PURE__ */ jsxs(
+     "div",
+     {
++      "data-solution-cell": "",
+       css: css`
+ 				${textSans12};
+ 				font-size: ${theme.gridCellSize * 0.6}px;
 diff --git a/dist/context/ContextProvider.js b/dist/context/ContextProvider.js
 index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf20505bc7 100644
 --- a/dist/context/ContextProvider.js
@@ -335,3 +347,74 @@ index 5e0749115ef26ec12ae125c11c87498c1907c784..cb47dae712aef2557df89befa67764a4
    );
    return { updateCell };
  };
+diff --git a/dist/layouts/ScreenLayout.js b/dist/layouts/ScreenLayout.js
+index bcb5145a8a2ae3ab35077253b632f28e00eccbce..aeadeb6cfb5328b37349d4e5c051b69d34f90d10 100644
+--- a/dist/layouts/ScreenLayout.js
++++ b/dist/layouts/ScreenLayout.js
+@@ -59,7 +59,6 @@ const Layout = ({
+ 				}
+ 			`,
+       children: [
+-        /* @__PURE__ */ jsx(AnagramHelper, {}),
+         /* @__PURE__ */ jsxs(
+           "div",
+           {
+@@ -71,27 +70,38 @@ const Layout = ({
+ 					}
+ 				`,
+             children: [
+-              /* @__PURE__ */ jsx(
+-                FocusedClue,
+-                {
+-                  additionalCss: css`
+-						max-width: ${gridWidth}px;
+-						@container (min-width: ${oneColWidth}px) {
+-							display: none;
+-						}
+-					`
+-                }
+-              ),
+-              /* @__PURE__ */ jsx(Grid, {}),
+-              /* @__PURE__ */ jsx(
+-                FocusedClue,
++              /* @__PURE__ */ jsxs(
++                "div",
+                 {
+-                  additionalCss: css`
+-						max-width: ${gridWidth}px;
+-						@container (min-width: ${oneColWidth}px) {
+-							display: none;
+-						}
+-					`
++                  css: css`
++						position: relative;
++					`,
++                  children: [
++                    /* @__PURE__ */ jsx(AnagramHelper, {}),
++                    /* @__PURE__ */ jsx(
++                      FocusedClue,
++                      {
++                        additionalCss: css`
++							max-width: ${gridWidth}px;
++							@container (min-width: ${oneColWidth}px) {
++								display: none;
++							}
++						`
++                      }
++                    ),
++                    /* @__PURE__ */ jsx(Grid, {}),
++                    /* @__PURE__ */ jsx(
++                      FocusedClue,
++                      {
++                        additionalCss: css`
++							max-width: ${gridWidth}px;
++							@container (min-width: ${oneColWidth}px) {
++								display: none;
++							}
++						`
++                      }
++                    )
++                  ]
+                 }
+               ),
+               /* @__PURE__ */ jsx(

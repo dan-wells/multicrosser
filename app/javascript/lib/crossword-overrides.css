@@ -25,7 +25,7 @@
 }
 
 /* Grid cell numbers: 10px */
-[data-link-name="Crosswords"] svg text {
+[data-link-name="Crosswords"] svg g text {
   font-size: 10px !important;
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
 }
@@ -61,6 +61,8 @@
 [data-link-name="Crosswords"] label {
   font-family: "PT Serif", Georgia, serif !important;
   font-weight: bolder !important;
+  padding-top: 6px !important;
+  display: block !important;
 }
 
 /* All crossword buttons: rectangular, compact sizing, fix vertical alignment */
@@ -141,6 +143,19 @@
   color: #333 !important;
 }
 
+/* Anagram helper: clue text — match sticky clue styling */
+[data-link-name="Anagram Helper"] span[aria-hidden="true"] {
+  font-size: 14px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+/* Anagram helper: clue direction label ("19 Across") — Catamaran, match sticky clue */
+[data-link-name="Anagram Helper"] span[aria-hidden="true"]:first-child {
+  font-family: 'Catamaran', sans-serif !important;
+  font-size: 15px !important;
+  padding-right: 4px !important;
+}
+
 /* Anagram helper: Text input */
 #anagram-helper-input {
   height: 36px;
@@ -167,4 +182,12 @@
 [data-link-name="Anagram Helper"] button:focus {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* Anagram helper: solution display cells — match main grid letter styling */
+[data-solution-cell] {
+  font-size: 18px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+  line-height: 1 !important;
+  padding-top: 4px !important;
 }
