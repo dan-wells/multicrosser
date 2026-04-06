@@ -9,6 +9,13 @@
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
 }
 
+/* Fix disappearing gridlines at non-native widths. */
+[data-link-name="Crosswords"] svg rect[role="presentation"] {
+  stroke: #000;
+  stroke-width: 0;
+  vector-effect: non-scaling-stroke;
+}
+
 /* Grid cell letter: 18px, fix vertical alignment (Guardian's textSans line-height pushes text high) */
 [data-link-name="Crosswords"] foreignObject input {
   font-size: 18px !important;
