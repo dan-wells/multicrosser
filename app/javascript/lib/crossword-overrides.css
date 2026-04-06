@@ -1,0 +1,164 @@
+/* Override @guardian/react-crossword button styling to match old react-crossword look */
+
+/* ============================================================
+   Typography / font overrides
+   ============================================================ */
+
+/* Apply our font family across all crossword content */
+[data-link-name="Crosswords"] {
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+/* Grid cell letter: 18px, fix vertical alignment (Guardian's textSans line-height pushes text high) */
+[data-link-name="Crosswords"] foreignObject input {
+  font-size: 18px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+  line-height: 1 !important;
+  padding-top: 4px !important;
+}
+
+/* Grid cell numbers: 10px */
+[data-link-name="Crosswords"] svg text {
+  font-size: 10px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+/* Clue list: 14px */
+[data-link-name="Crosswords"] [role="listbox"],
+[data-link-name="Crosswords"] [role="option"] {
+  font-size: 14px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+/* Clue number column: wide enough for 2-digit numbers to align consistently */
+[data-entry-id] > span[aria-hidden="true"]:first-child {
+  width: 2em !important;
+  min-width: 2em !important;
+}
+
+/* Sticky/focused clue: 14px */
+[data-link-name="Crosswords"] div[aria-hidden="true"] {
+  font-size: 14px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+/* Sticky clue direction label ("24 Down"): Catamaran font, aligned to top of clue text */
+[data-link-name="Crosswords"] div[aria-hidden="true"] > span:first-child {
+  padding-right: 4px !important;
+  font-family: 'Catamaran', sans-serif !important;
+  font-size: 15px !important;
+  align-self: flex-start !important;
+  line-height: 1.1 !important;
+}
+
+/* Across/Down clue list headings: PT Serif */
+[data-link-name="Crosswords"] label {
+  font-family: "PT Serif", Georgia, serif !important;
+  font-weight: bolder !important;
+}
+
+/* All crossword buttons: rectangular, compact sizing, fix vertical alignment */
+[aria-label="Crossword controls"] button {
+  border-radius: 2px !important;
+  font-size: 14px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  padding-top: 2px !important;
+  line-height: 1 !important;
+  font-weight: bold !important;
+  text-transform: none !important;
+}
+
+/* Top row (clue controls): keep colored background, fix disabled opacity */
+[aria-label="Clue controls"] button:disabled {
+  opacity: 0.4 !important;
+}
+
+/* Bottom row (grid controls): grey background, dark text */
+[aria-label="Grid controls"] button {
+  background-color: #e0e0e0 !important;
+  color: #767676 !important;
+  border: none !important;
+}
+
+[aria-label="Grid controls"] button:hover {
+  background-color: #ccc !important;
+  color: #333 !important;
+}
+
+/* Bottom row confirmation state: dark background */
+[aria-label="Grid controls"] button[data-confirming] {
+  background-color: #333 !important;
+  color: #fff !important;
+}
+
+[aria-label="Grid controls"] button[data-confirming]:hover {
+  background-color: #222 !important;
+  color: #fff !important;
+}
+
+/* Anagram helper: square borders on all buttons */
+[data-link-name="Anagram Helper"] button {
+  border-radius: 2px !important;
+  font-size: 14px !important;
+  height: 30px !important;
+  min-height: 30px !important;
+  padding: 0 10px !important;
+  padding-top: 2px !important;
+  line-height: 1 !important;
+  font-weight: bold !important;
+  text-transform: none !important;
+}
+
+/* Anagram helper: Start and Shuffle buttons — pink with white text */
+[data-link-name="Anagram Helper"] [data-link-name="Shuffle"] {
+  background-color: #BB3B80 !important;
+  color: #fff !important;
+}
+
+[data-link-name="Anagram Helper"] [data-link-name="Shuffle"]:hover {
+  background-color: #942f65 !important;
+  color: #fff !important;
+}
+
+/* Anagram helper: Back button — grey like grid controls */
+[data-link-name="Start Again"] {
+  background-color: #e0e0e0 !important;
+  color: #767676 !important;
+  border: none !important;
+}
+
+[data-link-name="Start Again"]:hover {
+  background-color: #ccc !important;
+  color: #333 !important;
+}
+
+/* Anagram helper: Text input */
+#anagram-helper-input {
+  height: 36px;
+  margin-top: 2px;
+}
+
+#anagram-helper-input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Anagram helper: Close button */
+[data-link-name="Close"] {
+  width: 30px;
+  padding-top: 0px;
+}
+
+[data-link-name="Close"] svg {
+  width: 20px !important;
+}
+
+/* Remove focus outline/ring on all crossword buttons */
+[aria-label="Crossword controls"] button:focus,
+[data-link-name="Anagram Helper"] button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}

@@ -1,20 +1,84 @@
+diff --git a/dist/components/Controls.js b/dist/components/Controls.js
+index 7fb4550518e30cb307c5a0e315bb86db4f18d240..935c8189664690e26a31dc9655c7b5ab45217cb7 100644
+--- a/dist/components/Controls.js
++++ b/dist/components/Controls.js
+@@ -81,7 +81,7 @@ const ClearClue = memo((props) => {
+       "data-testid": "clear-this",
+       "aria-live": "off",
+       ...props,
+-      children: "Clear Word"
++      children: "Clear word"
+     }
+   );
+ });
+@@ -126,7 +126,7 @@ const CheckClue = memo((props) => {
+       "data-testid": "check-this",
+       "aria-label": `Check and remove incorrect letters from ${currentEntryId ? currentEntryId.split("-").join(" ") : "word"}`,
+       ...props,
+-      children: "Check Word"
++      children: "Check word"
+     }
+   );
+ });
+@@ -158,7 +158,7 @@ const RevealClue = memo((props) => {
+       "data-link-name": "Reveal this",
+       "data-testid": "reveal-this",
+       ...props,
+-      children: "Reveal Word"
++      children: "Reveal word"
+     }
+   );
+ });
+@@ -172,7 +172,7 @@ const AnagramHelper = memo((props) => {
+       "data-link-name": "Show anagram helper",
+       "data-testid": "show-anagram-helper",
+       ...props,
+-      children: "Anagram Helper"
++      children: "Anagram helper"
+     }
+   );
+ });
+@@ -217,7 +217,7 @@ const CheckGrid = memo((props) => {
+       requireConfirmation: true,
+       ...props,
+       "aria-label": "Check and remove all incorrect letters",
+-      children: "Check All"
++      children: "Check all"
+     }
+   );
+ });
+@@ -242,7 +242,7 @@ const RevealGrid = memo((props) => {
+       "data-link-name": "Reveal all",
+       "data-testid": "reveal-all",
+       ...props,
+-      children: "Reveal All"
++      children: "Reveal all"
+     }
+   );
+ });
+@@ -257,7 +257,7 @@ const ClearGrid = memo((props) => {
+       "data-link-name": "Clear all",
+       "data-testid": "clear-all",
+       ...props,
+-      children: "Clear All"
++      children: "Clear all"
+     }
+   );
+ });
 diff --git a/dist/components/Crossword.js b/dist/components/Crossword.js
-index 307a4b3cf548398845198bb8d24b2370c60df211..bf3d6469df3cbb23bc1700465787c7a02cb00567 100644
+index 307a4b3cf548398845198bb8d24b2370c60df211..fbcc94c31020054eb1ce820d637d1d5d3d230ffb 100644
 --- a/dist/components/Crossword.js
 +++ b/dist/components/Crossword.js
-@@ -1,9 +1,8 @@
+@@ -1,6 +1,6 @@
 -import { jsx } from '@emotion/react/jsx-runtime';
-+import { jsx, Fragment, jsxs } from '@emotion/react/jsx-runtime';
++import { jsx, jsxs, Fragment } from '@emotion/react/jsx-runtime';
  import { css } from '@emotion/react';
 -import { useMemo } from 'react';
-+import { useMemo, forwardRef, useRef, useImperativeHandle } from 'react';
++import { forwardRef, useRef, useImperativeHandle, useMemo } from 'react';
  import { ContextProvider } from '../context/ContextProvider.js';
  import { useProgress } from '../context/Progress.js';
--import { useTheme } from '../context/Theme.js';
- import { ScreenLayout } from '../layouts/ScreenLayout.js';
- import { defaultTheme } from '../theme.js';
- import { AnagramHelper } from './AnagramHelper.js';
-@@ -12,19 +11,7 @@ import { Controls } from './Controls.js';
+ import { useTheme } from '../context/Theme.js';
+@@ -12,19 +12,32 @@ import { Controls } from './Controls.js';
  import { FocusedClue } from './FocusedClue.js';
  import { Grid } from './Grid.js';
  
@@ -32,14 +96,6 @@ index 307a4b3cf548398845198bb8d24b2370c60df211..bf3d6469df3cbb23bc1700465787c7a0
 -  );
 -};
 +const SavedMessage = () => null;
- const layoutComponents = {
-   Grid,
-   Controls,
-@@ -33,14 +20,40 @@ const layoutComponents = {
-   Clues,
-   SavedMessage
- };
--const Crossword = ({
 +
 +const CrosswordHandle = forwardRef((_, ref) => {
 +  const { progress, updateProgress } = useProgress();
@@ -65,6 +121,14 @@ index 307a4b3cf548398845198bb8d24b2370c60df211..bf3d6469df3cbb23bc1700465787c7a0
 +  return null;
 +});
 +
+ const layoutComponents = {
+   Grid,
+   Controls,
+@@ -33,14 +46,15 @@ const layoutComponents = {
+   Clues,
+   SavedMessage
+ };
+-const Crossword = ({
 +const Crossword = forwardRef(({
    children,
    data,
@@ -78,28 +142,16 @@ index 307a4b3cf548398845198bb8d24b2370c60df211..bf3d6469df3cbb23bc1700465787c7a0
    const LayoutComponent = Layout ?? ScreenLayout;
    const theme = useMemo(
      () => ({ ...defaultTheme, ...userTheme }),
-@@ -55,11 +68,16 @@ const Crossword = ({
+@@ -55,7 +69,7 @@ const Crossword = ({
      theme.gridMinWidth,
      data.dimensions.cols
    ]);
 -  return /* @__PURE__ */ jsx(ContextProvider, { theme, data, userProgress: progress, children: /* @__PURE__ */ jsx(
--    "div",
-+  return /* @__PURE__ */ jsx(ContextProvider, { theme, data, userProgress: progress, onMove, children: /* @__PURE__ */ jsxs(
-+    Fragment,
++  return /* @__PURE__ */ jsx(ContextProvider, { theme, data, userProgress: progress, onMove, children: /* @__PURE__ */ jsx(
+     "div",
      {
--      "data-link-name": "Crosswords",
--      css: css`
-+      children: [
-+        /* @__PURE__ */ jsx(CrosswordHandle, { ref }),
-+        /* @__PURE__ */ jsx(
-+          "div",
-+          {
-+            "data-link-name": "Crosswords",
-+            css: css`
- 					*,
- 					*::before,
- 					*::after {
-@@ -73,16 +91,19 @@ const Crossword = ({
+       "data-link-name": "Crosswords",
+@@ -73,16 +87,19 @@ const Crossword = ({
  					container-type: inline-size;
  					position: relative;
  				`,
@@ -111,23 +163,41 @@ index 307a4b3cf548398845198bb8d24b2370c60df211..bf3d6469df3cbb23bc1700465787c7a0
 -          MobileBannerAd
 -        }
 -      )
-+            children: children ?? /* @__PURE__ */ jsx(
-+              LayoutComponent,
-+              {
-+                ...layoutComponents,
-+                gridWidth,
-+                MobileBannerAd
-+              }
-+            )
++      children: jsxs(Fragment, { children: [
++        jsx(CrosswordHandle, { ref }),
++        children ?? /* @__PURE__ */ jsx(
++          LayoutComponent,
++          {
++            ...layoutComponents,
++            gridWidth,
++            MobileBannerAd
 +          }
 +        )
-+      ]
++      ] })
      }
    ) });
 -};
 +});
  
  export { Crossword };
+diff --git a/dist/components/CrosswordButton.js b/dist/components/CrosswordButton.js
+index 0c9372d69dcbe2fec3d85435aaf67923d12887c0..6d61015578584d01908c7658d02c9b536c6ade57 100644
+--- a/dist/components/CrosswordButton.js
++++ b/dist/components/CrosswordButton.js
+@@ -26,9 +26,11 @@ const ButtonComponent = ({
+     userOnClick(event);
+     setIsConfirming(false);
+   };
+-  return /* @__PURE__ */ jsxs(Button, { onClick: handleClick, size: "small", ...props, children: [
++  const confirmingProps = isConfirming ? { 'data-confirming': '' } : {};
++  const displayChildren = isConfirming ? (typeof children === 'string' ? children.toLowerCase() : children) : children;
++  return /* @__PURE__ */ jsxs(Button, { onClick: handleClick, size: "small", ...props, ...confirmingProps, children: [
+     isConfirming && "Confirm ",
+-    children
++    displayChildren
+   ] });
+ };
+ const CrosswordButton = memo(ButtonComponent);
 diff --git a/dist/context/ContextProvider.js b/dist/context/ContextProvider.js
 index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf20505bc7 100644
 --- a/dist/context/ContextProvider.js
@@ -169,7 +239,7 @@ index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf
 -export { ContextProvider };
 +export { ContextProvider, useOnMove };
 diff --git a/dist/context/Progress.js b/dist/context/Progress.js
-index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..3643cd3a93c6b1faa874a0ba7a0d151f0c415fcd 100644
+index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..0dbabaafced6b38d5e1353d80676fa29b40e2306 100644
 --- a/dist/context/Progress.js
 +++ b/dist/context/Progress.js
 @@ -1,7 +1,6 @@
@@ -181,7 +251,7 @@ index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..3643cd3a93c6b1faa874a0ba7a0d151f
  import { getNewProgress } from '../utils/getNewProgress.js';
  
  const serializer = {
-@@ -51,31 +50,19 @@ const ProgressProvider = ({
+@@ -51,33 +50,21 @@ const ProgressProvider = ({
  }) => {
    const defaultValue = getInitialProgress({ dimensions, userProgress });
    const [progress, setProgress] = useState(defaultValue);
@@ -214,10 +284,13 @@ index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..3643cd3a93c6b1faa874a0ba7a0d151f
 -    [progress, updateProgress, rest.isPersistent]
 +    [progress, updateProgress]
    );
-   return /* @__PURE__ */ jsx(ProgressContext.Provider, { value: contextValue, children });
+-  return /* @__PURE__ */ jsx(ProgressContext.Provider, { value: contextValue, children });
++  return /* @__PURE__*/ jsx(ProgressContext.Provider, { value: contextValue, children });
  };
+ const useProgress = () => {
+   const context = useContext(ProgressContext);
 diff --git a/dist/hooks/useUpdateCell.js b/dist/hooks/useUpdateCell.js
-index 5e0749115ef26ec12ae125c11c87498c1907c784..73178073cb27ff8505ddea26a12a25e129ab7a1d 100644
+index 5e0749115ef26ec12ae125c11c87498c1907c784..cb47dae712aef2557df89befa67764a40940af36 100644
 --- a/dist/hooks/useUpdateCell.js
 +++ b/dist/hooks/useUpdateCell.js
 @@ -1,5 +1,6 @@
@@ -258,7 +331,7 @@ index 5e0749115ef26ec12ae125c11c87498c1907c784..73178073cb27ff8505ddea26a12a25e1
        }
      },
 -    [cells, progress, setValidAnswers, updateProgress, validAnswers]
-+    [cells, onMove, progress, setValidAnswers, updateProgress, validAnswers]
++    [cells, progress, setValidAnswers, updateProgress, validAnswers, onMove]
    );
    return { updateCell };
  };

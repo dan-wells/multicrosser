@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { Crossword } from '@guardian/react-crossword';
+import './lib/crossword-overrides.css';
 import { createSubscription } from './lib/subscription';
 
 const crosswordElement = document.getElementsByClassName('js-crossword')[0];
