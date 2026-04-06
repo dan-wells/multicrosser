@@ -43,19 +43,18 @@
   min-width: 2em !important;
 }
 
-/* Sticky/focused clue: 14px */
+/* Sticky/focused clue: 14px, baseline-align the direction label and clue text spans */
 [data-link-name="Crosswords"] div[aria-hidden="true"] {
   font-size: 14px !important;
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+  align-items: baseline !important;
 }
 
-/* Sticky clue direction label ("24 Down"): Catamaran font, aligned to top of clue text */
+/* Sticky clue direction label ("24 Down"): Catamaran font */
 [data-link-name="Crosswords"] div[aria-hidden="true"] > span:first-child {
   padding-right: 4px !important;
   font-family: 'Catamaran', sans-serif !important;
   font-size: 15px !important;
-  align-self: flex-start !important;
-  line-height: 1.1 !important;
 }
 
 /* Across/Down clue list headings: PT Serif */
