@@ -42,7 +42,6 @@ function toProgress(initialState, dimensions) {
 
 const rootStyle = getComputedStyle(document.documentElement);
 const selectedBackgroundColor = rootStyle.getPropertyValue('--crossword-selected-color').trim();
-const connectedBackgroundColor = rootStyle.getPropertyValue('--crossword-connected-color').trim();
 
 const crosswordRef = React.createRef();
 const onReceiveMove = (move) => { crosswordRef.current.setCellValue(move.x, move.y, move.value); };
@@ -64,7 +63,7 @@ const subscription = createSubscription(crosswordIdentifier, room, onReceiveMove
       progress={progress}
       onMove={(move) => { subscription.move(move); }}
       selectedBackgroundColor={selectedBackgroundColor}
-      connectedBackgroundColor={connectedBackgroundColor}
+      focusColor="transparent"
     />);
   });
   crosswordRef.current.updateGrid(progress);

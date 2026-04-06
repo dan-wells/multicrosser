@@ -5,8 +5,10 @@
    ============================================================ */
 
 :root {
-  /* Background for selected word cells and the active clue in the clue list; default #ffe500 */
-  --crossword-selected-color: #fff7b2;
+  /* Background for selected word cells and the active clue in the clue list */
+  --crossword-selected-color: #ffe500;
+  /* Background for the currently-focused cell */
+  --crossword-focus-color: #fff7b2;
 }
 
 /* ============================================================
@@ -25,12 +27,32 @@
   vector-effect: non-scaling-stroke;
 }
 
-/* Grid cell letter: 18px, fix vertical alignment (Guardian's textSans line-height pushes text high) */
+/* Grid cell letter: rendered as SVG text (not inside the input) to avoid mobile caret handles */
+[data-link-name="Crosswords"] svg g text[pointer-events="none"] {
+  font-size: 18px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+/* Grid cell input: invisible (letter is displayed via SVG text above) */
 [data-link-name="Crosswords"] foreignObject input {
   font-size: 18px !important;
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
   line-height: 1 !important;
-  padding-top: 4px !important;
+}
+
+/* Highlight the currently-focused cell */
+[data-link-name="Crosswords"] svg g:focus-within > rect[role="presentation"] {
+  fill: var(--crossword-focus-color) !important;
+}
+
+/* Hide the default rounded-corner focus indicator (replaced by focus-within background above) */
+[data-link-name="Crosswords"] svg > rect[rx] {
+  display: none;
+}
+
+[data-link-name="Crosswords"] foreignObject input:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
 
 /* Grid cell numbers: 10px */

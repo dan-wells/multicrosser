@@ -418,3 +418,83 @@ index bcb5145a8a2ae3ab35077253b632f28e00eccbce..aeadeb6cfb5328b37349d4e5c051b69d
                  }
                ),
                /* @__PURE__ */ jsx(
+diff --git a/dist/components/Cell.js b/dist/components/Cell.js
+index c0161d6d60e119127048ccc745a28604937aa570..64ea720137b887a2cd792246cab907077cdc5da2 100644
+--- a/dist/components/Cell.js
++++ b/dist/components/Cell.js
+@@ -72,6 +72,21 @@
+           children: data.number
+         }
+       ),
++      guess && /* @__PURE__ */ jsx(
++        "text",
++        {
++          x: x + theme.gridCellSize / 2,
++          y: y + theme.gridCellSize * 0.72,
++          fill: theme.gridTextColor,
++          "text-anchor": "middle",
++          "pointer-events": "none",
++          "aria-hidden": "true",
++          css: css`
++								font-size: ${theme.gridCellSize * 0.6}px;
++							`,
++          children: guess
++        }
++      ),
+       /* @__PURE__ */ jsx(
+         "foreignObject",
+         {
+@@ -82,7 +97,7 @@
+           children: /* @__PURE__ */ jsx(
+             "input",
+             {
+-              value: guess,
++              value: "",
+               autoCapitalize: "none",
+               type: "text",
+               pattern: "^[A-Za-z\xC0-\xFF0-9]$",
+@@ -96,7 +111,8 @@
+ 								width: 100%;
+ 								height: 100%;
+ 								background: transparent;
+-								color: ${theme.gridTextColor};
++								color: transparent;
++								caret-color: transparent;
+ 								border: none;
+ 								${textSans12};
+ 								font-size: ${theme.gridCellSize * 0.6}px;
+diff --git a/dist/components/Grid.js b/dist/components/Grid.js
+index f585d1aecedb80fe6129bb6762f5b5875080c640..4779c9578d8fd634465f999fe29a7e9856fa4482 100644
+--- a/dist/components/Grid.js
++++ b/dist/components/Grid.js
+@@ -225,7 +225,7 @@
+     [cells, entries, updateCellFocus]
+   );
+   const handleKeyDown = useCallback(
+-    (event) => {
++    (event, guess) => {
+       if (currentEntryId && (event.key === "[" || event.key === "]")) {
+         const currentEntry = entries.get(currentEntryId);
+         const nextClueID = currentEntry?.nextEntryId;
+@@ -238,10 +238,8 @@
+         }
+       }
+       if (event.key === "Backspace" || event.key === "Delete") {
+-        if ("value" in event.target && isString(event.target.value)) {
+-          event.preventDefault();
+-          deleteLetter(event.target.value);
+-        }
++        event.preventDefault();
++        deleteLetter(guess ?? "");
+       } else {
+         if (event.key.length === 1) {
+           event.preventDefault();
+@@ -444,7 +442,7 @@
+                 id: getId(`cell-group-${cell.x}-${cell.y}`),
+                 onFocus: handleCellFocus,
+                 onPointerDown: isCurrentCell ? () => handleCurrentCellClick(cell) : void 0,
+-                handleKeyDown: isCurrentCell ? handleKeyDown : void 0,
++                handleKeyDown: isCurrentCell ? (event) => handleKeyDown(event, guess) : void 0,
+                 handleInput: isCurrentCell ? (event) => handleInput(event, guess) : void 0
+               },
+               `x${cell.x}y${cell.y}`
