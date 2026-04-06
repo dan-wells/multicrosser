@@ -131,6 +131,10 @@ a {
   justify-content: start;
 }
 
+.homepage-sidebar .day-filter .day-options input[type="radio"] {
+  accent-color: #66a0ff;
+}
+
 .homepage-sidebar .day-filter label {
   display: inline-block;
   margin-top: 0;
@@ -153,28 +157,31 @@ a {
 
 .homepage-sidebar .goto-buttons button {
   width: 100px;
+  height: 30px;
 }
 
 .homepage-sidebar button {
   padding: 6px 20px;
   border: none;
   cursor: pointer;
-  font-size: 0.95em;
-  background-color: #66a0ff;
+  font-size: 14px;
+  font-weight: bold;
+  background-color: #ba3a7f;
   color: #fff;
 }
 
 .homepage-sidebar button:hover {
-  background-color: #4c79c4;
+  background-color: #932e64;
 }
 
 .homepage-sidebar button.random {
-  background-color: #e0e0e0;
-  color: #000;
+  background-color: #dfdfdf;
+  color: #767676;
 }
 
 .homepage-sidebar button.random:hover {
-  background-color: #c8c8c8;
+  background-color: #cbcbcb;
+  color: #505050;
 }
 
 .not-found h1 {
@@ -214,7 +221,7 @@ a {
 }
 
 .crossword-info {
-    margin-top: 6px;
+    margin-top: 0px;
 }
 
 @media (max-width: 600px) {

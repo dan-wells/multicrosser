@@ -1,6 +1,15 @@
 /* Override @guardian/react-crossword button styling to match old react-crossword look */
 
 /* ============================================================
+   Highlight colors
+   ============================================================ */
+
+:root {
+  /* Background for selected word cells and the active clue in the clue list; default #ffe500 */
+  --crossword-selected-color: #fff7b2;
+}
+
+/* ============================================================
    Typography / font overrides
    ============================================================ */
 
@@ -41,6 +50,7 @@
 [data-entry-id] > span[aria-hidden="true"]:first-child {
   width: 2em !important;
   min-width: 2em !important;
+  font-family: 'Catamaran', sans-serif !important;
 }
 
 /* Sticky/focused clue: 14px, baseline-align the direction label and clue text spans */
@@ -59,8 +69,7 @@
 
 /* Across/Down clue list headings: PT Serif */
 [data-link-name="Crosswords"] label {
-  font-family: "PT Serif", Georgia, serif !important;
-  font-weight: bolder !important;
+  font-family: 'Catamaran', sans-serif !important;
   padding-top: 6px !important;
   display: block !important;
 }
