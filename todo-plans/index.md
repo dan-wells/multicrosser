@@ -12,6 +12,10 @@ Plans for each uncompleted TODO item, ranked 1–7 from most to least straightfo
 | 6 | [6-add-fifteensquared-links.md](6-add-fifteensquared-links.md) | Link to fifteensquared discussion posts | Medium–high |
 | 7 | [7-limit-random-to-uncompleted-puzzles.md](7-limit-random-to-uncompleted-puzzles.md) | Exclude completed puzzles from random selection | High |
 
+## Research
+
+- [completion-detection-research.md](completion-detection-research.md) — What `@guardian/react-crossword@17.0.0` exposes (spoiler: no completion callback)
+
 ## Cross-cutting concern: completion detection
 
 Three tasks depend on being able to detect when a user has completed a puzzle:
