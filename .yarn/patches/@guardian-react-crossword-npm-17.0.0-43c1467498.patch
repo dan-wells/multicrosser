@@ -1,5 +1,50 @@
+diff --git a/dist/components/Cell.js b/dist/components/Cell.js
+index c0161d6d60e119127048ccc745a28604937aa570..46fc49472c8fff6ed071e8aa6bd3efba9e6933f9 100644
+--- a/dist/components/Cell.js
++++ b/dist/components/Cell.js
+@@ -72,6 +72,21 @@ const CellComponent = ({
+           children: data.number
+         }
+       ),
++      guess && /* @__PURE__ */ jsx(
++        "text",
++        {
++          x: x + theme.gridCellSize / 2,
++          y: y + theme.gridCellSize * 0.72,
++          fill: theme.gridTextColor,
++          "text-anchor": "middle",
++          "pointer-events": "none",
++          "aria-hidden": "true",
++          css: css`
++								font-size: ${theme.gridCellSize * 0.6}px;
++							`,
++          children: guess
++        }
++      ),
+       /* @__PURE__ */ jsx(
+         "foreignObject",
+         {
+@@ -82,7 +97,7 @@ const CellComponent = ({
+           children: /* @__PURE__ */ jsx(
+             "input",
+             {
+-              value: guess,
++              value: "",
+               autoCapitalize: "none",
+               type: "text",
+               pattern: "^[A-Za-z\xC0-\xFF0-9]$",
+@@ -96,7 +111,8 @@ const CellComponent = ({
+ 								width: 100%;
+ 								height: 100%;
+ 								background: transparent;
+-								color: ${theme.gridTextColor};
++								color: transparent;
++								caret-color: transparent;
+ 								border: none;
+ 								${textSans12};
+ 								font-size: ${theme.gridCellSize * 0.6}px;
 diff --git a/dist/components/Controls.js b/dist/components/Controls.js
-index 7fb4550518e30cb307c5a0e315bb86db4f18d240..935c8189664690e26a31dc9655c7b5ab45217cb7 100644
+index 7fb4550518e30cb307c5a0e315bb86db4f18d240..a5915fb6dab303de088b1642f7a00381697ba49e 100644
 --- a/dist/components/Controls.js
 +++ b/dist/components/Controls.js
 @@ -81,7 +81,7 @@ const ClearClue = memo((props) => {
@@ -38,7 +83,7 @@ index 7fb4550518e30cb307c5a0e315bb86db4f18d240..935c8189664690e26a31dc9655c7b5ab
      }
    );
  });
-@@ -217,7 +217,7 @@ const CheckGrid = memo((props) => {
+@@ -217,23 +217,25 @@ const CheckGrid = memo((props) => {
        requireConfirmation: true,
        ...props,
        "aria-label": "Check and remove all incorrect letters",
@@ -47,7 +92,32 @@ index 7fb4550518e30cb307c5a0e315bb86db4f18d240..935c8189664690e26a31dc9655c7b5ab
      }
    );
  });
-@@ -242,7 +242,7 @@ const RevealGrid = memo((props) => {
+ CheckGrid.displayName = "CheckGrid";
+ const RevealGrid = memo((props) => {
+   const { cells } = useData();
+-  const { updateProgress } = useProgress();
++  const { updateCell } = useUpdateCell();
+   const reveal = useCallback(() => {
+-    var _a;
+-    const newProgress = [];
+     for (const cell of cells.values()) {
+-      const column = newProgress[_a = cell.x] || (newProgress[_a] = []);
+-      column[cell.y] = cell.solution ?? "";
++      if (cell.group) {
++        updateCell({
++          x: cell.x,
++          y: cell.y,
++          value: cell.solution ?? ""
++        });
++      }
+     }
+-    updateProgress(newProgress);
+-  }, [cells, updateProgress]);
++  }, [cells, updateCell]);
+   return /* @__PURE__ */ jsx(
+     CrosswordButton,
+     {
+@@ -242,7 +244,7 @@ const RevealGrid = memo((props) => {
        "data-link-name": "Reveal all",
        "data-testid": "reveal-all",
        ...props,
@@ -56,7 +126,7 @@ index 7fb4550518e30cb307c5a0e315bb86db4f18d240..935c8189664690e26a31dc9655c7b5ab
      }
    );
  });
-@@ -257,7 +257,7 @@ const ClearGrid = memo((props) => {
+@@ -257,7 +259,7 @@ const ClearGrid = memo((props) => {
        "data-link-name": "Clear all",
        "data-testid": "clear-all",
        ...props,
@@ -198,6 +268,41 @@ index 0c9372d69dcbe2fec3d85435aaf67923d12887c0..6d61015578584d01908c7658d02c9b53
    ] });
  };
  const CrosswordButton = memo(ButtonComponent);
+diff --git a/dist/components/Grid.js b/dist/components/Grid.js
+index f585d1aecedb80fe6129bb6762f5b5875080c640..4779c9578d8fd634465f999fe29a7e9856fa4482 100644
+--- a/dist/components/Grid.js
++++ b/dist/components/Grid.js
+@@ -225,7 +225,7 @@ const Grid = () => {
+     [cells, entries, updateCellFocus]
+   );
+   const handleKeyDown = useCallback(
+-    (event) => {
++    (event, guess) => {
+       if (currentEntryId && (event.key === "[" || event.key === "]")) {
+         const currentEntry = entries.get(currentEntryId);
+         const nextClueID = currentEntry?.nextEntryId;
+@@ -238,10 +238,8 @@ const Grid = () => {
+         }
+       }
+       if (event.key === "Backspace" || event.key === "Delete") {
+-        if ("value" in event.target && isString(event.target.value)) {
+-          event.preventDefault();
+-          deleteLetter(event.target.value);
+-        }
++        event.preventDefault();
++        deleteLetter(guess ?? "");
+       } else {
+         if (event.key.length === 1) {
+           event.preventDefault();
+@@ -444,7 +442,7 @@ const Grid = () => {
+                 id: getId(`cell-group-${cell.x}-${cell.y}`),
+                 onFocus: handleCellFocus,
+                 onPointerDown: isCurrentCell ? () => handleCurrentCellClick(cell) : void 0,
+-                handleKeyDown: isCurrentCell ? handleKeyDown : void 0,
++                handleKeyDown: isCurrentCell ? (event) => handleKeyDown(event, guess) : void 0,
+                 handleInput: isCurrentCell ? (event) => handleInput(event, guess) : void 0
+               },
+               `x${cell.x}y${cell.y}`
 diff --git a/dist/components/SolutionDisplay.js b/dist/components/SolutionDisplay.js
 index 92435a7018a084ab6dcf6f3be51edbaab17f65c6..fb4d7f609213844baff92790330a9d0750777e36 100644
 --- a/dist/components/SolutionDisplay.js
@@ -301,6 +406,41 @@ index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..0dbabaafced6b38d5e1353d80676fa29
  };
  const useProgress = () => {
    const context = useContext(ProgressContext);
+diff --git a/dist/hooks/useClearUserInput.js b/dist/hooks/useClearUserInput.js
+index 00f0c35ebd75c22930be82585d7cb86b0f31ba73..db7621436c375c8562f24d7ad07bb2779a1c0f81 100644
+--- a/dist/hooks/useClearUserInput.js
++++ b/dist/hooks/useClearUserInput.js
+@@ -1,17 +1,24 @@
+ import { useCallback } from 'react';
+ import { useData } from '../context/Data.js';
+-import { useProgress } from '../context/Progress.js';
+ import { useValidAnswers } from '../context/ValidAnswers.js';
+-import { getNewProgress } from '../utils/getNewProgress.js';
++import { useUpdateCell } from './useUpdateCell.js';
+ 
+ const useClearUserInput = () => {
+-  const { updateProgress } = useProgress();
+-  const { dimensions } = useData();
++  const { cells } = useData();
+   const { setValidAnswers } = useValidAnswers();
++  const { updateCell } = useUpdateCell();
+   const clearUserInput = useCallback(() => {
+-    updateProgress(getNewProgress(dimensions));
++    for (const cell of cells.values()) {
++      if (cell.group) {
++        updateCell({
++          x: cell.x,
++          y: cell.y,
++          value: ""
++        });
++      }
++    }
+     setValidAnswers(/* @__PURE__ */ new Set());
+-  }, [dimensions, setValidAnswers, updateProgress]);
++  }, [cells, setValidAnswers, updateCell]);
+   return { clearUserInput };
+ };
+ 
 diff --git a/dist/hooks/useUpdateCell.js b/dist/hooks/useUpdateCell.js
 index 5e0749115ef26ec12ae125c11c87498c1907c784..cb47dae712aef2557df89befa67764a40940af36 100644
 --- a/dist/hooks/useUpdateCell.js
@@ -418,83 +558,3 @@ index bcb5145a8a2ae3ab35077253b632f28e00eccbce..aeadeb6cfb5328b37349d4e5c051b69d
                  }
                ),
                /* @__PURE__ */ jsx(
-diff --git a/dist/components/Cell.js b/dist/components/Cell.js
-index c0161d6d60e119127048ccc745a28604937aa570..64ea720137b887a2cd792246cab907077cdc5da2 100644
---- a/dist/components/Cell.js
-+++ b/dist/components/Cell.js
-@@ -72,6 +72,21 @@
-           children: data.number
-         }
-       ),
-+      guess && /* @__PURE__ */ jsx(
-+        "text",
-+        {
-+          x: x + theme.gridCellSize / 2,
-+          y: y + theme.gridCellSize * 0.72,
-+          fill: theme.gridTextColor,
-+          "text-anchor": "middle",
-+          "pointer-events": "none",
-+          "aria-hidden": "true",
-+          css: css`
-+								font-size: ${theme.gridCellSize * 0.6}px;
-+							`,
-+          children: guess
-+        }
-+      ),
-       /* @__PURE__ */ jsx(
-         "foreignObject",
-         {
-@@ -82,7 +97,7 @@
-           children: /* @__PURE__ */ jsx(
-             "input",
-             {
--              value: guess,
-+              value: "",
-               autoCapitalize: "none",
-               type: "text",
-               pattern: "^[A-Za-z\xC0-\xFF0-9]$",
-@@ -96,7 +111,8 @@
- 								width: 100%;
- 								height: 100%;
- 								background: transparent;
--								color: ${theme.gridTextColor};
-+								color: transparent;
-+								caret-color: transparent;
- 								border: none;
- 								${textSans12};
- 								font-size: ${theme.gridCellSize * 0.6}px;
-diff --git a/dist/components/Grid.js b/dist/components/Grid.js
-index f585d1aecedb80fe6129bb6762f5b5875080c640..4779c9578d8fd634465f999fe29a7e9856fa4482 100644
---- a/dist/components/Grid.js
-+++ b/dist/components/Grid.js
-@@ -225,7 +225,7 @@
-     [cells, entries, updateCellFocus]
-   );
-   const handleKeyDown = useCallback(
--    (event) => {
-+    (event, guess) => {
-       if (currentEntryId && (event.key === "[" || event.key === "]")) {
-         const currentEntry = entries.get(currentEntryId);
-         const nextClueID = currentEntry?.nextEntryId;
-@@ -238,10 +238,8 @@
-         }
-       }
-       if (event.key === "Backspace" || event.key === "Delete") {
--        if ("value" in event.target && isString(event.target.value)) {
--          event.preventDefault();
--          deleteLetter(event.target.value);
--        }
-+        event.preventDefault();
-+        deleteLetter(guess ?? "");
-       } else {
-         if (event.key.length === 1) {
-           event.preventDefault();
-@@ -444,7 +442,7 @@
-                 id: getId(`cell-group-${cell.x}-${cell.y}`),
-                 onFocus: handleCellFocus,
-                 onPointerDown: isCurrentCell ? () => handleCurrentCellClick(cell) : void 0,
--                handleKeyDown: isCurrentCell ? handleKeyDown : void 0,
-+                handleKeyDown: isCurrentCell ? (event) => handleKeyDown(event, guess) : void 0,
-                 handleInput: isCurrentCell ? (event) => handleInput(event, guess) : void 0
-               },
-               `x${cell.x}y${cell.y}`
