@@ -68,6 +68,11 @@
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
 }
 
+/* Hide the tick icon that appears after checking a word */
+[data-entry-id] svg[viewBox="-3 -3 30 30"] {
+  display: none !important;
+}
+
 /* Clue number column: wide enough for 2-digit numbers to align consistently */
 [data-entry-id] > span[aria-hidden="true"]:first-child {
   width: 2em !important;
