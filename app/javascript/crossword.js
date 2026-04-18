@@ -67,4 +67,12 @@ const subscription = createSubscription(crosswordIdentifier, room, onReceiveMove
     />);
   });
   crosswordRef.current.updateGrid(progress);
+
+  // Tag clue cells so CSS can scope focus highlighting to them;
+  // foreignObject is the text input, i.e. HTML embedded in the SVG grid
+  crosswordElement.querySelectorAll('g[role="cell"]').forEach(cellGroup => {
+    if (cellGroup.querySelector('foreignObject')) {
+      cellGroup.setAttribute('data-clue-cell', 'true');
+    }
+  });
 });

@@ -41,7 +41,7 @@
 }
 
 /* Highlight the currently-focused cell */
-[data-link-name="Crosswords"] svg g:focus-within > rect[role="presentation"] {
+[data-link-name="Crosswords"] svg g[data-clue-cell]:focus-within > rect[role="presentation"] {
   fill: var(--crossword-focus-color) !important;
 }
 
