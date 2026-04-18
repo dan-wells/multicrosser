@@ -323,7 +323,45 @@ diff --git a/dist/components/SolutionDisplay.js b/dist/components/SolutionDispla
 index 92435a7018a084ab6dcf6f3be51edbaab17f65c6..fb4d7f609213844baff92790330a9d0750777e36 100644
 --- a/dist/components/SolutionDisplay.js
 +++ b/dist/components/SolutionDisplay.js
-@@ -36,6 +36,7 @@ const SolutionDisplayCell = ({
+@@ -11,20 +11,27 @@ const getMatchedAndShuffledLetters = ({
+   const shuffledLettersCopy = [...shuffledLetters];
+   const matchedLetters = Array.from(
+     { length: cellsWithProgress.length },
+     () => ""
+   );
+-  for (const [index, cellWithProgress] of cellsWithProgress.entries()) {
+-    const shuffleLetterIndex = shuffledLettersCopy.indexOf(
+-      cellWithProgress.progress
+-    );
+-    if (shuffleLetterIndex !== -1) {
+-      matchedLetters[index] = shuffledLettersCopy.splice(shuffleLetterIndex, 1)[0] ?? "";
++  const emptyCellCount = cellsWithProgress.filter((c) => c.progress === "").length;
++  const isPartialEntry = shuffledLetters.length < cellsWithProgress.length;
++  if (!isPartialEntry) {
++    for (const [index, cellWithProgress] of cellsWithProgress.entries()) {
++      const shuffleLetterIndex = shuffledLettersCopy.indexOf(
++        cellWithProgress.progress
++      );
++      if (shuffleLetterIndex !== -1) {
++        matchedLetters[index] = shuffledLettersCopy.splice(shuffleLetterIndex, 1)[0] ?? "";
++      }
+     }
+   }
+-  return matchedLetters.map((letter) => {
+-    if (letter === "") {
+-      return shuffledLettersCopy.pop() ?? "";
++  return matchedLetters.map((letter, index) => {
++    if (letter !== "") {
++      return letter;
+     }
+-    return letter;
++    if (isPartialEntry && cellsWithProgress[index].progress !== "") {
++      return "";
++    }
++    return shuffledLettersCopy.pop() ?? "";
+   });
+ };
+@@ -43,6 +43,7 @@ const SolutionDisplayCell = ({
    return /* @__PURE__ */ jsxs(
      "div",
      {
