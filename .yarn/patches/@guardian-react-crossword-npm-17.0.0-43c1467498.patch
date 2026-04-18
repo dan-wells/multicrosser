@@ -1,3 +1,19 @@
+diff --git a/dist/components/AnagramHelper.js b/dist/components/AnagramHelper.js
+index 0db9bd5e5afaef59f9722c86bca8c5035719b840..0db9bd5e5afaef59f9722c86bca8c5035719b840 100644
+--- a/dist/components/AnagramHelper.js
++++ b/dist/components/AnagramHelper.js
+@@ -58,7 +58,9 @@ const AnagramHelper = () => {
+   useEffect(() => {
+     if (showAnagramHelper) {
+       document.getElementById("anagram-helper-input")?.focus();
+-    }
+-  }, [showAnagramHelper]);
++    } else {
++      close();
++    }
++  }, [showAnagramHelper, close]);
+   if (!showAnagramHelper) {
+     return null;
 diff --git a/dist/components/Cell.js b/dist/components/Cell.js
 index c0161d6d60e119127048ccc745a28604937aa570..46fc49472c8fff6ed071e8aa6bd3efba9e6933f9 100644
 --- a/dist/components/Cell.js
