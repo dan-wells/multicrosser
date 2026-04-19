@@ -1,24 +1,59 @@
 diff --git a/dist/components/AnagramHelper.js b/dist/components/AnagramHelper.js
-index 0db9bd5e5afaef59f9722c86bca8c5035719b840..0db9bd5e5afaef59f9722c86bca8c5035719b840 100644
+index 0db9bd5e5afaef59f9722c86bca8c5035719b840..7fad5d23bd7cc4b3d031dee2e811a08a83cbbca5 100644
 --- a/dist/components/AnagramHelper.js
 +++ b/dist/components/AnagramHelper.js
-@@ -58,7 +58,9 @@ const AnagramHelper = () => {
+@@ -1,7 +1,5 @@
+ import { jsxs, jsx, Fragment } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { space, textSans17 } from '@guardian/source/foundations';
+-import { SvgCross, TextInput } from '@guardian/source/react-components';
+ import { useState, useMemo, useCallback, useEffect } from 'react';
+ import { useCurrentClue } from '../context/CurrentClue.js';
+ import { useData } from '../context/Data.js';
+@@ -14,6 +12,13 @@ import { CrosswordButton } from './CrosswordButton.js';
+ import { SolutionDisplay } from './SolutionDisplay.js';
+ import { WordWheel } from './WordWheel.js';
+ 
++const space = [0, 4, 8, 12, 16];
++const textSans17 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 1.0625rem; line-height: 1.3;';
++const SvgCross = () => jsx('span', { 'aria-hidden': 'true', children: '\u00D7' });
++const TextInput = ({ label, hideLabel, id, ...props }) => {
++  return jsx('input', { type: 'text', id, 'aria-label': label, ...props });
++};
++
+ const inputRegex = /[^A-Za-zÀ-ÿ0-9]/g;
+ const AnagramHelper = () => {
+   const [letters, setLetters] = useState("");
+@@ -58,8 +63,10 @@ const AnagramHelper = () => {
    useEffect(() => {
      if (showAnagramHelper) {
        document.getElementById("anagram-helper-input")?.focus();
--    }
--  }, [showAnagramHelper]);
 +    } else {
 +      close();
-+    }
+     }
+-  }, [showAnagramHelper]);
 +  }, [showAnagramHelper, close]);
    if (!showAnagramHelper) {
      return null;
+   }
 diff --git a/dist/components/Cell.js b/dist/components/Cell.js
-index c0161d6d60e119127048ccc745a28604937aa570..46fc49472c8fff6ed071e8aa6bd3efba9e6933f9 100644
+index c0161d6d60e119127048ccc745a28604937aa570..bab6377ff5f5095e2606a8cc70ec27abe721375d 100644
 --- a/dist/components/Cell.js
 +++ b/dist/components/Cell.js
-@@ -72,6 +72,21 @@ const CellComponent = ({
+@@ -1,10 +1,11 @@
+ import { jsxs, jsx, Fragment } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { textSans12 } from '@guardian/source/foundations';
+ import { memo, useRef, useEffect } from 'react';
+ import { useData } from '../context/Data.js';
+ import { useTheme } from '../context/Theme.js';
+ 
++const textSans12 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 0.75rem; line-height: 1.3;';
++
+ const noop = () => {
+ };
+ const CellComponent = ({
+@@ -72,6 +73,21 @@ const CellComponent = ({
            children: data.number
          }
        ),
@@ -40,7 +75,7 @@ index c0161d6d60e119127048ccc745a28604937aa570..46fc49472c8fff6ed071e8aa6bd3efba
        /* @__PURE__ */ jsx(
          "foreignObject",
          {
-@@ -82,7 +97,7 @@ const CellComponent = ({
+@@ -82,7 +98,7 @@ const CellComponent = ({
            children: /* @__PURE__ */ jsx(
              "input",
              {
@@ -49,7 +84,7 @@ index c0161d6d60e119127048ccc745a28604937aa570..46fc49472c8fff6ed071e8aa6bd3efba
                autoCapitalize: "none",
                type: "text",
                pattern: "^[A-Za-z\xC0-\xFF0-9]$",
-@@ -96,7 +111,8 @@ const CellComponent = ({
+@@ -96,7 +112,8 @@ const CellComponent = ({
  								width: 100%;
  								height: 100%;
  								background: transparent;
@@ -59,10 +94,54 @@ index c0161d6d60e119127048ccc745a28604937aa570..46fc49472c8fff6ed071e8aa6bd3efba
  								border: none;
  								${textSans12};
  								font-size: ${theme.gridCellSize * 0.6}px;
+diff --git a/dist/components/Clue.js b/dist/components/Clue.js
+index 933d870be04dc0b918f6d3c4bbc9c17fedbf4973..77513c08036bf9284da0a782da5b45ba57825868 100644
+--- a/dist/components/Clue.js
++++ b/dist/components/Clue.js
+@@ -1,18 +1,18 @@
+ import { jsxs, jsx } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { isString } from '@guardian/libs';
+-import { visuallyHidden } from '@guardian/source/foundations';
+-import { SvgTickRound } from '@guardian/source/react-components';
+ import { memo, useRef, useEffect } from 'react';
+ import { useTheme } from '../context/Theme.js';
+ 
++const visuallyHidden = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;';
++const SvgTickRound = () => jsx('span', { 'aria-hidden': 'true', children: '\u2713' });
++
+ const punctuateString = (string) => {
+   const trimmed = string.trim();
+   return /[!?.…]$/.test(trimmed) ? trimmed : `${trimmed}.`;
+ };
+ const formatClueForScreenReader = (clueString) => {
+   const [, clue, lengths] = /(.+)\((.+?)\)$/gm.exec(clueString) ?? [];
+-  if (!isString(clue) || !isString(lengths)) {
++  if (typeof clue !== 'string' || typeof lengths !== 'string') {
+     return punctuateString(clueString);
+   }
+   const [last, ...rest] = lengths.split(",").map((_) => _.trim() + " letters").reverse();
 diff --git a/dist/components/Controls.js b/dist/components/Controls.js
-index 7fb4550518e30cb307c5a0e315bb86db4f18d240..a5915fb6dab303de088b1642f7a00381697ba49e 100644
+index 7fb4550518e30cb307c5a0e315bb86db4f18d240..77148006560b472f4442859a0928a7b4acdd1d1e 100644
 --- a/dist/components/Controls.js
 +++ b/dist/components/Controls.js
+@@ -1,7 +1,5 @@
+ import { jsx, jsxs, Fragment } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { isUndefined } from '@guardian/libs';
+-import { space } from '@guardian/source/foundations';
+ import { memo, useCallback, useRef, useState, useEffect } from 'react';
+ import { useCurrentClue } from '../context/CurrentClue.js';
+ import { useData } from '../context/Data.js';
+@@ -13,6 +11,8 @@ import { useClearUserInput } from '../hooks/useClearUserInput.js';
+ import { useUpdateCell } from '../hooks/useUpdateCell.js';
+ import { CrosswordButton } from './CrosswordButton.js';
+ 
++const space = [0, 4, 8, 12, 16];
++
+ const ClueButton = (props) => {
+   const theme = useTheme();
+   return /* @__PURE__ */ jsx(
 @@ -81,7 +81,7 @@ const ClearClue = memo((props) => {
        "data-testid": "clear-this",
        "aria-live": "off",
@@ -72,6 +151,15 @@ index 7fb4550518e30cb307c5a0e315bb86db4f18d240..a5915fb6dab303de088b1642f7a00381
      }
    );
  });
+@@ -99,7 +99,7 @@ const CheckClue = memo((props) => {
+     let entryIsCorrect = true;
+     for (const cell of cells.values()) {
+       const currentProgress = progress[cell.x]?.[cell.y];
+-      if (cell.group?.includes(currentEntryId) && !isUndefined(currentProgress) && currentProgress !== cell.solution) {
++      if (cell.group?.includes(currentEntryId) && currentProgress !== undefined && currentProgress !== cell.solution) {
+         if (currentProgress !== "") {
+           updateCell({
+             x: cell.x,
 @@ -126,7 +126,7 @@ const CheckClue = memo((props) => {
        "data-testid": "check-this",
        "aria-label": `Check and remove incorrect letters from ${currentEntryId ? currentEntryId.split("-").join(" ") : "word"}`,
@@ -99,6 +187,15 @@ index 7fb4550518e30cb307c5a0e315bb86db4f18d240..a5915fb6dab303de088b1642f7a00381
      }
    );
  });
+@@ -190,7 +190,7 @@ const CheckGrid = memo((props) => {
+       if (!cell.group) {
+         continue;
+       }
+-      if (!isUndefined(currentProgress) && currentProgress !== cell.solution) {
++      if (currentProgress !== undefined && currentProgress !== cell.solution) {
+         if (currentProgress !== "") {
+           updateCell({
+             x: cell.x,
 @@ -217,23 +217,25 @@ const CheckGrid = memo((props) => {
        requireConfirmation: true,
        ...props,
@@ -151,6 +248,15 @@ index 7fb4550518e30cb307c5a0e315bb86db4f18d240..a5915fb6dab303de088b1642f7a00381
      }
    );
  });
+@@ -274,7 +276,7 @@ const Controls = memo(() => {
+   const { solutionAvailable } = useData();
+   const { currentEntryId } = useCurrentClue();
+   const controlsRef = useRef(null);
+-  const disableClueControls = isUndefined(currentEntryId);
++  const disableClueControls = currentEntryId === undefined;
+   const [focusedClueControlIndex, setFocusedClueControlIndex] = useState(0);
+   const [focusedGridControlIndex, setFocusedGridControlIndex] = useState(0);
+   const [focusedGroup, setFocusedGroup] = useState(
 diff --git a/dist/components/Crossword.js b/dist/components/Crossword.js
 index 307a4b3cf548398845198bb8d24b2370c60df211..fbcc94c31020054eb1ce820d637d1d5d3d230ffb 100644
 --- a/dist/components/Crossword.js
@@ -267,10 +373,29 @@ index 307a4b3cf548398845198bb8d24b2370c60df211..fbcc94c31020054eb1ce820d637d1d5d
  
  export { Crossword };
 diff --git a/dist/components/CrosswordButton.js b/dist/components/CrosswordButton.js
-index 0c9372d69dcbe2fec3d85435aaf67923d12887c0..6d61015578584d01908c7658d02c9b536c6ade57 100644
+index 0c9372d69dcbe2fec3d85435aaf67923d12887c0..aa23c055be9bdd88977d7e4cf2d78979658385c6 100644
 --- a/dist/components/CrosswordButton.js
 +++ b/dist/components/CrosswordButton.js
-@@ -26,9 +26,11 @@ const ButtonComponent = ({
+@@ -1,7 +1,16 @@
+-import { jsxs } from '@emotion/react/jsx-runtime';
+-import { Button } from '@guardian/source/react-components';
++import { jsxs, jsx } from '@emotion/react/jsx-runtime';
++import { css } from '@emotion/react';
+ import { memo, useState, useRef } from 'react';
+ 
++const visuallyHidden = 'position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;';
++
++const Button = ({ children, cssOverrides, icon, hideLabel, size, priority, theme, nudgeIcon, iconSide, isLoading, loadingAnnouncement, type = 'button', ...props }) => {
++  return jsxs('button', { type, css: cssOverrides, ...props, children: [
++    icon || null,
++    hideLabel ? jsx('span', { css: css(visuallyHidden), children }) : children
++  ]});
++};
++
+ const ButtonComponent = ({
+   children,
+   requireConfirmation = false,
+@@ -26,9 +35,11 @@ const ButtonComponent = ({
      userOnClick(event);
      setIsConfirming(false);
    };
@@ -284,11 +409,52 @@ index 0c9372d69dcbe2fec3d85435aaf67923d12887c0..6d61015578584d01908c7658d02c9b53
    ] });
  };
  const CrosswordButton = memo(ButtonComponent);
+diff --git a/dist/components/FocusedClue.js b/dist/components/FocusedClue.js
+index 6e99c300aee99cfdd9ca3e9c611ffaa0000e4e28..c934342f6d43ee4e1354214eb9a4d7097001fe29 100644
+--- a/dist/components/FocusedClue.js
++++ b/dist/components/FocusedClue.js
+@@ -1,17 +1,17 @@
+ import { jsx, jsxs, Fragment } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { isUndefined } from '@guardian/libs';
+-import { textSans14 } from '@guardian/source/foundations';
+ import { memo } from 'react';
+ import { useCurrentClue } from '../context/CurrentClue.js';
+ import { useData } from '../context/Data.js';
+ import { useTheme } from '../context/Theme.js';
+ 
++const textSans14 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 0.875rem; line-height: 1.3;';
++
+ const FocusedClueComponent = ({ additionalCss }) => {
+   const { entries } = useData();
+   const { currentEntryId } = useCurrentClue();
+   const theme = useTheme();
+-  const entry = !isUndefined(currentEntryId) ? entries.get(currentEntryId) : void 0;
++  const entry = currentEntryId !== undefined ? entries.get(currentEntryId) : void 0;
+   const stickyClue = css`
+ 		top: 0;
+ 		display: flex;
 diff --git a/dist/components/Grid.js b/dist/components/Grid.js
-index f585d1aecedb80fe6129bb6762f5b5875080c640..4779c9578d8fd634465f999fe29a7e9856fa4482 100644
+index f585d1aecedb80fe6129bb6762f5b5875080c640..65d9f1518fbfe07384081cc1db1644ec25f948fc 100644
 --- a/dist/components/Grid.js
 +++ b/dist/components/Grid.js
-@@ -225,7 +225,7 @@ const Grid = () => {
+@@ -1,6 +1,5 @@
+ import { jsx, jsxs, Fragment } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { isUndefined, isString } from '@guardian/libs';
+ import { memo, useState, useRef, useCallback, useEffect, useMemo } from 'react';
+ import { useCurrentCell } from '../context/CurrentCell.js';
+ import { useCurrentClue } from '../context/CurrentClue.js';
+@@ -153,7 +152,7 @@ const Grid = () => {
+       if (!newCell) {
+         return;
+       }
+-      if (isTyping && (isUndefined(currentCell.group) || isUndefined(newCell.group))) {
++      if (isTyping && (currentCell.group === undefined || newCell.group === undefined)) {
+         return;
+       }
+       if (delta.x !== 0) {
+@@ -225,7 +224,7 @@ const Grid = () => {
      [cells, entries, updateCellFocus]
    );
    const handleKeyDown = useCallback(
@@ -297,7 +463,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..4779c9578d8fd634465f999fe29a7e98
        if (currentEntryId && (event.key === "[" || event.key === "]")) {
          const currentEntry = entries.get(currentEntryId);
          const nextClueID = currentEntry?.nextEntryId;
-@@ -238,10 +238,8 @@ const Grid = () => {
+@@ -238,10 +237,8 @@ const Grid = () => {
          }
        }
        if (event.key === "Backspace" || event.key === "Delete") {
@@ -310,7 +476,16 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..4779c9578d8fd634465f999fe29a7e98
        } else {
          if (event.key.length === 1) {
            event.preventDefault();
-@@ -444,7 +442,7 @@ const Grid = () => {
+@@ -422,7 +419,7 @@ const Grid = () => {
+             const y = getCellPosition(cell.y, theme);
+             const guess = progress[cell.x]?.[cell.y];
+             const isCurrentCell = currentCell.x === cell.x && currentCell.y === cell.y;
+-            const isBlackCell = isUndefined(cell.group);
++            const isBlackCell = cell.group === undefined;
+             const isConnected = !!cell.group?.some(
+               (entryId) => currentGroupSet?.has(entryId)
+             );
+@@ -444,7 +441,7 @@ const Grid = () => {
                  id: getId(`cell-group-${cell.x}-${cell.y}`),
                  onFocus: handleCellFocus,
                  onPointerDown: isCurrentCell ? () => handleCurrentCellClick(cell) : void 0,
@@ -320,12 +495,22 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..4779c9578d8fd634465f999fe29a7e98
                },
                `x${cell.x}y${cell.y}`
 diff --git a/dist/components/SolutionDisplay.js b/dist/components/SolutionDisplay.js
-index 92435a7018a084ab6dcf6f3be51edbaab17f65c6..fb4d7f609213844baff92790330a9d0750777e36 100644
+index 92435a7018a084ab6dcf6f3be51edbaab17f65c6..3bcc872e982d662c0085089da2ddad7f9f7c127b 100644
 --- a/dist/components/SolutionDisplay.js
 +++ b/dist/components/SolutionDisplay.js
-@@ -11,20 +11,27 @@ const getMatchedAndShuffledLetters = ({
-   const shuffledLettersCopy = [...shuffledLetters];
-   const matchedLetters = Array.from(
+@@ -1,9 +1,10 @@
+ import { jsx, jsxs } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { textSans12 } from '@guardian/source/foundations';
+ import { useRef } from 'react';
+ import { useTheme } from '../context/Theme.js';
+ 
++const textSans12 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 0.75rem; line-height: 1.3;';
++
+ const getMatchedAndShuffledLetters = ({
+   shuffledLetters,
+   cellsWithProgress
+@@ -13,19 +14,26 @@ const getMatchedAndShuffledLetters = ({
      { length: cellsWithProgress.length },
      () => ""
    );
@@ -353,15 +538,16 @@ index 92435a7018a084ab6dcf6f3be51edbaab17f65c6..fb4d7f609213844baff92790330a9d07
 +  return matchedLetters.map((letter, index) => {
 +    if (letter !== "") {
 +      return letter;
-     }
--    return letter;
++    }
 +    if (isPartialEntry && cellsWithProgress[index].progress !== "") {
 +      return "";
-+    }
+     }
+-    return letter;
 +    return shuffledLettersCopy.pop() ?? "";
    });
  };
-@@ -43,6 +43,7 @@ const SolutionDisplayCell = ({
+ const SolutionDisplayCell = ({
+@@ -36,6 +44,7 @@ const SolutionDisplayCell = ({
    return /* @__PURE__ */ jsxs(
      "div",
      {
@@ -369,6 +555,23 @@ index 92435a7018a084ab6dcf6f3be51edbaab17f65c6..fb4d7f609213844baff92790330a9d07
        css: css`
  				${textSans12};
  				font-size: ${theme.gridCellSize * 0.6}px;
+diff --git a/dist/components/WordWheel.js b/dist/components/WordWheel.js
+index b031166fe4dacdaa9b2ce9c10609392109a7b0aa..a95a767738344f7a58b6dc3742299acabf6be075 100644
+--- a/dist/components/WordWheel.js
++++ b/dist/components/WordWheel.js
+@@ -1,9 +1,11 @@
+ import { jsxs, jsx } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { textSansBold17, textSans17 } from '@guardian/source/foundations';
+ import { memo } from 'react';
+ import { useTheme } from '../context/Theme.js';
+ 
++const textSans17 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 1.0625rem; line-height: 1.3;';
++const textSansBold17 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 1.0625rem; line-height: 1.3; font-weight: 700;';
++
+ const centerX = 100;
+ const centerY = 100;
+ const radius = 70;
 diff --git a/dist/context/ContextProvider.js b/dist/context/ContextProvider.js
 index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf20505bc7 100644
 --- a/dist/context/ContextProvider.js
@@ -410,19 +613,48 @@ index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf
 -export { ContextProvider };
 +export { ContextProvider, useOnMove };
 diff --git a/dist/context/Progress.js b/dist/context/Progress.js
-index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..0dbabaafced6b38d5e1353d80676fa29b40e2306 100644
+index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..22149c2f4feed525ae6e44f2546b69d60de9d118 100644
 --- a/dist/context/Progress.js
 +++ b/dist/context/Progress.js
-@@ -1,7 +1,6 @@
+@@ -1,32 +1,24 @@
  import { jsx } from '@emotion/react/jsx-runtime';
- import { log } from '@guardian/libs';
+-import { log } from '@guardian/libs';
 -import { createContext, useContext, useState, useCallback, useEffect, useMemo } from 'react';
 -import useLocalStorageState from '../node_modules/.pnpm/use-local-storage-state@19.5.0_react-dom@18.2.0_react@18.2.0__react@18.2.0/node_modules/use-local-storage-state/src/useLocalStorageState.js';
 +import { createContext, useContext, useState, useCallback, useMemo } from 'react';
  import { getNewProgress } from '../utils/getNewProgress.js';
  
- const serializer = {
-@@ -51,33 +50,21 @@ const ProgressProvider = ({
+-const serializer = {
+-  stringify: (_) => JSON.stringify({ value: _ }),
+-  parse: (_) => JSON.parse(_).value
+-};
+ const isValid = (progress, { dimensions }) => {
+   if (!Array.isArray(progress)) {
+-    log("dotcom", "Invalid crossword progress - progress is not an array");
++    console.warn("Invalid crossword progress - progress is not an array");
+     return false;
+   }
+   if (progress.length !== dimensions.cols) {
+-    log(
+-      "dotcom",
++    console.warn(
+       "Invalid crossword progress - progress is not an array of length dimensions.cols"
+     );
+     return false;
+   }
+   if (!progress.every((row) => Array.isArray(row))) {
+-    log("dotcom", "Invalid crossword progress - each row is not an array");
++    console.warn("Invalid crossword progress - each row is not an array");
+     return false;
+   }
+   if (!progress.every((row) => row.length === dimensions.rows)) {
+-    log(
+-      "dotcom",
++    console.warn(
+       "Invalid crossword progress - each row is not of length dimensions.rows"
+     );
+     return false;
+@@ -51,33 +43,21 @@ const ProgressProvider = ({
  }) => {
    const defaultValue = getInitialProgress({ dimensions, userProgress });
    const [progress, setProgress] = useState(defaultValue);
@@ -460,6 +692,12 @@ index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..0dbabaafced6b38d5e1353d80676fa29
  };
  const useProgress = () => {
    const context = useContext(ProgressContext);
+@@ -89,4 +69,4 @@ const useProgress = () => {
+   return context;
+ };
+ 
+-export { ProgressProvider, serializer, useProgress };
++export { ProgressProvider, useProgress };
 diff --git a/dist/hooks/useClearUserInput.js b/dist/hooks/useClearUserInput.js
 index 00f0c35ebd75c22930be82585d7cb86b0f31ba73..db7621436c375c8562f24d7ad07bb2779a1c0f81 100644
 --- a/dist/hooks/useClearUserInput.js
@@ -496,17 +734,17 @@ index 00f0c35ebd75c22930be82585d7cb86b0f31ba73..db7621436c375c8562f24d7ad07bb277
  };
  
 diff --git a/dist/hooks/useUpdateCell.js b/dist/hooks/useUpdateCell.js
-index 5e0749115ef26ec12ae125c11c87498c1907c784..cb47dae712aef2557df89befa67764a40940af36 100644
+index 5e0749115ef26ec12ae125c11c87498c1907c784..1debcca2b43e518e1bc55d8de3eb041ceaf621c3 100644
 --- a/dist/hooks/useUpdateCell.js
 +++ b/dist/hooks/useUpdateCell.js
-@@ -1,5 +1,6 @@
- import { isUndefined } from '@guardian/libs';
+@@ -1,5 +1,5 @@
+-import { isUndefined } from '@guardian/libs';
  import { useCallback } from 'react';
 +import { useOnMove } from '../context/ContextProvider.js';
  import { useData } from '../context/Data.js';
  import { useProgress } from '../context/Progress.js';
  import { useValidAnswers } from '../context/ValidAnswers.js';
-@@ -8,6 +9,7 @@ const useUpdateCell = () => {
+@@ -8,22 +8,27 @@ const useUpdateCell = () => {
    const { progress, updateProgress } = useProgress();
    const { setValidAnswers, validAnswers } = useValidAnswers();
    const { cells } = useData();
@@ -514,15 +752,20 @@ index 5e0749115ef26ec12ae125c11c87498c1907c784..cb47dae712aef2557df89befa67764a4
    const updateCell = useCallback(
      ({ x, y, value }) => {
        const cell = cells.getByCoords({ x, y });
-@@ -15,6 +17,7 @@ const useUpdateCell = () => {
-       if (isUndefined(cellGroup)) {
+       const cellGroup = cell?.group;
+-      if (isUndefined(cellGroup)) {
++      if (cellGroup === undefined) {
          return;
        }
 +      const previousValue = progress[x]?.[y] ?? '';
        const newProgress = [...progress];
-       if (isUndefined(newProgress[x])) {
+-      if (isUndefined(newProgress[x])) {
++      if (newProgress[x] === undefined) {
          throw new Error("Invalid x coordinate");
-@@ -24,6 +27,9 @@ const useUpdateCell = () => {
+       }
+-      if (isUndefined(newProgress[x][y])) {
++      if (newProgress[x][y] === undefined) {
+         throw new Error("Invalid y coordinate");
        }
        newProgress[x][y] = value;
        updateProgress(newProgress);
@@ -532,7 +775,7 @@ index 5e0749115ef26ec12ae125c11c87498c1907c784..cb47dae712aef2557df89befa67764a4
        for (const entryId of cellGroup) {
          if (validAnswers.has(entryId)) {
            setValidAnswers((prev) => {
-@@ -34,7 +40,7 @@ const useUpdateCell = () => {
+@@ -34,7 +39,7 @@ const useUpdateCell = () => {
          }
        }
      },
@@ -542,10 +785,26 @@ index 5e0749115ef26ec12ae125c11c87498c1907c784..cb47dae712aef2557df89befa67764a4
    return { updateCell };
  };
 diff --git a/dist/layouts/ScreenLayout.js b/dist/layouts/ScreenLayout.js
-index bcb5145a8a2ae3ab35077253b632f28e00eccbce..aeadeb6cfb5328b37349d4e5c051b69d34f90d10 100644
+index bcb5145a8a2ae3ab35077253b632f28e00eccbce..b595fc6eb83192bc3701652ba05fbb731557594b 100644
 --- a/dist/layouts/ScreenLayout.js
 +++ b/dist/layouts/ScreenLayout.js
-@@ -59,7 +59,6 @@ const Layout = ({
+@@ -1,10 +1,14 @@
+ import { jsx, jsxs } from '@emotion/react/jsx-runtime';
+ import { css } from '@emotion/react';
+-import { headlineBold17, space, textSansItalic12, textSans14 } from '@guardian/source/foundations';
+ import { memo } from 'react';
+ import { FocusedClue } from '../components/FocusedClue.js';
+ import { useTheme } from '../context/Theme.js';
+ 
++const space = [0, 4, 8, 12, 16];
++const headlineBold17 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 1.0625rem; line-height: 1.15; font-weight: 700;';
++const textSansItalic12 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 0.75rem; line-height: 1.3; font-style: italic;';
++const textSans14 = 'font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif; font-size: 0.875rem; line-height: 1.3;';
++
+ const CluesHeader = memo(({ children }) => {
+   const theme = useTheme();
+   return /* @__PURE__ */ jsx(
+@@ -59,7 +63,6 @@ const Layout = ({
  				}
  			`,
        children: [
@@ -553,7 +812,7 @@ index bcb5145a8a2ae3ab35077253b632f28e00eccbce..aeadeb6cfb5328b37349d4e5c051b69d
          /* @__PURE__ */ jsxs(
            "div",
            {
-@@ -71,27 +70,38 @@ const Layout = ({
+@@ -71,27 +74,38 @@ const Layout = ({
  					}
  				`,
              children: [
@@ -612,3 +871,134 @@ index bcb5145a8a2ae3ab35077253b632f28e00eccbce..aeadeb6cfb5328b37349d4e5c051b69d
                  }
                ),
                /* @__PURE__ */ jsx(
+diff --git a/dist/theme.js b/dist/theme.js
+index df26ff9ee4b73c8526691ee16c38ad59ab347e9e..cef601277b011efbcca3aa539391b5512b039946 100644
+--- a/dist/theme.js
++++ b/dist/theme.js
+@@ -1,30 +1,28 @@
+-import { palette } from '@guardian/source/foundations';
+-
+ const defaultTheme = {
+-  gridBackgroundColor: palette.neutral[7],
+-  gridForegroundColor: palette.neutral[100],
+-  gridTextColor: palette.neutral[7],
+-  gridPrintBackgroundColor: palette.neutral[46],
++  gridBackgroundColor: '#121212',
++  gridForegroundColor: '#FFFFFF',
++  gridTextColor: '#121212',
++  gridPrintBackgroundColor: '#707070',
+   gridGutterSize: 1,
+   gridCellSize: 32,
+-  gridCellStrikeThrough: palette.neutral[46],
++  gridCellStrikeThrough: '#707070',
+   gridMinWidth: 300,
+-  textColor: palette.neutral[7],
+-  focusColor: palette.focus[400],
+-  selectedTextColor: palette.neutral[7],
+-  selectedBackgroundColor: palette.brandAlt[400],
++  textColor: '#121212',
++  focusColor: '#0077B6',
++  selectedTextColor: '#121212',
++  selectedBackgroundColor: '#FFE500',
+   connectedBackgroundColor: "#fff7b2",
+   // One-off colour generated from brandAlt.400
+-  buttonBackgroundColor: palette.lifestyle[400],
++  buttonBackgroundColor: '#BB3B80',
+   buttonBackgroundHoverColor: "#942f65",
+   // One-off colour generated from lifestyle.400
+-  borderColor: palette.neutral[86],
+-  clueListBorderColor: palette.lifestyle[400],
++  borderColor: '#DCDCDC',
++  clueListBorderColor: '#BB3B80',
+   clueMinWidth: 240,
+   clueMaxWidth: 480,
+-  anagramHelperBackgroundColor: palette.neutral[97],
+-  anagramHelperProgressBackgroundColor: palette.neutral[86],
+-  focusedClueBackgroundColor: palette.neutral[100]
++  anagramHelperBackgroundColor: '#F6F6F6',
++  anagramHelperProgressBackgroundColor: '#DCDCDC',
++  focusedClueBackgroundColor: '#FFFFFF'
+ };
+ 
+ export { defaultTheme };
+diff --git a/dist/utils/biasedShuffle.js b/dist/utils/biasedShuffle.js
+index faadc67ce1972e0d57c4b62e8d236f93962fbedd..fa2a080e521b2dfe5e098b5d257538c3645ce193 100644
+--- a/dist/utils/biasedShuffle.js
++++ b/dist/utils/biasedShuffle.js
+@@ -1,5 +1,3 @@
+-import { isUndefined } from '@guardian/libs';
+-
+ const biasedShuffle = (array) => {
+   const shuffled = [...array];
+   const n = shuffled.length;
+@@ -8,9 +6,9 @@ const biasedShuffle = (array) => {
+     const biasedJ = Math.max(0, i - Math.floor(Math.random() * biasFactor));
+     const unbiasedJ = Math.floor(Math.random() * (i + 1));
+     const finalJ = Math.random() > 0.5 ? unbiasedJ : biasedJ;
+-    if (!isUndefined(shuffled[i])) {
++    if (shuffled[i] !== undefined) {
+       const temp = shuffled[i];
+-      if (!isUndefined(shuffled[finalJ]) && !isUndefined(temp)) {
++      if (shuffled[finalJ] !== undefined && temp !== undefined) {
+         shuffled[i] = shuffled[finalJ];
+         shuffled[finalJ] = temp;
+       }
+diff --git a/dist/utils/formatClueForScreenReader.js b/dist/utils/formatClueForScreenReader.js
+index f8957c0ce6667e29342a519b387b83793f4de6c3..818a6180fd34a65a9c90fc071905d27866c6ba4b 100644
+--- a/dist/utils/formatClueForScreenReader.js
++++ b/dist/utils/formatClueForScreenReader.js
+@@ -1,4 +1,3 @@
+-import { isString } from '@guardian/libs';
+ import { stripHtmlTags } from './stripHtmlTags.js';
+ 
+ const punctuateString = (string) => {
+@@ -8,7 +7,7 @@ const punctuateString = (string) => {
+ const formatClueForScreenReader = (clueString) => {
+   const trimmedStrippedClueString = stripHtmlTags(clueString.trim());
+   const [, clue, lengths] = /(.+)\((.+?)\)$/gm.exec(trimmedStrippedClueString) ?? [];
+-  if (!isString(clue) || !isString(lengths)) {
++  if (typeof clue !== 'string' || typeof lengths !== 'string') {
+     return punctuateString(trimmedStrippedClueString);
+   }
+   const splitLengths = lengths.split(",").map((length) => length.trim());
+diff --git a/dist/utils/getCellDescription.js b/dist/utils/getCellDescription.js
+index c32422ecf1fe91f092ad6f09819f2680c6d12a72..93e056cc1144dbdc4cc7d7ee8ff3ff6ea40c4cab 100644
+--- a/dist/utils/getCellDescription.js
++++ b/dist/utils/getCellDescription.js
+@@ -1,10 +1,9 @@
+-import { isUndefined } from '@guardian/libs';
+ import { formatClueForScreenReader } from './formatClueForScreenReader.js';
+ 
+ const getCellDescription = (cell, entries) => {
+   const cellEntryIds = cell.group ?? [];
+   const cellNumber = cell.number;
+-  if (isUndefined(cellNumber)) {
++  if (cellNumber === undefined) {
+     return void 0;
+   }
+   const cellRelevantEntryIds = cellEntryIds.filter(
+diff --git a/dist/utils/getCellsWithProgressForGroup.js b/dist/utils/getCellsWithProgressForGroup.js
+index ae0814d5e349f6e69dbbb125f67d4aa176959852..ecd4068e2699074a47dd70bf89aa1f8ddf18d72e 100644
+--- a/dist/utils/getCellsWithProgressForGroup.js
++++ b/dist/utils/getCellsWithProgressForGroup.js
+@@ -1,5 +1,3 @@
+-import { isUndefined } from '@guardian/libs';
+-
+ const getCellsWithProgressForGroup = ({
+   entry,
+   entries,
+@@ -7,12 +5,12 @@ const getCellsWithProgressForGroup = ({
+   progress
+ }) => {
+   const groupProgress = [];
+-  if (isUndefined(entry)) {
++  if (entry === undefined) {
+     return groupProgress;
+   }
+   for (const entryId of entry.group) {
+     const entry2 = entries.get(entryId);
+-    if (!isUndefined(entry2)) {
++    if (entry2 !== undefined) {
+       groupProgress.push(
+         ...getCellsWithProgressForEntry({ entry: entry2, cells, progress })
+       );

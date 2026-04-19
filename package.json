@@ -3,9 +3,7 @@
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.11.4",
-    "@guardian/libs": "^31.0.0",
     "@guardian/react-crossword": "patch:@guardian/react-crossword@npm%3A17.0.0#~/.yarn/patches/@guardian-react-crossword-npm-17.0.0-43c1467498.patch",
-    "@guardian/source": "^12.0.0",
     "@rails/actioncable": "^8.0.0",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",

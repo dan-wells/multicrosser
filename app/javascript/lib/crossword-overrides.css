@@ -34,7 +34,7 @@
 }
 
 /* Grid cell input: invisible (letter is displayed via SVG text above) */
-[data-link-name="Crosswords"] foreignObject input {
+[data-link-name="Crosswords"] [data-clue-cell] input {
   font-size: 18px !important;
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
   line-height: 1 !important;
@@ -50,7 +50,7 @@
   display: none;
 }
 
-[data-link-name="Crosswords"] foreignObject input:focus {
+[data-link-name="Crosswords"] [data-clue-cell] input:focus {
   outline: none !important;
   box-shadow: none !important;
 }
@@ -69,7 +69,7 @@
 }
 
 /* Hide the tick icon that appears after checking a word */
-[data-entry-id] svg[viewBox="-3 -3 30 30"] {
+[data-entry-id] > span:nth-child(4) {
   display: none !important;
 }
 
@@ -101,8 +101,11 @@
   display: block !important;
 }
 
-/* All crossword buttons: rectangular, compact sizing, fix vertical alignment */
+/* All crossword buttons: rectangular, compact sizing, flex alignment */
 [aria-label="Crossword controls"] button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   border-radius: 2px !important;
   font-size: 14px !important;
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
@@ -113,11 +116,23 @@
   line-height: 1 !important;
   font-weight: bold !important;
   text-transform: none !important;
+  cursor: pointer !important;
+  border: none !important;
 }
 
-/* Top row (clue controls): keep colored background, fix disabled opacity */
+/* Top row (clue controls): pink background, white text */
+[aria-label="Clue controls"] button {
+  background-color: #BB3B80 !important;
+  color: #fff !important;
+}
+
+[aria-label="Clue controls"] button:hover:not(:disabled) {
+  background-color: #942f65 !important;
+}
+
 [aria-label="Clue controls"] button:disabled {
   opacity: 0.4 !important;
+  cursor: not-allowed !important;
 }
 
 /* Bottom row (grid controls): grey background, dark text */
@@ -145,8 +160,12 @@
 
 /* Anagram helper: square borders on all buttons */
 [data-link-name="Anagram Helper"] button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
   border-radius: 2px !important;
   font-size: 14px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
   height: 30px !important;
   min-height: 30px !important;
   margin-top: 8px;
@@ -155,9 +174,11 @@
   line-height: 1 !important;
   font-weight: bold !important;
   text-transform: none !important;
+  cursor: pointer !important;
+  border: none !important;
 }
 
-/* Anagram helper: Start and Shuffle buttons — pink with white text */
+/* Anagram helper: Start and Shuffle buttons -- pink with white text */
 [data-link-name="Anagram Helper"] [data-link-name="Shuffle"] {
   background-color: #BB3B80 !important;
   color: #fff !important;
@@ -168,7 +189,7 @@
   color: #fff !important;
 }
 
-/* Anagram helper: Back button — grey like grid controls */
+/* Anagram helper: Back button -- grey like grid controls */
 [data-link-name="Start Again"] {
   background-color: #e0e0e0 !important;
   color: #767676 !important;
@@ -180,13 +201,13 @@
   color: #333 !important;
 }
 
-/* Anagram helper: clue text — match sticky clue styling */
+/* Anagram helper: clue text -- match sticky clue styling */
 [data-link-name="Anagram Helper"] span[aria-hidden="true"] {
   font-size: 14px !important;
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
 }
 
-/* Anagram helper: clue direction label ("19 Across") — Catamaran, match sticky clue */
+/* Anagram helper: clue direction label ("19 Across") -- Catamaran, match sticky clue */
 [data-link-name="Anagram Helper"] span[aria-hidden="true"]:first-child {
   font-family: 'Catamaran', sans-serif !important;
   font-size: 15px !important;
@@ -195,8 +216,14 @@
 
 /* Anagram helper: Text input */
 #anagram-helper-input {
-  height: 36px;
-  margin-top: 0px;
+  height: 30px !important;
+  margin-top: 8px !important;
+  font-size: 16px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+  border: 1px solid #777 !important;
+  border-radius: 2px !important;
+  padding: 0 8px !important;
+  padding-top: 2px !important;
 }
 
 #anagram-helper-input:focus {
@@ -204,14 +231,20 @@
   box-shadow: none !important;
 }
 
-/* Anagram helper: Close button */
-[data-link-name="Close"] {
-  width: 30px;
-  padding-top: 0px;
+/* Anagram helper: Close button -- scoped to beat the [data-link-name="Anagram Helper"] button rule */
+[data-link-name="Anagram Helper"] [data-link-name="Close"] {
+  width: 30px !important;
+  padding: 0 !important;
+  margin-top: 0 !important;
+  background-color: #F6F6F6 !important;
+  border: 1px solid #777 !important;
 }
 
-[data-link-name="Close"] svg {
-  width: 20px !important;
+[data-link-name="Anagram Helper"] [data-link-name="Close"] span[aria-hidden="true"] {
+  font-size: 20px !important;
+  font-weight: normal !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+  padding-right: 0 !important;
 }
 
 /* Remove focus outline/ring on all crossword buttons */
@@ -221,7 +254,7 @@
   box-shadow: none !important;
 }
 
-/* Anagram helper: solution display cells — match main grid letter styling */
+/* Anagram helper: solution display cells -- match main grid letter styling */
 [data-solution-cell] {
   font-size: 18px !important;
   font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
