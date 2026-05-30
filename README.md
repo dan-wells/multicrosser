@@ -88,7 +88,7 @@ RAILS_ENV=production bundle exec rails assets:precompile
 
 We use a [Yarn patch](https://yarnpkg.com/cli/patch) (`.yarn/patches/@guardian-react-crossword-*.patch`) to add the multiplayer hooks we need:
 
-- **`onMove` callback prop** — fires when the user types a letter, providing `{ x, y, value, previousValue }`. Threaded through a React context to the internal `useUpdateCell` hook.
+- **`onMove` callback prop** — fires when the user types a letter or clicks Check/Reveal/Clear, providing `{ x, y, value, previousValue, force }`. The Check and Reveal buttons pass `force: true` to tell the server to apply their writes unconditionally, overriding the per-cell conflict check; typing and Clear leave `force` unset. Threaded through a React context to the internal `useUpdateCell` hook.
 - **`ref` with imperative methods** — `setCellValue(x, y, value)`, `getCellValue(x, y)`, and `updateGrid(progress)`, exposed via `forwardRef` + `useImperativeHandle`. These call `updateProgress` directly (not `updateCell`), so they do NOT trigger `onMove` — this prevents broadcast loops when applying remote moves.
 - **localStorage removed** — the component's built-in localStorage persistence is replaced with plain React state. Redis is the authoritative store; there's no scenario where the crossword page loads without a server connection.
 - **SavedMessage removed** — the "Crossword will not be saved" message is suppressed since saving is handled by Redis.

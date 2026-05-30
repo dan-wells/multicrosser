@@ -93,6 +93,36 @@ class MovesChannelTest < ActionCable::Channel::TestCase
     assert_equal "K", rejection["value"]
   end
 
+  test "forced move bypasses the previousValue check and is stored + broadcast even when current value differs" do
+    channel_name = "moves_channel-cryptic/123-alpha"
+    @fake_redis.hset(channel_name, "1-2", "K")
+    subscribe(crossword: "cryptic/123", room: "alpha")
+
+    forced = { "id" => "abc", "x" => 1, "y" => 2, "value" => "T", "previousValue" => "", "force" => true }
+
+    assert_broadcasts(channel_name, 1) do
+      perform :move, forced
+    end
+
+    assert_equal "T", @fake_redis.hgetall(channel_name)["1-2"]
+  end
+
+  test "forced moves are logged with a distinctive marker" do
+    channel_name = "moves_channel-cryptic/123-alpha"
+    subscribe(crossword: "cryptic/123", room: "alpha")
+
+    log = StringIO.new
+    original_logger = Rails.logger
+    Rails.logger = ActiveSupport::Logger.new(log)
+    begin
+      perform :move, { "id" => "abc", "x" => 1, "y" => 2, "value" => "T", "previousValue" => "", "force" => true }
+    ensure
+      Rails.logger = original_logger
+    end
+
+    assert_match(/FORCED/, log.string)
+  end
+
   test "fresh move (previousValue matches current cell) is stored and broadcast normally" do
     channel_name = "moves_channel-cryptic/123-alpha"
     @fake_redis.hset(channel_name, "1-2", "K")
