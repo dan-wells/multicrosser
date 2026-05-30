@@ -45,15 +45,17 @@ const selectedBackgroundColor = rootStyle.getPropertyValue('--crossword-selected
 
 const crosswordRef = React.createRef();
 const onReceiveMove = (move) => { crosswordRef.current.setCellValue(move.x, move.y, move.value); };
-const onReplayMove = (move) => {
-  if (crosswordRef.current.getCellValue(move.x, move.y) === move.previousValue) {
-    crosswordRef.current.setCellValue(move.x, move.y, move.value);
-  }
-};
 
 const root = createRoot(crosswordElement);
-const subscription = createSubscription(crosswordIdentifier, room, onReceiveMove, onReplayMove, (initialState) => {
+const subscription = createSubscription(crosswordIdentifier, room, onReceiveMove, (initialState, pendingMoves) => {
   const progress = toProgress(initialState, crosswordData.dimensions);
+  // Overlay any moves still waiting on a server ack so the user's pending
+  // letters don't briefly disappear when the server's initialState lands.
+  pendingMoves.forEach((m) => {
+    if (progress[m.x] && progress[m.x][m.y] !== undefined) {
+      progress[m.x][m.y] = m.value;
+    }
+  });
   // flushSync ensures the component is mounted synchronously so crosswordRef.current
   // is populated before updateGrid is called (root.render is async in React 18)
   flushSync(() => {

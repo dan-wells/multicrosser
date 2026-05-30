@@ -16,8 +16,20 @@ class MovesChannel < ApplicationCable::Channel
   end
 
   def move(data)
-    redis.hset(channel_name, "#{data['x']}-#{data['y']}", data['value'])
-    ActionCable.server.broadcast(channel_name, data)
+    cell_key = "#{data['x']}-#{data['y']}"
+    current = redis.hget(channel_name, cell_key) || ""
+
+    if current == (data['previousValue'] || "")
+      redis.hset(channel_name, cell_key, data['value'])
+      ActionCable.server.broadcast(channel_name, data)
+    else
+      # Stale move: the cell has changed since this move was authored
+      # (e.g. another user typed while this client was offline). Reject
+      # back to the sender only, so they drop the buffered entry and
+      # resync their local cell to the current server value.
+      transmit({ 'id' => data['id'], 'rejected' => true,
+                 'x' => data['x'], 'y' => data['y'], 'value' => current })
+    end
   end
 
 

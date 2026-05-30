@@ -1,37 +1,46 @@
 import { createConsumer } from '@rails/actioncable';
 import MoveBuffer from './move_buffer';
 
-const createSubscription = function createSubscription(crossword, room, onReceiveMove, onReplayMove, onInitialState) {
+const generateMoveId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
+
+const createSubscription = function createSubscription(crossword, room, onReceiveMove, onInitialState) {
   const cableUrl = document.querySelector('meta[name="cable-url"]')?.content;
   const cable = createConsumer(cableUrl);
-  const moveBuffer = new MoveBuffer(room);
+  const moveBuffer = new MoveBuffer(`${crossword}-${room}`);
+
+  const send = function send(ctx, move) {
+    try {
+      ctx.perform('move', move);
+    } catch (e) {
+      // perform throws iff the socket isn't OPEN -- the move stays buffered
+      // and will be retried on the next `connected` callback.
+    }
+  };
 
   return cable.subscriptions.create(
     { channel: 'MovesChannel', crossword, room },
     {
       received: function received(data) {
         if (data.initialState) {
-          onInitialState(data.initialState);
+          onInitialState(data.initialState, moveBuffer.getAll());
+        } else if (data.id && moveBuffer.getAll().some((m) => m.id === data.id)) {
+          moveBuffer.remove(data.id);
+          if (data.rejected) {
+            // Server refused our move because the cell had moved on.
+            // Resync the local cell to the server's current value.
+            onReceiveMove({ x: data.x, y: data.y, value: data.value });
+          }
         } else {
           onReceiveMove(data);
         }
       },
       move: function move(data) {
-        let success = false;
-        try {
-          success = this.perform('move', data);
-        } catch (e) {
-          // catch error
-        } finally {
-          if (!success) {
-            moveBuffer.queue(data);
-          }
-        }
+        const moveWithId = { ...data, id: generateMoveId() };
+        moveBuffer.queue(moveWithId);
+        send(this, moveWithId);
       },
       connected: function connected() {
-        moveBuffer.deqeueAll().forEach((move) => {
-          onReplayMove(move);
-        });
+        moveBuffer.getAll().forEach((m) => send(this, m));
       },
     },
   );

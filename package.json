@@ -12,11 +12,14 @@
   "devDependencies": {
     "esbuild": "^0.28.0",
     "eslint": "^8.0.0",
-    "eslint-plugin-react": "^7.37.0"
+    "eslint-plugin-react": "^7.37.0",
+    "jsdom": "^29.1.1",
+    "vitest": "^4.1.7"
   },
   "scripts": {
     "build": "esbuild app/javascript/crossword.js app/javascript/homepage.js --bundle --sourcemap --outdir=app/assets/builds --loader:.css=css --loader:.js=jsx",
-    "lint": "eslint --ext .js --ext .jsx app/javascript"
+    "lint": "eslint --ext .js --ext .jsx app/javascript",
+    "test": "vitest run"
   },
   "packageManager": "yarn@4.13.0"
 }

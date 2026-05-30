@@ -5,23 +5,21 @@ class MoveBuffer {
   }
 
   queue(move) {
-    const existingItems = this.getObject();
-    existingItems.push(move);
-    this.setObject(existingItems);
+    const existing = this.getAll();
+    existing.push(move);
+    this.setObject(existing);
   }
 
-  deqeueAll() {
-    const existingItems = this.getObject();
-    this.setObject([]);
-    return existingItems;
+  remove(id) {
+    this.setObject(this.getAll().filter((m) => m.id !== id));
+  }
+
+  getAll() {
+    return JSON.parse(this.storage.getItem(this.key)) || [];
   }
 
   setObject(object) {
     this.storage.setItem(this.key, JSON.stringify(object));
-  }
-
-  getObject() {
-    return JSON.parse(this.storage.getItem(this.key)) || [];
   }
 }
 
