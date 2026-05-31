@@ -30,10 +30,10 @@ class MovesChannelTest < ActionCable::Channel::TestCase
   end
 
   test "subscribed transmits an empty initialState grid for an unseen room" do
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
 
     assert subscription.confirmed?
-    expected = Array.new(20) { Array.new(20) }
+    expected = Array.new(15) { Array.new(15) }
     assert_equal({ "initialState" => expected }, transmissions.last)
   end
 
@@ -42,7 +42,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
     @fake_redis.hset(channel_name, "1-2", "A")
     @fake_redis.hset(channel_name, "3-4", "Z")
 
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
     grid = transmissions.last["initialState"]
 
     assert_equal "A", grid[1][2]
@@ -50,7 +50,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
   end
 
   test "move action writes to Redis and broadcasts the payload including id" do
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
     channel_name = "moves_channel-cryptic/123-alpha"
     payload = { "id" => "abc", "x" => 1, "y" => 2, "value" => "A" }
 
@@ -64,7 +64,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
   test "stale move (previousValue does not match) is not stored and not broadcast" do
     channel_name = "moves_channel-cryptic/123-alpha"
     @fake_redis.hset(channel_name, "1-2", "K")
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
 
     stale = { "id" => "abc", "x" => 1, "y" => 2, "value" => "T", "previousValue" => "" }
 
@@ -78,7 +78,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
   test "stale move transmits a rejection (with current value) to the sender only" do
     channel_name = "moves_channel-cryptic/123-alpha"
     @fake_redis.hset(channel_name, "1-2", "K")
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
     baseline = transmissions.length
 
     stale = { "id" => "abc", "x" => 1, "y" => 2, "value" => "T", "previousValue" => "" }
@@ -96,7 +96,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
   test "forced move bypasses the previousValue check and is stored + broadcast even when current value differs" do
     channel_name = "moves_channel-cryptic/123-alpha"
     @fake_redis.hset(channel_name, "1-2", "K")
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
 
     forced = { "id" => "abc", "x" => 1, "y" => 2, "value" => "T", "previousValue" => "", "force" => true }
 
@@ -109,7 +109,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
 
   test "forced moves are logged with a distinctive marker" do
     channel_name = "moves_channel-cryptic/123-alpha"
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
 
     log = StringIO.new
     original_logger = Rails.logger
@@ -126,7 +126,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
   test "fresh move (previousValue matches current cell) is stored and broadcast normally" do
     channel_name = "moves_channel-cryptic/123-alpha"
     @fake_redis.hset(channel_name, "1-2", "K")
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
 
     fresh = { "id" => "abc", "x" => 1, "y" => 2, "value" => "T", "previousValue" => "K" }
 
@@ -138,7 +138,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
   end
 
   test "move broadcast preserves the client-supplied id field" do
-    subscribe(crossword: "cryptic/123", room: "alpha")
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
     channel_name = "moves_channel-cryptic/123-alpha"
     payload = { "id" => "abc-123", "x" => 5, "y" => 6, "value" => "Q" }
 

@@ -3,7 +3,7 @@ import MoveBuffer from './move_buffer';
 
 const generateMoveId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
 
-const createSubscription = function createSubscription(crossword, room, onReceiveMove, onInitialState) {
+const createSubscription = function createSubscription(crossword, room, dimensions, onReceiveMove, onInitialState) {
   const cableUrl = document.querySelector('meta[name="cable-url"]')?.content;
   const cable = createConsumer(cableUrl);
   const moveBuffer = new MoveBuffer(`${crossword}-${room}`);
@@ -18,7 +18,7 @@ const createSubscription = function createSubscription(crossword, room, onReceiv
   };
 
   return cable.subscriptions.create(
-    { channel: 'MovesChannel', crossword, room },
+    { channel: 'MovesChannel', crossword, room, cols: dimensions.cols, rows: dimensions.rows },
     {
       received: function received(data) {
         if (data.initialState) {

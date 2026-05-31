@@ -2,13 +2,15 @@ class MovesChannel < ApplicationCable::Channel
   def subscribed
     stream_from(channel_name)
 
+    cols = params[:cols].to_i
+    rows = params[:rows].to_i
     data = redis.hgetall(channel_name)
-    grid = Array.new(20) { Array.new(20) }
+    grid = Array.new(cols) { Array.new(rows) }
 
     data.each {|k, v|
       x, y = k.split('-')
       next if x.nil? or y.nil?
-      next unless x.to_i.in?(0..20) && y.to_i.in?(0..20)
+      next unless x.to_i.in?(0...cols) && y.to_i.in?(0...rows)
       grid[x.to_i][y.to_i] = v
     }
 

@@ -29,7 +29,7 @@ if (room && !/^[0-9a-f]{6,8}$/.test(room)) {
   ));
 }
 
-// Convert server initial state (20x20 array with nulls) to Progress format
+// Convert server initial state (cols x rows array with nulls) to Progress format
 // (dimensions.cols x dimensions.rows array with empty strings)
 function toProgress(initialState, dimensions) {
   return Array.from({ length: dimensions.cols }, (_, x) =>
@@ -47,7 +47,7 @@ const crosswordRef = React.createRef();
 const onReceiveMove = (move) => { crosswordRef.current.setCellValue(move.x, move.y, move.value); };
 
 const root = createRoot(crosswordElement);
-const subscription = createSubscription(crosswordIdentifier, room, onReceiveMove, (initialState, pendingMoves) => {
+const subscription = createSubscription(crosswordIdentifier, room, crosswordData.dimensions, onReceiveMove, (initialState, pendingMoves) => {
   const progress = toProgress(initialState, crosswordData.dimensions);
   // Overlay any moves still waiting on a server ack so the user's pending
   // letters don't briefly disappear when the server's initialState lands.

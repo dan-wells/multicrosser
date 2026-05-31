@@ -27,7 +27,7 @@ const bufferKey = (crossword = DEFAULT_CROSSWORD, room = DEFAULT_ROOM) => `move-
 const makeSubscription = (room = DEFAULT_ROOM, crossword = DEFAULT_CROSSWORD) => {
   const onReceiveMove = vi.fn();
   const onInitialState = vi.fn();
-  const sub = createSubscription(crossword, room, onReceiveMove, onInitialState);
+  const sub = createSubscription(crossword, room, { cols: 15, rows: 15 }, onReceiveMove, onInitialState);
   return {
     sub, onReceiveMove, onInitialState,
   };
