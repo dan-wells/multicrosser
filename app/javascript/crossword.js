@@ -4,6 +4,7 @@ import { flushSync } from 'react-dom';
 import { Crossword } from '@guardian/react-crossword';
 import './lib/crossword-overrides.css';
 import { createSubscription } from './lib/subscription';
+import { recordSeries, recordPuzzle, recordRoom } from './lib/history_storage';
 
 const crosswordElement = document.getElementsByClassName('js-crossword')[0];
 
@@ -12,22 +13,10 @@ const crosswordData = JSON.parse(crossword);
 
 const [series, identifier] = crosswordIdentifier.split('/');
 
-localStorage.setItem('last-series', series);
-
-// Per-series puzzle history, cap at 5
-const puzzles = JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]');
-localStorage.setItem('previous-puzzles-' + series, JSON.stringify(
-  [identifier, ...puzzles.filter(p => p !== identifier)].slice(0, 5)
-));
-
-// Room history -- save named rooms only, skip random hex IDs like a3f9c1
-if (room && !/^[0-9a-f]{6,8}$/.test(room)) {
-  localStorage.setItem('last-room', room);
-  const rooms = JSON.parse(localStorage.getItem('previous-rooms') || '[]');
-  localStorage.setItem('previous-rooms', JSON.stringify(
-    [room, ...rooms.filter(r => r !== room)].slice(0, 5)
-  ));
-}
+// Update localStorage for current puzzle
+recordSeries(series);
+recordPuzzle(series, identifier);
+recordRoom(room);
 
 // Convert server initial state (cols x rows array with nulls) to Progress format
 // (dimensions.cols x dimensions.rows array with empty strings)

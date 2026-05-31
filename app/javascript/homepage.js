@@ -1,3 +1,12 @@
+import {
+  recordDay,
+  previousPuzzles,
+  previousRooms,
+  lastSeries,
+  lastRoom,
+  lastDay,
+} from './lib/history_storage';
+
 function updatePuzzlePlaceholder() {
   var select = document.getElementById('goto-series');
   var option = select.options[select.selectedIndex];
@@ -13,9 +22,9 @@ function updateDayFilter() {
   if (dayFilter.hidden) {
     dayFilter.querySelector('input[value=""]').checked = true;
   } else {
-    var lastDay = localStorage.getItem('last-day');
-    if (lastDay !== null) {
-      var radio = dayFilter.querySelector('input[name="day"][value="' + lastDay + '"]');
+    var savedDay = lastDay();
+    if (savedDay !== null) {
+      var radio = dayFilter.querySelector('input[name="day"][value="' + savedDay + '"]');
       if (radio) radio.checked = true;
     }
   }
@@ -23,7 +32,7 @@ function updateDayFilter() {
 
 document.getElementById('day-filter').addEventListener('change', function() {
   var checked = document.querySelector('input[name="day"]:checked');
-  localStorage.setItem('last-day', checked ? checked.value : '');
+  recordDay(checked ? checked.value : '');
 });
 
 updatePuzzlePlaceholder();
@@ -68,16 +77,14 @@ function makeHistory(inputId, listId, getItems) {
 
 var puzzleAC = makeHistory('goto-number', 'puzzle-suggestions', function() {
   var series = document.getElementById('goto-series').value;
-  return JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]');
+  return previousPuzzles(series);
 });
 
-makeHistory('goto-room', 'room-suggestions', function() {
-  return JSON.parse(localStorage.getItem('previous-rooms') || '[]');
-});
+makeHistory('goto-room', 'room-suggestions', previousRooms);
 
 function populatePuzzleDatalist() { puzzleAC.refresh(); }
 function lastPuzzleForSeries(series) {
-  return (JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]'))[0] || '';
+  return previousPuzzles(series)[0] || '';
 }
 document.getElementById('goto-series').addEventListener('change', function() {
   updatePuzzlePlaceholder();
@@ -94,14 +101,14 @@ function rewriteLinks() {
 document.getElementById('goto-room').addEventListener('input', rewriteLinks);
 
 function initFromStorage() {
-  var lastRoom   = localStorage.getItem('last-room');
-  var lastSeries = localStorage.getItem('last-series');
+  var savedRoom   = lastRoom();
+  var savedSeries = lastSeries();
   var sel = document.getElementById('goto-series');
 
-  if (lastRoom) document.getElementById('goto-room').value = lastRoom;
-  if (lastSeries) {
+  if (savedRoom) document.getElementById('goto-room').value = savedRoom;
+  if (savedSeries) {
     for (var i = 0; i < sel.options.length; i++) {
-      if (sel.options[i].value === lastSeries) { sel.selectedIndex = i; break; }
+      if (sel.options[i].value === savedSeries) { sel.selectedIndex = i; break; }
     }
     updatePuzzlePlaceholder();
   }
