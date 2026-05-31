@@ -14,6 +14,10 @@ class MoveBuffer {
     this.setObject(this.getAll().filter((m) => m.id !== id));
   }
 
+  removeCell(x, y) {
+    this.setObject(this.getAll().filter((m) => m.x !== x || m.y !== y));
+  }
+
   getAll() {
     return JSON.parse(this.storage.getItem(this.key)) || [];
   }

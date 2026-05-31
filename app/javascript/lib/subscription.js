@@ -27,7 +27,9 @@ const createSubscription = function createSubscription(crossword, room, dimensio
           moveBuffer.remove(data.id);
           if (data.rejected) {
             // Server refused our move because the cell had moved on.
-            // Resync the local cell to the server's current value.
+            // Purge any follow-on moves to the same cell — they'd all be
+            // rejected too — then resync to the server's current value.
+            moveBuffer.removeCell(data.x, data.y);
             onReceiveMove({ x: data.x, y: data.y, value: data.value });
           }
         } else {

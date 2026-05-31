@@ -41,6 +41,15 @@ describe('MoveBuffer', () => {
     expect(fresh.getAll().map((m) => m.id)).toEqual(['a']);
   });
 
+  it('removeCell removes all moves at the given coordinates', () => {
+    const buf = new MoveBuffer('room-1');
+    buf.queue({ id: 'a', x: 1, y: 2, value: 'A' });
+    buf.queue({ id: 'b', x: 3, y: 4, value: 'B' });
+    buf.queue({ id: 'c', x: 1, y: 2, value: 'C' });
+    buf.removeCell(1, 2);
+    expect(buf.getAll().map((m) => m.id)).toEqual(['b']);
+  });
+
   it('isolates buffers across keys', () => {
     new MoveBuffer('room-1').queue({ id: 'a', x: 0, y: 0, value: 'A' });
     expect(new MoveBuffer('room-2').getAll()).toEqual([]);

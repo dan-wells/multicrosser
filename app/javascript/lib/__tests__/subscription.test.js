@@ -134,6 +134,25 @@ describe('createSubscription', () => {
     }));
   });
 
+  it('on rejection: also purges other buffered moves to the same cell', () => {
+    const { sub } = makeSubscription();
+    sub.move({
+      x: 3, y: 4, value: 'A', previousValue: '',
+    });
+    sub.move({
+      x: 3, y: 4, value: 'B', previousValue: 'A',
+    });
+
+    const buffered = JSON.parse(window.localStorage.getItem(bufferKey()));
+    const rejectedId = buffered[0].id;
+
+    sub.fireReceived({
+      id: rejectedId, rejected: true, x: 3, y: 4, value: 'K',
+    });
+
+    expect(JSON.parse(window.localStorage.getItem(bufferKey()))).toEqual([]);
+  });
+
   it('treats a broadcast with no buffered match as a remote move', () => {
     const { sub, onReceiveMove } = makeSubscription();
     sub.fireReceived({
