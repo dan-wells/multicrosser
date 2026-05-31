@@ -150,6 +150,19 @@ describe('createSubscription', () => {
     expect(onReceiveMove).toHaveBeenCalledWith({ x: 5, y: 6, value: 'Q' });
   });
 
+  it('preserves previousValue in the pendingMoves snapshot passed to onInitialState', () => {
+    const { sub, onInitialState } = makeSubscription();
+    sub.move({
+      x: 2, y: 3, value: 'A', previousValue: 'X',
+    });
+
+    const grid = Array.from({ length: 20 }, () => Array(20).fill(null));
+    sub.fireReceived({ initialState: grid });
+
+    const [, pendingMoves] = onInitialState.mock.calls[0];
+    expect(pendingMoves[0]).toMatchObject({ x: 2, y: 3, value: 'A', previousValue: 'X' });
+  });
+
   it('forwards initialState along with a snapshot of the buffered moves', () => {
     const { sub, onInitialState } = makeSubscription();
     sub.move({

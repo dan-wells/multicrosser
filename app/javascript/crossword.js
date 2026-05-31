@@ -90,9 +90,9 @@ const subscription = createSubscription(crosswordIdentifier, room, crosswordData
   // Overlay any moves still waiting on a server ack so the user's pending
   // letters don't briefly disappear when the server's initialState lands.
   pendingMoves.forEach((m) => {
-    if (progress[m.x] && progress[m.x][m.y] !== undefined) {
-      progress[m.x][m.y] = m.value;
-    }
+    if (progress[m.x]?.[m.y] === undefined) return;
+    if (progress[m.x][m.y] !== m.previousValue) return;
+    progress[m.x][m.y] = m.value;
   });
 
   if (!mounted) {
