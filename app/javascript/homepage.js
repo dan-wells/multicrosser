@@ -12,6 +12,12 @@ function updateDayFilter() {
   dayFilter.hidden = (select.value !== 'cryptic');
   if (dayFilter.hidden) {
     dayFilter.querySelector('input[value=""]').checked = true;
+  } else {
+    var lastDay = localStorage.getItem('last-day');
+    if (lastDay !== null) {
+      var radio = dayFilter.querySelector('input[name="day"][value="' + lastDay + '"]');
+      if (radio) radio.checked = true;
+    }
   }
 }
 
@@ -70,9 +76,13 @@ makeHistory('goto-room', 'room-suggestions', function() {
 });
 
 function populatePuzzleDatalist() { puzzleAC.refresh(); }
+function lastPuzzleForSeries(series) {
+  return (JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]'))[0] || '';
+}
 document.getElementById('goto-series').addEventListener('change', function() {
   updatePuzzlePlaceholder();
   populatePuzzleDatalist();
+  document.getElementById('goto-number').value = lastPuzzleForSeries(this.value);
 });
 
 function rewriteLinks() {
@@ -86,22 +96,16 @@ document.getElementById('goto-room').addEventListener('input', rewriteLinks);
 function initFromStorage() {
   var lastRoom   = localStorage.getItem('last-room');
   var lastSeries = localStorage.getItem('last-series');
-  var lastPuzzle = localStorage.getItem('last-puzzle');
+  var sel = document.getElementById('goto-series');
 
-  if (lastRoom)   document.getElementById('goto-room').value   = lastRoom;
-  if (lastPuzzle) document.getElementById('goto-number').value = lastPuzzle;
+  if (lastRoom) document.getElementById('goto-room').value = lastRoom;
   if (lastSeries) {
-    var sel = document.getElementById('goto-series');
     for (var i = 0; i < sel.options.length; i++) {
       if (sel.options[i].value === lastSeries) { sel.selectedIndex = i; break; }
     }
     updatePuzzlePlaceholder();
-    var lastDay = localStorage.getItem('last-day');
-    if (lastDay !== null && !document.getElementById('day-filter').hidden) {
-      var dayRadio = document.querySelector('input[name="day"][value="' + lastDay + '"]');
-      if (dayRadio) dayRadio.checked = true;
-    }
   }
+  document.getElementById('goto-number').value = lastPuzzleForSeries(sel.value);
 
   // room autocomplete items are loaded on focus via getItems callback
   populatePuzzleDatalist();

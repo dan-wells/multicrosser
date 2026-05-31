@@ -13,7 +13,6 @@ const crosswordData = JSON.parse(crossword);
 const [series, identifier] = crosswordIdentifier.split('/');
 
 localStorage.setItem('last-series', series);
-localStorage.setItem('last-puzzle', identifier);
 
 // Per-series puzzle history, cap at 5
 const puzzles = JSON.parse(localStorage.getItem('previous-puzzles-' + series) || '[]');
