@@ -1,10 +1,14 @@
 const HISTORY_LIMIT = 5;
 const ROOM_HEX_PATTERN = /^[0-9a-f]{6,8}$/;
 
+const safeSet = (key, value) => {
+  try { localStorage.setItem(key, value); } catch (e) { /* unavailable in e.g. Safari Private Browsing */ }
+};
+
 const readList = (key) => JSON.parse(localStorage.getItem(key) || '[]');
 
 const writeList = (key, items) => {
-  localStorage.setItem(key, JSON.stringify(items.slice(0, HISTORY_LIMIT)));
+  safeSet(key, JSON.stringify(items.slice(0, HISTORY_LIMIT)));
 };
 
 const prepend = (key, value) => {
@@ -14,7 +18,7 @@ const prepend = (key, value) => {
 
 // Most recent puzzle series
 export const recordSeries = (series) => {
-  localStorage.setItem('last-series', series);
+  safeSet('last-series', series);
 };
 
 // Per-series puzzle history, cap at 5
@@ -25,13 +29,13 @@ export const recordPuzzle = (series, identifier) => {
 // Room history -- save named rooms only, skip random hex IDs
 export const recordRoom = (room) => {
   if (!room || ROOM_HEX_PATTERN.test(room)) return;
-  localStorage.setItem('last-room', room);
+  safeSet('last-room', room);
   prepend('previous-rooms', room);
 };
 
 // Last day filter for cryptics
 export const recordDay = (day) => {
-  localStorage.setItem('last-day', day);
+  safeSet('last-day', day);
 };
 
 export const previousPuzzles = (series) => readList(`previous-puzzles-${series}`);

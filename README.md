@@ -141,7 +141,7 @@ If the move can't be broadcast with Action Cable it's stored in the `MoveBuffer`
 
 When the move `MoveBuffer` is replayed, moves will only apply if the cell they change still has the same character in it when the move was made. For example, if you change an 'A' to a 'B' while offline this move will be discarded if someone has since changed the 'A' to a 'C' and broadcast it to the server before you.
 
-The `MoveBuffer` uses local storage so will persist if the page is refreshed or the browser is closed.
+The `MoveBuffer` uses local storage so will persist if the page is refreshed or the browser is closed. In browsers where local storage is unavailable (e.g. Safari Private Browsing), moves are buffered in memory and lost if the tab is closed.
 
 ### Redis
 

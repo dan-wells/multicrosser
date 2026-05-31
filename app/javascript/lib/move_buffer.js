@@ -1,9 +1,26 @@
 const MAX_BUFFERED_MOVES = 1000;
 
+function makeStorage() {
+  try {
+    window.localStorage.setItem('__move-buffer-probe__', '');
+    window.localStorage.removeItem('__move-buffer-probe__');
+    return window.localStorage;
+  } catch (e) {
+    // localStorage unavailable (e.g. Safari Private Browsing).
+    // Fall back to in-memory storage -- moves buffer within the tab only.
+    const data = new Map();
+    return {
+      getItem: (key) => data.get(key) ?? null,
+      setItem: (key, value) => { data.set(key, value); },
+      removeItem: (key) => { data.delete(key); },
+    };
+  }
+}
+
 class MoveBuffer {
   constructor(key) {
-    this.storage = window.localStorage;
     this.key = `move-buffer-${key}`;
+    this.storage = makeStorage();
   }
 
   queue(move) {

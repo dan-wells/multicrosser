@@ -1,5 +1,5 @@
 import {
-  describe, it, expect, beforeEach,
+  describe, it, expect, beforeEach, vi, afterEach,
 } from 'vitest';
 import MoveBuffer from '../move_buffer';
 
@@ -55,6 +55,23 @@ describe('MoveBuffer', () => {
   it('isolates buffers across keys', () => {
     new MoveBuffer('room-1').queue({ id: 'a', x: 0, y: 0, value: 'A' });
     expect(new MoveBuffer('room-2').getAll()).toEqual([]);
+  });
+
+  describe('localStorage unavailable', () => {
+    afterEach(() => { vi.restoreAllMocks(); });
+
+    it('falls back to in-memory storage and continues to work within the tab', () => {
+      vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+        throw new DOMException('unavailable', 'SecurityError');
+      });
+
+      const buf = new MoveBuffer('room-1');
+      buf.queue({ id: 'a', x: 0, y: 0, value: 'A' });
+      buf.queue({ id: 'b', x: 1, y: 0, value: 'B' });
+      buf.remove('a');
+
+      expect(buf.getAll().map((m) => m.id)).toEqual(['b']);
+    });
   });
 
   it('caps at 1000 moves, dropping the oldest when exceeded', () => {
