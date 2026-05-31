@@ -36,15 +36,9 @@ const crosswordRef = React.createRef();
 const onReceiveMove = (move) => { crosswordRef.current.setCellValue(move.x, move.y, move.value); };
 
 const root = createRoot(crosswordElement);
-const subscription = createSubscription(crosswordIdentifier, room, crosswordData.dimensions, onReceiveMove, (initialState, pendingMoves) => {
-  const progress = toProgress(initialState, crosswordData.dimensions);
-  // Overlay any moves still waiting on a server ack so the user's pending
-  // letters don't briefly disappear when the server's initialState lands.
-  pendingMoves.forEach((m) => {
-    if (progress[m.x] && progress[m.x][m.y] !== undefined) {
-      progress[m.x][m.y] = m.value;
-    }
-  });
+let mounted = false;
+
+const mountCrossword = (progress, onMove) => {
   // flushSync ensures the component is mounted synchronously so crosswordRef.current
   // is populated before updateGrid is called (root.render is async in React 18)
   flushSync(() => {
@@ -52,12 +46,11 @@ const subscription = createSubscription(crosswordIdentifier, room, crosswordData
       ref={crosswordRef}
       data={crosswordData}
       progress={progress}
-      onMove={(move) => { subscription.move(move); }}
+      onMove={onMove}
       selectedBackgroundColor={selectedBackgroundColor}
       gridBackgroundColor={gridBackgroundColor}
     />);
   });
-  crosswordRef.current.updateGrid(progress);
 
   // Tag clue and black cells so CSS can scope focus highlighting to each;
   // foreignObject is the text input, i.e. HTML embedded in the SVG grid
@@ -90,4 +83,21 @@ const subscription = createSubscription(crosswordIdentifier, room, crosswordData
     defs.appendChild(pattern);
     svg.insertBefore(defs, svg.firstChild);
   }
+};
+
+const subscription = createSubscription(crosswordIdentifier, room, crosswordData.dimensions, onReceiveMove, (initialState, pendingMoves) => {
+  const progress = toProgress(initialState, crosswordData.dimensions);
+  // Overlay any moves still waiting on a server ack so the user's pending
+  // letters don't briefly disappear when the server's initialState lands.
+  pendingMoves.forEach((m) => {
+    if (progress[m.x] && progress[m.x][m.y] !== undefined) {
+      progress[m.x][m.y] = m.value;
+    }
+  });
+
+  if (!mounted) {
+    mountCrossword(progress, (move) => { subscription.move(move); });
+    mounted = true;
+  }
+  crosswordRef.current.updateGrid(progress);
 });
