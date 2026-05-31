@@ -48,7 +48,7 @@ class CrosswordsController < ApplicationController
           break
         end
         # Fall back to a HEAD request to the Guardian
-        uri = URI("https://www.theguardian.com/crosswords/#{series}/#{candidate}")
+        uri = URI(CrosswordFetcher.guardian_url(series, candidate))
         response = Net::HTTP.start(uri.host, uri.port, use_ssl: true, open_timeout: 5, read_timeout: 5) do |http|
           http.head(uri.path)
         end
