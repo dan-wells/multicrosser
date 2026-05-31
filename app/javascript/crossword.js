@@ -42,6 +42,7 @@ function toProgress(initialState, dimensions) {
 
 const rootStyle = getComputedStyle(document.documentElement);
 const selectedBackgroundColor = rootStyle.getPropertyValue('--crossword-selected-color').trim();
+const gridBackgroundColor = rootStyle.getPropertyValue('--crossword-grid-background-color').trim();
 
 const crosswordRef = React.createRef();
 const onReceiveMove = (move) => { crosswordRef.current.setCellValue(move.x, move.y, move.value); };
@@ -65,16 +66,40 @@ const subscription = createSubscription(crosswordIdentifier, room, onReceiveMove
       progress={progress}
       onMove={(move) => { subscription.move(move); }}
       selectedBackgroundColor={selectedBackgroundColor}
-      focusColor="transparent"
+      gridBackgroundColor={gridBackgroundColor}
     />);
   });
   crosswordRef.current.updateGrid(progress);
 
-  // Tag clue cells so CSS can scope focus highlighting to them;
+  // Tag clue and black cells so CSS can scope focus highlighting to each;
   // foreignObject is the text input, i.e. HTML embedded in the SVG grid
   crosswordElement.querySelectorAll('g[role="cell"]').forEach(cellGroup => {
     if (cellGroup.querySelector('foreignObject')) {
       cellGroup.setAttribute('data-clue-cell', 'true');
+    } else {
+      cellGroup.setAttribute('data-black-cell', 'true');
     }
   });
+
+  // Inject the diagonal-hatch pattern used as the focused black cell fill
+  const svg = crosswordElement.querySelector('svg');
+  if (svg && !svg.querySelector('#crossword-black-hatch')) {
+    const NS = 'http://www.w3.org/2000/svg';
+    const defs = document.createElementNS(NS, 'defs');
+    const pattern = document.createElementNS(NS, 'pattern');
+    pattern.setAttribute('id', 'crossword-black-hatch');
+    pattern.setAttribute('patternUnits', 'userSpaceOnUse');
+    pattern.setAttribute('width', '4');
+    pattern.setAttribute('height', '4');
+    pattern.setAttribute('patternTransform', 'rotate(45)');
+    const line = document.createElementNS(NS, 'line');
+    line.setAttribute('x1', '0');
+    line.setAttribute('y1', '0');
+    line.setAttribute('x2', '0');
+    line.setAttribute('y2', '4');
+    line.setAttribute('stroke-width', '1');
+    pattern.appendChild(line);
+    defs.appendChild(pattern);
+    svg.insertBefore(defs, svg.firstChild);
+  }
 });

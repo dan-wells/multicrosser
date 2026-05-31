@@ -9,6 +9,10 @@
   --crossword-selected-color: #ffe500;
   /* Background for the currently-focused cell */
   --crossword-focus-color: #fff7b2;
+  /* Grid backdrop, also showing through black cells' transparent fill */
+  --crossword-grid-background-color: #121212;
+  /* Background for the currently-focused black cell */
+  --crossword-black-focus-color: #9a9a9a;
 }
 
 /* ============================================================
@@ -45,7 +49,15 @@
   fill: var(--crossword-focus-color) !important;
 }
 
-/* Hide the default rounded-corner focus indicator (replaced by focus-within background above) */
+[data-link-name="Crosswords"] svg g[data-black-cell]:focus-within > rect[role="presentation"] {
+  fill: url(#crossword-black-hatch) !important;
+}
+
+[data-link-name="Crosswords"] svg pattern#crossword-black-hatch > line {
+  stroke: var(--crossword-black-focus-color);
+}
+
+/* Hide the upstream rounded-corner focus indicator; we use background fills instead */
 [data-link-name="Crosswords"] svg > rect[rx] {
   display: none;
 }
