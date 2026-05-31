@@ -2,7 +2,7 @@ module CrosswordFetcher
   def self.fetch(series, identifier)
     key = "#{series}/#{identifier}"
     cached = REDIS.get(key)
-    return cached if cached
+    return cached if cached.present?
 
     url = "https://www.theguardian.com/crosswords/#{series}/#{identifier}"
     response = Faraday.get(url)
