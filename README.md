@@ -34,8 +34,9 @@ This pulls the latest code, installs dependencies, builds JS/CSS assets, precomp
 ### URL Routing (`config/routes.rb`)
 
 - `/` — the homepage
-- `/crossword/:source/:series/:identifier` — generates a random room ID and redirects to the URL below (so each visitor gets a fresh private session unless they share the link)
-- `/crossword/:source/:series/:identifier/:room` — the actual multiplayer crossword page
+- `/:series/:identifier` — generates a random room ID and redirects to the URL below (so each visitor gets a fresh private session unless they share the link)
+- `/:series/:identifier/:room` — the actual multiplayer crossword page
+- `/:series/random(/:room)` — picks a random puzzle for the series and redirects
 
 ### Backend: Controllers (`app/controllers/`)
 
@@ -129,7 +130,7 @@ Here's what happens when a player types a character:
 
 The homepage displays a list of recent crosswords per series. This metadata (title, series, identifier, date) is loaded from the Guardian's RSS feed by the `crosswords:load_from_feed` rake task, which stores the most recent 5 crosswords per series in Redis.
 
-Any crossword can also be accessed directly by URL (e.g. `/rooms/guardian/quiptic/1`) without appearing on the homepage. The first time a crossword is opened, `RoomsController` fetches the puzzle data from the Guardian website, extracts the JSON from the page's `CrosswordComponent` element, and caches it in Redis for subsequent visits.
+Any crossword can also be accessed directly by URL (e.g. `/quiptic/1`) without appearing on the homepage. The first time a crossword is opened, `RoomsController` fetches the puzzle data from the Guardian website, extracts the JSON from the page's `CrosswordComponent` element, and caches it in Redis for subsequent visits.
 
 ### Working with Intermittent Connections
 
@@ -146,6 +147,6 @@ The `MoveBuffer` uses local storage so will persist if the page is refreshed or 
 
 Redis is used for three purposes:
 
-+ **Homepage crossword lists** — keyed by `crossword-series-{name}` (e.g. `crossword-series-quiptic`). Each key holds a JSON array of crossword metadata objects (title, source, series, identifier, date), ordered most recent first.
-+ **Cached puzzle data** — keyed by `{source}/{series}/{identifier}` (e.g. `guardian/quiptic/1289`). Each key holds the full crossword JSON fetched from the Guardian. Populated lazily the first time a crossword is opened.
++ **Homepage crossword lists** — keyed by `crossword-series-{name}` (e.g. `crossword-series-quiptic`). Each key holds a JSON array of crossword metadata objects (title, series, identifier, date), ordered most recent first.
++ **Cached puzzle data** — keyed by `{series}/{identifier}` (e.g. `quiptic/1289`). Each key holds the full crossword JSON fetched from the Guardian. Populated lazily the first time a crossword is opened.
 + **Room grid state** — keyed by `moves_channel-{crossword}-{room}`. A Redis hash mapping cell coordinates (`x-y`) to their current values. This is the authoritative state of each multiplayer solving session.
