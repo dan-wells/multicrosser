@@ -11,6 +11,14 @@
   <%- end -%>
 </p>
 
+<svg width="0" height="0" aria-hidden="true" style="position:absolute">
+  <defs>
+    <pattern id="crossword-black-hatch" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
+      <line x1="0" y1="0" x2="0" y2="4" stroke-width="1"></line>
+    </pattern>
+  </defs>
+</svg>
+
 <%= content_tag(:div, '', class: 'js-crossword', data: {
   crossword: @crossword,
   'crossword-identifier': crossword_identifier,

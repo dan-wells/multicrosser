@@ -53,7 +53,7 @@
   fill: url(#crossword-black-hatch) !important;
 }
 
-[data-link-name="Crosswords"] svg pattern#crossword-black-hatch > line {
+pattern#crossword-black-hatch > line {
   stroke: var(--crossword-black-focus-color);
 }
 

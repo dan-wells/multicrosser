@@ -61,28 +61,6 @@ const mountCrossword = (progress, onMove) => {
       cellGroup.setAttribute('data-black-cell', 'true');
     }
   });
-
-  // Inject the diagonal-hatch pattern used as the focused black cell fill
-  const svg = crosswordElement.querySelector('svg');
-  if (svg && !svg.querySelector('#crossword-black-hatch')) {
-    const NS = 'http://www.w3.org/2000/svg';
-    const defs = document.createElementNS(NS, 'defs');
-    const pattern = document.createElementNS(NS, 'pattern');
-    pattern.setAttribute('id', 'crossword-black-hatch');
-    pattern.setAttribute('patternUnits', 'userSpaceOnUse');
-    pattern.setAttribute('width', '4');
-    pattern.setAttribute('height', '4');
-    pattern.setAttribute('patternTransform', 'rotate(45)');
-    const line = document.createElementNS(NS, 'line');
-    line.setAttribute('x1', '0');
-    line.setAttribute('y1', '0');
-    line.setAttribute('x2', '0');
-    line.setAttribute('y2', '4');
-    line.setAttribute('stroke-width', '1');
-    pattern.appendChild(line);
-    defs.appendChild(pattern);
-    svg.insertBefore(defs, svg.firstChild);
-  }
 };
 
 const subscription = createSubscription(crosswordIdentifier, room, crosswordData.dimensions, onReceiveMove, (initialState, pendingMoves) => {
