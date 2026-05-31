@@ -1,3 +1,5 @@
+const MAX_BUFFERED_MOVES = 1000;
+
 class MoveBuffer {
   constructor(key) {
     this.storage = window.localStorage;
@@ -7,6 +9,9 @@ class MoveBuffer {
   queue(move) {
     const existing = this.getAll();
     existing.push(move);
+    if (existing.length > MAX_BUFFERED_MOVES) {
+      existing.shift(); // drop the oldest
+    }
     this.setObject(existing);
   }
 

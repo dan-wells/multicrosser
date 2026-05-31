@@ -1,4 +1,6 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import {
+  describe, it, expect, beforeEach,
+} from 'vitest';
 import MoveBuffer from '../move_buffer';
 
 describe('MoveBuffer', () => {
@@ -54,4 +56,16 @@ describe('MoveBuffer', () => {
     new MoveBuffer('room-1').queue({ id: 'a', x: 0, y: 0, value: 'A' });
     expect(new MoveBuffer('room-2').getAll()).toEqual([]);
   });
+
+  it('caps at 1000 moves, dropping the oldest when exceeded', () => {
+    const buf = new MoveBuffer('room-1');
+    for (let i = 0; i < 1001; i++) {
+      buf.queue({ id: `m${i}`, x: i % 15, y: 0, value: 'A' });
+    }
+    const all = buf.getAll();
+    expect(all).toHaveLength(1000);
+    expect(all[0].id).toBe('m1');
+    expect(all[999].id).toBe('m1000');
+  });
+
 });
