@@ -24,7 +24,7 @@ class Crossword
   end
 
   def ==(other)
-    other && other.instance_of?(Crossword) && other.identifier == self.identifier
+    other && other.instance_of?(Crossword) && other.series == self.series && other.identifier == self.identifier
   end
 
   def to_json

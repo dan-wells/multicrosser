@@ -64,6 +64,12 @@ class CrosswordTest < ActiveSupport::TestCase
     refute_equal a, c
   end
 
+  test "not equal when same identifier but different series" do
+    quiptic = Crossword.new(valid_data('series' => 'quiptic', 'identifier' => '1234'))
+    cryptic = Crossword.new(valid_data('series' => 'cryptic', 'identifier' => '1234'))
+    refute_equal quiptic, cryptic
+  end
+
   test "not equal to nil" do
     cw = Crossword.new(valid_data)
     refute_equal cw, nil
