@@ -10,7 +10,7 @@ class Crossword
   attr_reader :title, :series, :identifier
 
   def date
-    (Time.xmlschema(@date).utc + 2.hours).to_date
+    Time.xmlschema(@date).in_time_zone('London').to_date
   end
 
   def name

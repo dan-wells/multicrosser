@@ -25,14 +25,19 @@ class CrosswordTest < ActiveSupport::TestCase
     assert_raises(KeyError) { Crossword.new('title' => 'x') }
   end
 
-  test "date parses XML schema timestamp and shifts by 2 hours" do
+  test "date converts to London timezone (daytime UTC)" do
     cw = Crossword.new(valid_data('date' => '2024-06-10T06:00:00.000Z'))
     assert_equal Date.new(2024, 6, 10), cw.date
   end
 
-  test "date shift can roll to next day" do
+  test "date converts to London timezone (23:00 UTC = midnight BST = next day)" do
     cw = Crossword.new(valid_data('date' => '2024-06-10T23:00:00.000Z'))
     assert_equal Date.new(2024, 6, 11), cw.date
+  end
+
+  test "date does not roll forward for a winter evening UTC timestamp (23:00 UTC = 23:00 GMT = same day)" do
+    cw = Crossword.new(valid_data('date' => '2024-01-07T23:00:00.000Z'))
+    assert_equal Date.new(2024, 1, 7), cw.date
   end
 
   test "name includes number when title contains No" do
