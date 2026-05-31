@@ -38,15 +38,11 @@ class Crossword
 
   def save
     key = "crossword-series-#{self.series}"
-    crosswords = JSON.parse(redis.get(key) || '[]').map{|crossword_data| Crossword.new(crossword_data)}
+    crosswords = JSON.parse(::REDIS.get(key) || '[]').map{|crossword_data| Crossword.new(crossword_data)}
     if crosswords.none? { |existing_crossword| existing_crossword == self }
       crosswords.unshift(self)
-      redis.set(key, crosswords.take(5).to_json)
+      ::REDIS.set(key, crosswords.take(5).to_json)
     end
-  end
-
-  def redis
-    ::REDIS
   end
 
 end

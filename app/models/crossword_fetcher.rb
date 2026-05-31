@@ -1,7 +1,7 @@
 module CrosswordFetcher
   def self.fetch(series, identifier)
     key = "#{series}/#{identifier}"
-    cached = REDIS.get(key)
+    cached = ::REDIS.get(key)
     return cached if cached.present?
 
     url = "https://www.theguardian.com/crosswords/#{series}/#{identifier}"
@@ -13,7 +13,7 @@ module CrosswordFetcher
     return nil unless props
     outer = JSON.parse(CGI.unescapeHTML(props))
     data = outer['data'].to_json
-    REDIS.set(key, data)
+    ::REDIS.set(key, data)
     data
   end
 end

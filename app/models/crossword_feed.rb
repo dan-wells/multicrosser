@@ -17,8 +17,4 @@ class CrosswordFeed
     end
   end
 
-  def self.redis
-    ::REDIS
-  end
-
 end

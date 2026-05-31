@@ -7,20 +7,16 @@ class Series
 
   def self.get_all
     keys = SERIES.keys.map{|name| "crossword-series-#{name}"}
-    series = redis.mget(*keys).map{|a_series| JSON.parse(a_series || '[]') }
+    series = ::REDIS.mget(*keys).map{|a_series| JSON.parse(a_series || '[]') }
     SERIES.keys.zip(series).map do |name, crossword_datas|
       [name, crossword_datas.map {|crossword_data| Crossword.new(crossword_data)}]
     end.select{|name, series| series.any? }
   end
 
   def self.latest_puzzle(name)
-    data = redis.get("crossword-series-#{name}")
+    data = ::REDIS.get("crossword-series-#{name}")
     return nil unless data
     crosswords = JSON.parse(data)
     crosswords.first&.dig('identifier')
-  end
-
-  def self.redis
-    ::REDIS
   end
 end

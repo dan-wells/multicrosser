@@ -15,13 +15,9 @@ class FifteensquaredFeed
       SERIES_PATTERNS.each do |series, pattern|
         if (m = title.match(pattern))
           number = m[1].delete(',.')
-          redis.set("fifteensquared-#{series}/#{number}", link)
+          ::REDIS.set("fifteensquared-#{series}/#{number}", link)
         end
       end
     end
-  end
-
-  def self.redis
-    ::REDIS
   end
 end

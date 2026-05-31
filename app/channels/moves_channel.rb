@@ -4,7 +4,7 @@ class MovesChannel < ApplicationCable::Channel
 
     cols = params[:cols].to_i
     rows = params[:rows].to_i
-    data = redis.hgetall(channel_name)
+    data = ::REDIS.hgetall(channel_name)
     grid = Array.new(cols) { Array.new(rows) }
 
     data.each {|k, v|
@@ -19,14 +19,14 @@ class MovesChannel < ApplicationCable::Channel
 
   def move(data)
     cell_key = "#{data['x']}-#{data['y']}"
-    current = redis.hget(channel_name, cell_key) || ""
+    current = ::REDIS.hget(channel_name, cell_key) || ""
 
     if data['force']
       Rails.logger.info("[MovesChannel#move FORCED] #{channel_name} #{cell_key}=#{data['value'].inspect} (was #{current.inspect}) id=#{data['id']}")
-      redis.hset(channel_name, cell_key, data['value'])
+      ::REDIS.hset(channel_name, cell_key, data['value'])
       ActionCable.server.broadcast(channel_name, data)
     elsif current == (data['previousValue'] || "")
-      redis.hset(channel_name, cell_key, data['value'])
+      ::REDIS.hset(channel_name, cell_key, data['value'])
       ActionCable.server.broadcast(channel_name, data)
     else
       transmit({ 'id' => data['id'], 'rejected' => true,
@@ -43,9 +43,5 @@ class MovesChannel < ApplicationCable::Channel
 
   def channel_name
     "moves_channel-#{params[:crossword]}-#{params[:room]}"
-  end
-
-  def redis
-    ::REDIS
   end
 end

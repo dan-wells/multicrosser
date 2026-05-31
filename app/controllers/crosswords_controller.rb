@@ -43,7 +43,7 @@ class CrosswordsController < ApplicationController
         break
       else
         # Check Redis cache first
-        if REDIS.exists?("#{series}/#{candidate}")
+        if ::REDIS.exists?("#{series}/#{candidate}")
           number = candidate
           break
         end
