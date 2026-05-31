@@ -2,5 +2,25 @@
 
 export PORT="${PORT:-3000}"
 
+bg_pids=""
+
+cleanup() {
+  trap '' EXIT INT TERM
+  for pid in $bg_pids; do
+    pkill -TERM -P $pid 2>/dev/null
+    kill -TERM $pid 2>/dev/null
+  done
+}
+trap cleanup EXIT INT TERM
+
+# Re-run yarn install whenever a yarn patch changes; esbuild's watch picks
+# up the resulting node_modules updates automatically.
+(while true; do
+  find .yarn/patches -type f | entr -ndp sh -c 'yarn install'
+done) &
+bg_pids="$bg_pids $!"
+
 yarn build --watch=forever &
+bg_pids="$bg_pids $!"
+
 bundle exec rails server -p $PORT -b 0.0.0.0
