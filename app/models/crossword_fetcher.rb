@@ -18,5 +18,7 @@ module CrosswordFetcher
     data = outer['data'].to_json
     ::REDIS.set(key, data)
     data
+  rescue JSON::ParserError
+    nil
   end
 end

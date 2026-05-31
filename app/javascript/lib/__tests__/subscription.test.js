@@ -219,6 +219,76 @@ describe('createSubscription', () => {
     expect(buffered).toHaveLength(2);
   });
 
+  it('chained: a move buffered while perform throws is resent on the next connected()', () => {
+    performSpy = vi.fn(() => { throw new Error('socket closed'); });
+    const { sub } = makeSubscription();
+    sub.move({
+      x: 0, y: 0, value: 'A', previousValue: '',
+    });
+
+    // perform threw, so nothing reached the server, but the move stayed buffered.
+    const bufferedAfterFailedSend = JSON.parse(window.localStorage.getItem(bufferKey()));
+    expect(bufferedAfterFailedSend).toHaveLength(1);
+    const queuedId = bufferedAfterFailedSend[0].id;
+
+    // Socket recovers; perform now succeeds.
+    performSpy = vi.fn(() => true);
+    sub.fireConnected();
+
+    expect(performSpy).toHaveBeenCalledTimes(1);
+    const [action, payload] = performSpy.mock.calls[0];
+    expect(action).toBe('move');
+    expect(payload.id).toBe(queuedId);
+    expect(payload).toMatchObject({
+      x: 0, y: 0, value: 'A', previousValue: '',
+    });
+  });
+
+  it('rapid same-cell moves before either acks: both reach the server with distinct ids', () => {
+    const { sub } = makeSubscription();
+    sub.move({
+      x: 4, y: 5, value: 'A', previousValue: '',
+    });
+    sub.move({
+      x: 4, y: 5, value: 'B', previousValue: 'A',
+    });
+
+    expect(performSpy).toHaveBeenCalledTimes(2);
+    const [first, second] = performSpy.mock.calls.map((c) => c[1]);
+    expect(first.id).not.toBe(second.id);
+    expect(first.value).toBe('A');
+    expect(second.value).toBe('B');
+    // The second move's previousValue chains off the first, so the server can
+    // freshness-check the sequence rather than treating them as independent.
+    expect(second.previousValue).toBe('A');
+
+    const buffered = JSON.parse(window.localStorage.getItem(bufferKey()));
+    expect(buffered.map((m) => m.value)).toEqual(['A', 'B']);
+  });
+
+  it('rapid same-cell: ack for the first move leaves the second buffered', () => {
+    const { sub, onReceiveMove } = makeSubscription();
+    sub.move({
+      x: 4, y: 5, value: 'A', previousValue: '',
+    });
+    sub.move({
+      x: 4, y: 5, value: 'B', previousValue: 'A',
+    });
+    const [firstId, secondId] = JSON.parse(
+      window.localStorage.getItem(bufferKey()),
+    ).map((m) => m.id);
+
+    sub.fireReceived({
+      id: firstId, x: 4, y: 5, value: 'A',
+    });
+
+    expect(onReceiveMove).not.toHaveBeenCalled();
+    const remaining = JSON.parse(window.localStorage.getItem(bufferKey()));
+    expect(remaining).toHaveLength(1);
+    expect(remaining[0].id).toBe(secondId);
+    expect(remaining[0].value).toBe('B');
+  });
+
   it('isolates buffers across crosswords that share a room name', () => {
     // Two tabs: same room name "dan", different puzzles.
     const { sub: subA } = makeSubscription('dan', 'quiptic/1');

@@ -21,6 +21,36 @@ class CrosswordFetcherTest < ActiveSupport::TestCase
     end
   end
 
+  test "successful fetch unwraps data, caches it in Redis, and returns it" do
+    inner = { "title" => "Cryptic 123", "entries" => [] }
+    props = { "data" => inner }.to_json
+    body = %(<html><body><gu-island name="CrosswordComponent" props='#{CGI.escapeHTML(props)}'></gu-island></body></html>)
+
+    Faraday.stub(:get, stub_response(body)) do
+      result = CrosswordFetcher.fetch("cryptic", "123")
+      assert_equal inner.to_json, result
+      assert_equal inner.to_json, REDIS.get("cryptic/123")
+    end
+  end
+
+  test "returns nil when gu-island is present but has no props attribute" do
+    body = %(<html><body><gu-island name="CrosswordComponent"></gu-island></body></html>)
+
+    Faraday.stub(:get, stub_response(body)) do
+      assert_nil CrosswordFetcher.fetch("cryptic", "123")
+    end
+    refute REDIS.exists?("cryptic/123")
+  end
+
+  test "returns nil when the props JSON is malformed" do
+    body = %(<html><body><gu-island name="CrosswordComponent" props='{not valid json'></gu-island></body></html>)
+
+    Faraday.stub(:get, stub_response(body)) do
+      assert_nil CrosswordFetcher.fetch("cryptic", "123")
+    end
+    refute REDIS.exists?("cryptic/123")
+  end
+
   private
 
   def stub_response(body)
