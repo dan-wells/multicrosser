@@ -1,5 +1,5 @@
 class FifteensquaredFeed
-  FEED_URL = 'https://www.fifteensquared.net/feed/'
+  FEED_URL = 'https://fifteensquared.net/feed/'
 
   SERIES_PATTERNS = {
     'quiptic' => /(?:guardian\s+)?quiptic(?:\s+no\.?)?\s+([\d,.]+)/i,
