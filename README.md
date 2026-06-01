@@ -50,12 +50,20 @@ This pulls the latest code, installs dependencies, builds JS/CSS assets, precomp
 - `crossword.rb` — represents a crossword's metadata (title, series, identifier, date); `save` writes it to the Redis series list
 - `crossword_feed.rb` — fetches the Guardian's RSS feed and saves metadata for recent crosswords into Redis
 
-### Backend: Channel (`app/channels/moves_channel.rb`)
+### Backend: Channels (`app/channels/`)
 
-Handles the WebSocket connection for a room:
+Two Action Cable channels share the single WebSocket connection per page.
+
+`moves_channel.rb` — durable per-cell state:
 
 - When a client joins: sends them the current grid state from Redis
 - When a client sends a move: records the letter in Redis and broadcasts it to everyone else in the room
+
+`presence_channel.rb` — ephemeral per-session cursor and selected-clue state:
+
+- When a client joins: also sends a snapshot of any other players' cursors and selected clues already in the room
+- When a client moves their cursor or selects a new clue: records the per-session state in Redis (cleared on disconnect) and broadcasts to everyone else
+- When a client disconnects: broadcasts a leave message so others can clear that player's highlights
 
 ### Frontend (`app/javascript/`)
 
@@ -63,6 +71,7 @@ Handles the WebSocket connection for a room:
 - `homepage.js` — entry point for the homepage; handles form state, puzzle/room history, and navigation
 - `lib/subscription.js` — connects to the server over WebSocket; sends moves the user types, and applies moves received from other players
 - `lib/move_buffer.js` — queues moves in the browser's local storage while offline; replays them when the connection is restored
+- `lib/remote_presence.js` — applies other players' cursors and selected clues as DOM data-attributes on the grid and clue list
 
 ### Views (`app/views/`)
 
@@ -158,8 +167,9 @@ The `MoveBuffer` uses local storage so will persist if the page is refreshed or 
 
 ### Redis
 
-Redis is used for three purposes:
+Redis is used for four purposes:
 
 + **Homepage crossword lists** — keyed by `crossword-series-{name}` (e.g. `crossword-series-quiptic`). Each key holds a JSON array of crossword metadata objects (title, series, identifier, date), ordered most recent first.
 + **Cached puzzle data** — keyed by `{series}/{identifier}` (e.g. `quiptic/1289`). Each key holds the full crossword JSON fetched from the Guardian. Populated lazily the first time a crossword is opened.
 + **Room grid state** — keyed by `moves_channel-{crossword}-{room}`. A Redis hash mapping cell coordinates (`x-y`) to their current values. This is the authoritative state of each multiplayer solving session.
++ **Per-session presence** — keyed by `presence-{crossword}-{room}`. A Redis hash mapping each connected client's `session_id` to JSON describing their current cursor cell and selected clue. Ephemeral: each connection's entry is deleted on disconnect, and the whole hash has a 24h TTL as a safety net for sessions that drop without a clean unsubscribe.
