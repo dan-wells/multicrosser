@@ -460,7 +460,7 @@ index 6e99c300aee99cfdd9ca3e9c611ffaa0000e4e28..c934342f6d43ee4e1354214eb9a4d709
  		top: 0;
  		display: flex;
 diff --git a/dist/components/Grid.js b/dist/components/Grid.js
-index f585d1aecedb80fe6129bb6762f5b5875080c640..c5fd73f1df4bfd93dec8372e4f459f6290167876 100644
+index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2507bf7fb 100644
 --- a/dist/components/Grid.js
 +++ b/dist/components/Grid.js
 @@ -1,6 +1,5 @@
@@ -516,7 +516,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..c5fd73f1df4bfd93dec8372e4f459f62
        if (currentEntryId && (event.key === "[" || event.key === "]")) {
          const currentEntry = entries.get(currentEntryId);
          const nextClueID = currentEntry?.nextEntryId;
-@@ -237,11 +236,12 @@ const Grid = () => {
+@@ -237,11 +236,17 @@ const Grid = () => {
            handleSwitchClue(previousClueID);
          }
        }
@@ -525,6 +525,11 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..c5fd73f1df4bfd93dec8372e4f459f62
 -          event.preventDefault();
 -          deleteLetter(event.target.value);
 -        }
++      if (event.key === "Enter") {
++        event.preventDefault();
++        handleCurrentCellClick(currentCell);
++        return;
++      }
 +      if (event.key === "Backspace") {
 +        event.preventDefault();
 +        deleteLetter(guess ?? "", true);
@@ -534,7 +539,16 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..c5fd73f1df4bfd93dec8372e4f459f62
        } else {
          if (event.key.length === 1) {
            event.preventDefault();
-@@ -259,7 +259,7 @@ const Grid = () => {
+@@ -249,7 +254,7 @@ const Grid = () => {
+         }
+       }
+     },
+-    [currentEntryId, deleteLetter, entries, handleSwitchClue, typeLetter]
++    [currentCell, currentEntryId, deleteLetter, entries, handleCurrentCellClick, handleSwitchClue, typeLetter]
+   );
+   const handleInput = useCallback(
+     (event, guess) => {
+@@ -259,7 +264,7 @@ const Grid = () => {
          event.preventDefault();
          switch (inputType) {
            case "deleteContentBackward":
@@ -543,7 +557,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..c5fd73f1df4bfd93dec8372e4f459f62
              break;
            case "insertText":
            case "insertCompositionText":
-@@ -422,7 +422,7 @@ const Grid = () => {
+@@ -422,7 +427,7 @@ const Grid = () => {
              const y = getCellPosition(cell.y, theme);
              const guess = progress[cell.x]?.[cell.y];
              const isCurrentCell = currentCell.x === cell.x && currentCell.y === cell.y;
@@ -552,7 +566,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..c5fd73f1df4bfd93dec8372e4f459f62
              const isConnected = !!cell.group?.some(
                (entryId) => currentGroupSet?.has(entryId)
              );
-@@ -444,7 +444,7 @@ const Grid = () => {
+@@ -444,7 +449,7 @@ const Grid = () => {
                  id: getId(`cell-group-${cell.x}-${cell.y}`),
                  onFocus: handleCellFocus,
                  onPointerDown: isCurrentCell ? () => handleCurrentCellClick(cell) : void 0,

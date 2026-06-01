@@ -94,7 +94,20 @@ We use a [Yarn patch](https://yarnpkg.com/cli/patch) (`.yarn/patches/@guardian-r
 - **localStorage removed** — the component's built-in localStorage persistence is replaced with plain React state. Redis is the authoritative store; there's no scenario where the crossword page loads without a server connection.
 - **SavedMessage removed** — the "Crossword will not be saved" message is suppressed since saving is handled by Redis.
 
-If `@guardian/react-crossword` is updated, the patch will need to be re-applied. Run `yarn patch @guardian/react-crossword`, make the equivalent changes to the new version's `dist/` files, then `yarn patch-commit -s <path>` followed by `yarn install`.
+**Re-applying after a library upgrade.** When `@guardian/react-crossword` is updated, run `yarn patch @guardian/react-crossword`, manually re-apply all of the changes above to the new version's `dist/` files, then `yarn patch-commit -s <path>` followed by `yarn install`.
+
+**Extending the patch with a new change.** `yarn patch` extracts a *pristine* working copy — running `patch-commit` against a working copy where you've only edited one file will silently drop every patched file you didn't touch. To add a new hunk without losing the existing ones, first copy the already-patched state into the working copy:
+
+```
+yarn patch @guardian/react-crossword
+# prints: /tmp/xfs-XXXXXX/user
+cp -r node_modules/@guardian/react-crossword/dist /tmp/xfs-XXXXXX/user/
+# edit the file(s) you want to change in /tmp/xfs-XXXXXX/user/dist/
+yarn patch-commit -s /tmp/xfs-XXXXXX/user
+yarn install
+```
+
+If `git diff .yarn/patches/` shows the patch shrinking dramatically or losing entries, abort with `git restore` on the patch file and re-run `yarn install`.
 
 ## Testing
 
