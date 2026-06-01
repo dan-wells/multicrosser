@@ -4,6 +4,7 @@ class FifteensquaredFeed
   SERIES_PATTERNS = {
     'quiptic' => /(?:guardian\s+)?quiptic(?:\s+no\.?)?\s+([\d,.]+)/i,
     'cryptic' => /guardian(?:\s+cryptic)?(?:\s+crossword)?(?:\s+no\.?)?\s+([\d,.]+)/i,
+    'quick-cryptic' => /(?:guardian\s+)?quick cryptic (\d+)/i,
   }
 
   def self.load

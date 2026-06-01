@@ -3,6 +3,7 @@ class Series
   SERIES = {
     'quiptic' => { first_puzzle: 1 },
     'cryptic' => { first_puzzle: 21620 },
+    'quick-cryptic' => { first_puzzle: 1 },
   }
 
   def self.get_all
