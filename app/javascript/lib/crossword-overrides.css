@@ -107,6 +107,7 @@ pattern#crossword-black-hatch > line {
 [data-entry-id] > span[aria-hidden="true"]:first-child {
   width: 2em !important;
   min-width: 2em !important;
+  padding-left: 4px !important;
   font-family: 'Catamaran', sans-serif !important;
 }
 
@@ -128,6 +129,7 @@ pattern#crossword-black-hatch > line {
 [data-link-name="Crosswords"] label {
   font-family: 'Catamaran', sans-serif !important;
   padding-top: 6px !important;
+  padding-left: 4px !important;
   display: block !important;
 }
 
