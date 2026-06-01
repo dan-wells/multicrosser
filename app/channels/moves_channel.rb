@@ -34,7 +34,6 @@ class MovesChannel < ApplicationCable::Channel
     end
   end
 
-
   def unsubscribed
     # Any cleanup needed when channel is unsubscribed
   end

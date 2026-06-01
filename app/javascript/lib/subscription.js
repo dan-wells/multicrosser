@@ -1,14 +1,13 @@
 import { createConsumer } from '@rails/actioncable';
 import MoveBuffer from './move_buffer';
+import generateId from './generate_id';
 
-const generateMoveId = () => `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
-
-const createSubscription = function createSubscription(crossword, room, dimensions, onReceiveMove, onInitialState) {
+const createSubscriptions = function createSubscriptions(crossword, room, dimensions, sessionId, onReceiveMove, onInitialState, onPresence) {
   const cableUrl = document.querySelector('meta[name="cable-url"]')?.content;
   const cable = createConsumer(cableUrl);
   const moveBuffer = new MoveBuffer(`${crossword}-${room}`);
 
-  const send = function send(ctx, move) {
+  const sendMove = function sendMove(ctx, move) {
     try {
       ctx.perform('move', move);
     } catch (e) {
@@ -17,7 +16,7 @@ const createSubscription = function createSubscription(crossword, room, dimensio
     }
   };
 
-  return cable.subscriptions.create(
+  const moves = cable.subscriptions.create(
     { channel: 'MovesChannel', crossword, room, cols: dimensions.cols, rows: dimensions.rows },
     {
       received: function received(data) {
@@ -37,15 +36,36 @@ const createSubscription = function createSubscription(crossword, room, dimensio
         }
       },
       move: function move(data) {
-        const moveWithId = { ...data, id: generateMoveId() };
+        const moveWithId = { ...data, id: generateId() };
         moveBuffer.queue(moveWithId);
-        send(this, moveWithId);
+        sendMove(this, moveWithId);
       },
       connected: function connected() {
-        moveBuffer.getAll().forEach((m) => send(this, m));
+        moveBuffer.getAll().forEach((m) => sendMove(this, m));
       },
     },
   );
+
+  const presence = cable.subscriptions.create(
+    { channel: 'PresenceChannel', crossword, room, session_id: sessionId },
+    {
+      received: function received(data) {
+        // Server filters its own snapshot, but still broadcasts our cursor
+        // updates back to us. Drop the echoes here.
+        if (data.session_id === sessionId) return;
+        onPresence(data);
+      },
+      cursor: function cursor(data) {
+        try {
+          this.perform('cursor', data);
+        } catch (e) {
+          // Stale cursor isn't worth retrying -- it'll be superseded by the next move.
+        }
+      },
+    },
+  );
+
+  return { moves, presence };
 };
 
-export { createSubscription };
+export { createSubscriptions };

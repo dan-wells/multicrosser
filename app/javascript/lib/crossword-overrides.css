@@ -13,6 +13,8 @@
   --crossword-grid-background-color: #121212;
   /* Background for the currently-focused black cell */
   --crossword-black-focus-color: #9a9a9a;
+  /* Indicator colour for other solvers' cursors and selected clues */
+  --crossword-remote-color: #5fb3e0;
 }
 
 /* ============================================================
@@ -44,9 +46,25 @@
   line-height: 1 !important;
 }
 
-/* Highlight the currently-focused cell */
+/* Tint cells in another solver's selected clue */
+[data-link-name="Crosswords"] svg g[data-clue-cell][data-remote-clue] > rect[role="presentation"] {
+  fill: color-mix(in srgb, var(--crossword-remote-color) 25%, white) !important;
+}
+
+/* Highlight the currently-focused cell (wins over remote-clue tint via source order) */
 [data-link-name="Crosswords"] svg g[data-clue-cell]:focus-within > rect[role="presentation"] {
   fill: var(--crossword-focus-color) !important;
+}
+
+/* Border around the cell where another solver's cursor is */
+[data-link-name="Crosswords"] svg g[data-clue-cell][data-remote-cursor] > rect[role="presentation"] {
+  stroke: var(--crossword-remote-color) !important;
+  stroke-width: 2px !important;
+}
+
+/* Mark another solver's selected clue in the clue list with a faint tint */
+[data-link-name="Crosswords"] [data-entry-id][data-remote-entry] {
+  background-color: color-mix(in srgb, var(--crossword-remote-color) 25%, white) !important;
 }
 
 [data-link-name="Crosswords"] svg g[data-black-cell]:focus-within > rect[role="presentation"] {

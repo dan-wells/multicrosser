@@ -1,7 +1,7 @@
 import {
   describe, it, expect, beforeEach, vi,
 } from 'vitest';
-import { createSubscription } from '../subscription';
+import { createSubscriptions } from '../subscription';
 
 let performSpy;
 
@@ -11,9 +11,10 @@ vi.mock('@rails/actioncable', () => ({
       create: (_params, mixin) => {
         const ctx = { perform: (...args) => performSpy(...args) };
         return {
-          move: (data) => mixin.move.call(ctx, data),
+          move: mixin.move ? (data) => mixin.move.call(ctx, data) : undefined,
+          cursor: mixin.cursor ? (data) => mixin.cursor.call(ctx, data) : undefined,
           fireReceived: (data) => mixin.received.call(ctx, data),
-          fireConnected: () => mixin.connected.call(ctx),
+          fireConnected: mixin.connected ? () => mixin.connected.call(ctx) : undefined,
         };
       },
     },
@@ -27,13 +28,15 @@ const bufferKey = (crossword = DEFAULT_CROSSWORD, room = DEFAULT_ROOM) => `move-
 const makeSubscription = (room = DEFAULT_ROOM, crossword = DEFAULT_CROSSWORD) => {
   const onReceiveMove = vi.fn();
   const onInitialState = vi.fn();
-  const sub = createSubscription(crossword, room, { cols: 15, rows: 15 }, onReceiveMove, onInitialState);
+  const onPresence = vi.fn();
+  const { moves, presence } = createSubscriptions(crossword, room, { cols: 15, rows: 15 }, 'test-session', onReceiveMove, onInitialState, onPresence);
+  // `sub` keeps the moves subscription for the legacy move-focused tests below.
   return {
-    sub, onReceiveMove, onInitialState,
+    sub: moves, moves, presence, onReceiveMove, onInitialState, onPresence,
   };
 };
 
-describe('createSubscription', () => {
+describe('createSubscriptions', () => {
   beforeEach(() => {
     window.localStorage.clear();
     performSpy = vi.fn(() => true);

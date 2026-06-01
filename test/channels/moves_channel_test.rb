@@ -17,6 +17,7 @@ class MovesChannelTest < ActionCable::Channel::TestCase
     def hset(key, field, value)
       @h[key][field] = value
     end
+
   end
 
   def setup
