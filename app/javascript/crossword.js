@@ -111,19 +111,59 @@ const mountCrossword = (progress, onMove) => {
   setupClueColumnLayout();
 };
 
-// Tag the clue column with whether the upstream container query has put
-// the Across/Down lists side-by-side or stacked, so our CSS can give each
-// listbox half-viewport (stacked) vs full-viewport (side-by-side) caps.
+// Size each clue listbox to the grid column (grid + controls) it sits next
+// to, so long lists scroll within that height instead of leaving empty
+// space below the grid (side-by-side) or pushing the page taller (stacked).
+// Below oneColWidth the upstream layout puts the clues below the grid and
+// shows the sticky clue; we clear the cap there and let lists render uncapped.
 function setupClueColumnLayout() {
-  const firstListbox = crosswordElement.querySelector('[role="listbox"]');
-  if (!firstListbox) return;
-  const clueColumn = firstListbox.parentElement.parentElement;
-  const update = () => {
-    const direction = getComputedStyle(clueColumn).flexDirection;
-    clueColumn.dataset.cluesLayout = direction === 'row' ? 'row' : 'stacked';
+  const grid = crosswordElement.querySelector('svg[role="grid"]');
+  const listboxes = Array.from(crosswordElement.querySelectorAll('[role="listbox"]'));
+  if (!grid || listboxes.length === 0) return;
+  const gridColumn = grid.parentElement?.parentElement;
+  const clueColumn = listboxes[0].parentElement?.parentElement;
+  const outer = clueColumn?.parentElement;
+  if (!gridColumn || !clueColumn || !outer) return;
+
+  // Upstream sets a 16px `gap` on both the outer (grid <-> clue column) and
+  // the clue column (Across <-> Down); halve both to reduce visible space
+  const STACKED_GAP = 8;
+  clueColumn.style.gap = `${STACKED_GAP}px`;
+  outer.style.gap = `${STACKED_GAP}px`;
+
+  const clearCaps = () => {
+    listboxes.forEach((lb) => {
+      lb.style.removeProperty('max-height');
+      lb.style.removeProperty('overflow-y');
+    });
   };
+
+  const update = () => {
+    if (getComputedStyle(outer).flexDirection !== 'row') {
+      // Clue column is below the grid; let upstream + sticky clue handle it.
+      clearCaps();
+      return;
+    }
+    const stacked = getComputedStyle(clueColumn).flexDirection !== 'row';
+    // measure top-of-grid to bottom-of-last-grid-child (controls + empty SavedMessage)
+    const gridTop = grid.getBoundingClientRect().top;
+    //const gridBottom = gridColumn.lastElementChild.getBoundingClientRect().bottom;
+    const gridBottom = grid.getBoundingClientRect().bottom;
+    const gridH = gridBottom - gridTop;
+    if (gridH <= 0) return;
+    listboxes.forEach((lb) => {
+      const headerH = lb.parentElement.firstElementChild.offsetHeight;
+      const cap = stacked
+        ? (gridH - 2 * headerH - STACKED_GAP) / 2
+        : gridH - headerH;
+      lb.style.maxHeight = `${Math.max(cap, 0)}px`;
+      lb.style.overflowY = 'auto';
+    });
+  };
+
   const observer = new ResizeObserver(update);
   observer.observe(crosswordElement);
+  observer.observe(gridColumn);
   update();
 }
 
