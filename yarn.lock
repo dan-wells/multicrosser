@@ -628,7 +628,7 @@ __metadata:
 
 "@guardian/react-crossword@patch:@guardian/react-crossword@npm%3A17.0.0#~/.yarn/patches/@guardian-react-crossword-npm-17.0.0-43c1467498.patch":
   version: 17.0.0
-  resolution: "@guardian/react-crossword@patch:@guardian/react-crossword@npm%3A17.0.0#~/.yarn/patches/@guardian-react-crossword-npm-17.0.0-43c1467498.patch::version=17.0.0&hash=24cf45"
+  resolution: "@guardian/react-crossword@patch:@guardian/react-crossword@npm%3A17.0.0#~/.yarn/patches/@guardian-react-crossword-npm-17.0.0-43c1467498.patch::version=17.0.0&hash=d382bf"
   dependencies:
     tslib: "npm:2.8.1"
     use-local-storage-state: "npm:19.5.0"
@@ -644,7 +644,7 @@ __metadata:
       optional: true
     typescript:
       optional: true
-  checksum: 10c0/96bfcf65c30956a8f79f316b247a4d4b616060fc6d34488c4a26a3851bb3551f09e65d9b6010e8c82dbcc689dbceab6cff7854db34dde080a48b318c21ef9e86
+  checksum: 10c0/1c4e98706a36648679eab33987173197b1167ca2fa34ec885087676d8e6137cf4326fd2002decdc28d8fd349047f7ca3eb1aa0bc345a6cd88f8380e1d698bae5
   languageName: node
   linkType: hard
 

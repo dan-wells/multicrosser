@@ -15,6 +15,13 @@
   --crossword-black-focus-color: #9a9a9a;
   /* Indicator colour for other solvers' cursors and selected clues */
   --crossword-remote-color: #5fb3e0;
+  /* Stroke colour for circled cells (e.g. NYT theme indicators) */
+  --crossword-circle-color: #888888;
+}
+
+/* Circled-cell stroke colour */
+[data-link-name="Crosswords"] svg circle[aria-hidden="true"] {
+  stroke: var(--crossword-circle-color);
 }
 
 /* ============================================================

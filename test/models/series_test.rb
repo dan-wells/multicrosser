@@ -13,8 +13,24 @@ class SeriesTest < ActiveSupport::TestCase
   test "each series has first_puzzle metadata" do
     Series::SERIES.each do |name, meta|
       assert meta.key?(:first_puzzle), "#{name} missing :first_puzzle"
-      assert_kind_of Integer, meta[:first_puzzle]
+      assert(meta[:first_puzzle].is_a?(Integer) || meta[:first_puzzle].is_a?(String),
+        "#{name} first_puzzle should be an Integer (numeric series) or a String (date-based series)")
     end
+  end
+
+  test "each series has a source key" do
+    Series::SERIES.each do |name, meta|
+      assert meta.key?(:source), "#{name} missing :source"
+    end
+  end
+
+  test "display_name returns the configured label when present" do
+    assert_equal 'New York Times', Series.display_name('nytimes')
+  end
+
+  test "display_name falls back to titleize for series without an explicit label" do
+    assert_equal 'Quiptic', Series.display_name('quiptic')
+    assert_equal 'Quick Cryptic', Series.display_name('quick-cryptic')
   end
 
   test "SERIES includes quiptic and cryptic" do

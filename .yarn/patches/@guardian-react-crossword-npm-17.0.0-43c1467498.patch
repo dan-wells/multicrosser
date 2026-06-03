@@ -37,7 +37,7 @@ index 0db9bd5e5afaef59f9722c86bca8c5035719b840..7fad5d23bd7cc4b3d031dee2e811a08a
      return null;
    }
 diff --git a/dist/components/Cell.js b/dist/components/Cell.js
-index c0161d6d60e119127048ccc745a28604937aa570..bab6377ff5f5095e2606a8cc70ec27abe721375d 100644
+index c0161d6d60e119127048ccc745a28604937aa570..c7d28b54420102b3ba79f5b0bea5c2df2d422c80 100644
 --- a/dist/components/Cell.js
 +++ b/dist/components/Cell.js
 @@ -1,10 +1,11 @@
@@ -53,7 +53,27 @@ index c0161d6d60e119127048ccc745a28604937aa570..bab6377ff5f5095e2606a8cc70ec27ab
  const noop = () => {
  };
  const CellComponent = ({
-@@ -72,6 +73,21 @@ const CellComponent = ({
+@@ -51,6 +52,19 @@ const CellComponent = ({
+         css: cellStyles
+       }
+     ),
++    !isBlackCell && data.style === 'circled' && /* @__PURE__ */ jsx(
++      "circle",
++      {
++        cx: x + theme.gridCellSize / 2,
++        cy: y + theme.gridCellSize / 2,
++        r: theme.gridCellSize * 0.45,
++        fill: "none",
++        stroke: theme.gridTextColor,
++        "stroke-width": 1,
++        "aria-hidden": "true",
++        "pointer-events": "none"
++      }
++    ),
+     !isBlackCell && /* @__PURE__ */ jsxs(Fragment, { children: [
+       data.number && /* @__PURE__ */ jsx(
+         "text",
+@@ -72,6 +86,21 @@ const CellComponent = ({
            children: data.number
          }
        ),
@@ -75,7 +95,7 @@ index c0161d6d60e119127048ccc745a28604937aa570..bab6377ff5f5095e2606a8cc70ec27ab
        /* @__PURE__ */ jsx(
          "foreignObject",
          {
-@@ -82,7 +98,7 @@ const CellComponent = ({
+@@ -82,7 +111,7 @@ const CellComponent = ({
            children: /* @__PURE__ */ jsx(
              "input",
              {
@@ -84,7 +104,7 @@ index c0161d6d60e119127048ccc745a28604937aa570..bab6377ff5f5095e2606a8cc70ec27ab
                autoCapitalize: "none",
                type: "text",
                pattern: "^[A-Za-z\xC0-\xFF0-9]$",
-@@ -96,7 +112,8 @@ const CellComponent = ({
+@@ -96,7 +125,8 @@ const CellComponent = ({
  								width: 100%;
  								height: 100%;
  								background: transparent;
@@ -95,7 +115,7 @@ index c0161d6d60e119127048ccc745a28604937aa570..bab6377ff5f5095e2606a8cc70ec27ab
  								${textSans12};
  								font-size: ${theme.gridCellSize * 0.6}px;
 diff --git a/dist/components/Clue.js b/dist/components/Clue.js
-index 933d870be04dc0b918f6d3c4bbc9c17fedbf4973..77513c08036bf9284da0a782da5b45ba57825868 100644
+index 933d870be04dc0b918f6d3c4bbc9c17fedbf4973..4ee4cedee1d86a333c1a108bc09357baf25e4ae6 100644
 --- a/dist/components/Clue.js
 +++ b/dist/components/Clue.js
 @@ -1,18 +1,18 @@
@@ -121,6 +141,28 @@ index 933d870be04dc0b918f6d3c4bbc9c17fedbf4973..77513c08036bf9284da0a782da5b45ba
      return punctuateString(clueString);
    }
    const [last, ...rest] = lengths.split(",").map((_) => _.trim() + " letters").reverse();
+@@ -41,7 +41,20 @@ const ClueComponent = ({
+       return;
+     }
+     if (isSelected && scrollToSelected) {
+-      clue.scrollIntoView({ behavior: "smooth", block: "nearest" });
++      // Only scroll when there's a scrollable ancestor between us and the
++      // page; otherwise scrollIntoView jumps the whole page and the grid
++      // disappears off-screen in narrow layouts where clues sit below it.
++      let parent = clue.parentElement;
++      while (parent && parent !== document.body && parent !== document.documentElement) {
++        if (parent.scrollHeight > parent.clientHeight) {
++          const overflowY = window.getComputedStyle(parent).overflowY;
++          if (overflowY === "auto" || overflowY === "scroll") {
++            clue.scrollIntoView({ behavior: "smooth", block: "nearest" });
++            break;
++          }
++        }
++        parent = parent.parentElement;
++      }
+     }
+   }, [isSelected, scrollToSelected]);
+   return /* @__PURE__ */ jsxs(
 diff --git a/dist/components/Controls.js b/dist/components/Controls.js
 index 7fb4550518e30cb307c5a0e315bb86db4f18d240..52cec19bf7ec74b6069734d01f3cc0e175e9cdea 100644
 --- a/dist/components/Controls.js
@@ -460,7 +502,7 @@ index 6e99c300aee99cfdd9ca3e9c611ffaa0000e4e28..c934342f6d43ee4e1354214eb9a4d709
  		top: 0;
  		display: flex;
 diff --git a/dist/components/Grid.js b/dist/components/Grid.js
-index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2507bf7fb 100644
+index f585d1aecedb80fe6129bb6762f5b5875080c640..2702d0cf3142c793ff1b1549fcb2601529b740b8 100644
 --- a/dist/components/Grid.js
 +++ b/dist/components/Grid.js
 @@ -1,6 +1,5 @@
@@ -470,7 +512,17 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2
  import { memo, useState, useRef, useCallback, useEffect, useMemo } from 'react';
  import { useCurrentCell } from '../context/CurrentCell.js';
  import { useCurrentClue } from '../context/CurrentClue.js';
-@@ -153,7 +152,7 @@ const Grid = () => {
+@@ -116,6 +115,9 @@ const Grid = () => {
+   const [cheatMode, cheatStyles] = useCheatMode(gridRef);
+   const handleCurrentCellClick = useCallback(
+     (cell) => {
++      // Bail when no clue is selected yet to avoid toggling Across -> Down
++      // on first click after currentCell initialisation to {x:0,y:0}.
++      if (!currentEntryId) return;
+       if (cell.x === currentCell.x && cell.y === currentCell.y && cell.group?.length) {
+         const otherEntryId = cell.group.find(
+           (entryId) => entryId !== currentEntryId
+@@ -153,7 +155,7 @@ const Grid = () => {
        if (!newCell) {
          return;
        }
@@ -479,7 +531,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2
          return;
        }
        if (delta.x !== 0) {
-@@ -168,19 +167,19 @@ const Grid = () => {
+@@ -168,19 +170,19 @@ const Grid = () => {
      [currentCell.x, currentCell.y, currentCell.group, cells, updateCellFocus]
    );
    const deleteLetter = useCallback(
@@ -507,7 +559,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2
        }
      },
      [currentCell.x, currentCell.y, moveCurrentCell, updateCell]
-@@ -225,7 +224,7 @@ const Grid = () => {
+@@ -225,7 +227,7 @@ const Grid = () => {
      [cells, entries, updateCellFocus]
    );
    const handleKeyDown = useCallback(
@@ -516,7 +568,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2
        if (currentEntryId && (event.key === "[" || event.key === "]")) {
          const currentEntry = entries.get(currentEntryId);
          const nextClueID = currentEntry?.nextEntryId;
-@@ -237,11 +236,17 @@ const Grid = () => {
+@@ -237,11 +239,17 @@ const Grid = () => {
            handleSwitchClue(previousClueID);
          }
        }
@@ -539,7 +591,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2
        } else {
          if (event.key.length === 1) {
            event.preventDefault();
-@@ -249,7 +254,7 @@ const Grid = () => {
+@@ -249,7 +257,7 @@ const Grid = () => {
          }
        }
      },
@@ -548,7 +600,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2
    );
    const handleInput = useCallback(
      (event, guess) => {
-@@ -259,7 +264,7 @@ const Grid = () => {
+@@ -259,7 +267,7 @@ const Grid = () => {
          event.preventDefault();
          switch (inputType) {
            case "deleteContentBackward":
@@ -557,7 +609,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2
              break;
            case "insertText":
            case "insertCompositionText":
-@@ -422,7 +427,7 @@ const Grid = () => {
+@@ -422,7 +430,7 @@ const Grid = () => {
              const y = getCellPosition(cell.y, theme);
              const guess = progress[cell.x]?.[cell.y];
              const isCurrentCell = currentCell.x === cell.x && currentCell.y === cell.y;
@@ -566,7 +618,7 @@ index f585d1aecedb80fe6129bb6762f5b5875080c640..9a76cde094d9a0fdcdc43ecc39b931a2
              const isConnected = !!cell.group?.some(
                (entryId) => currentGroupSet?.has(entryId)
              );
-@@ -444,7 +449,7 @@ const Grid = () => {
+@@ -444,7 +452,7 @@ const Grid = () => {
                  id: getId(`cell-group-${cell.x}-${cell.y}`),
                  onFocus: handleCellFocus,
                  onPointerDown: isCurrentCell ? () => handleCurrentCellClick(cell) : void 0,
@@ -654,7 +706,7 @@ index b031166fe4dacdaa9b2ce9c10609392109a7b0aa..a95a767738344f7a58b6dc3742299aca
  const centerY = 100;
  const radius = 70;
 diff --git a/dist/context/ContextProvider.js b/dist/context/ContextProvider.js
-index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf20505bc7 100644
+index 48c7521760d09ce5d179099ca6acd03bfcefd554..ea9deb1846354f9f41827053d96c7994a630b52e 100644
 --- a/dist/context/ContextProvider.js
 +++ b/dist/context/ContextProvider.js
 @@ -1,4 +1,5 @@
@@ -663,7 +715,7 @@ index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf
  import { CurrentCellProvider } from './CurrentCell.js';
  import { CurrentClueProvider } from './CurrentClue.js';
  import { DataProvider } from './Data.js';
-@@ -7,11 +8,15 @@ import { ShowAnagramHelperProvider } from './ShowAnagramHelper.js';
+@@ -7,14 +8,18 @@ import { ShowAnagramHelperProvider } from './ShowAnagramHelper.js';
  import { ThemeProvider } from './Theme.js';
  import { ValidAnswersProvider } from './ValidAnswers.js';
  
@@ -678,8 +730,19 @@ index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf
 +  onMove,
    children
  }) => {
-   const { entries, dimensions, solutionAvailable, id } = data;
-@@ -28,11 +33,11 @@ const ContextProvider = ({
+-  const { entries, dimensions, solutionAvailable, id } = data;
++  const { entries, dimensions, solutionAvailable, id, cellStyles } = data;
+   return /* @__PURE__ */ jsx(ThemeProvider, { theme, children: /* @__PURE__ */ jsx(ShowAnagramHelperProvider, { children: /* @__PURE__ */ jsx(
+     DataProvider,
+     {
+@@ -22,17 +27,18 @@ const ContextProvider = ({
+       solutionAvailable,
+       dimensions,
+       id,
++      cellStyles,
+       children: /* @__PURE__ */ jsx(
+         ProgressProvider,
+         {
            id,
            dimensions,
            progress: userProgress,
@@ -693,6 +756,25 @@ index 48c7521760d09ce5d179099ca6acd03bfcefd554..c66bbf2e64d8ae5527b339cab515dacf
  
 -export { ContextProvider };
 +export { ContextProvider, useOnMove };
+diff --git a/dist/context/Data.js b/dist/context/Data.js
+index 70bc8bc5670eba7583d41d37f06636e689a14077..aaa9aeabf429d6f5d32f0543654b5928cabde4db 100644
+--- a/dist/context/Data.js
++++ b/dist/context/Data.js
+@@ -8,11 +8,12 @@ const DataProvider = ({
+   solutionAvailable,
+   id,
+   dimensions,
++  cellStyles,
+   children
+ }) => {
+   const { entries, cells, separators } = useMemo(
+-    () => parseCrosswordData({ dimensions, entries: CAPIEntries }),
+-    [dimensions, CAPIEntries]
++    () => parseCrosswordData({ dimensions, entries: CAPIEntries, cellStyles }),
++    [dimensions, CAPIEntries, cellStyles]
+   );
+   const getId = useCallback((_) => `${_}-${id}`, [id]);
+   return /* @__PURE__ */ jsx(
 diff --git a/dist/context/Progress.js b/dist/context/Progress.js
 index a32422fd142f9cc5857eedbe1d4df7dc1f5a43d4..22149c2f4feed525ae6e44f2546b69d60de9d118 100644
 --- a/dist/context/Progress.js
@@ -867,7 +949,7 @@ index 5e0749115ef26ec12ae125c11c87498c1907c784..dd7af0a5cf26001f9fca103d15fd29e6
    return { updateCell };
  };
 diff --git a/dist/layouts/ScreenLayout.js b/dist/layouts/ScreenLayout.js
-index bcb5145a8a2ae3ab35077253b632f28e00eccbce..b595fc6eb83192bc3701652ba05fbb731557594b 100644
+index bcb5145a8a2ae3ab35077253b632f28e00eccbce..8d2259b56569ba0fef3ab55c81cf303a8867569a 100644
 --- a/dist/layouts/ScreenLayout.js
 +++ b/dist/layouts/ScreenLayout.js
 @@ -1,10 +1,14 @@
@@ -886,7 +968,16 @@ index bcb5145a8a2ae3ab35077253b632f28e00eccbce..b595fc6eb83192bc3701652ba05fbb73
  const CluesHeader = memo(({ children }) => {
    const theme = useTheme();
    return /* @__PURE__ */ jsx(
-@@ -59,7 +63,6 @@ const Layout = ({
+@@ -48,7 +52,7 @@ const Layout = ({
+ 				gap: ${space[4]}px;
+ 				max-width: ${gridWidth + clueMaxWidth * 2}px;
+ 				height: 100%;
+-				overflow: auto;
++				overflow: visible;
+ 
+ 				@container (min-width: ${oneColWidth}px) {
+ 					flex-direction: row;
+@@ -59,39 +63,48 @@ const Layout = ({
  				}
  			`,
        children: [
@@ -894,7 +985,12 @@ index bcb5145a8a2ae3ab35077253b632f28e00eccbce..b595fc6eb83192bc3701652ba05fbb73
          /* @__PURE__ */ jsxs(
            "div",
            {
-@@ -71,27 +74,38 @@ const Layout = ({
+             css: css`
+ 					@container (min-width: ${oneColWidth}px) {
+-						max-height: 100%;
+-						overflow: auto;
++						overflow: visible;
+ 						flex-basis: ${gridWidth}px;
  					}
  				`,
              children: [
@@ -953,6 +1049,17 @@ index bcb5145a8a2ae3ab35077253b632f28e00eccbce..b595fc6eb83192bc3701652ba05fbb73
                  }
                ),
                /* @__PURE__ */ jsx(
+@@ -156,8 +169,8 @@ const Layout = ({
+ 					}
+ 				`,
+             children: [
+-              /* @__PURE__ */ jsx(Clues, { direction: "across", Header: CluesHeader }),
+-              /* @__PURE__ */ jsx(Clues, { direction: "down", Header: CluesHeader })
++              /* @__PURE__ */ jsx(Clues, { direction: "across", scrollToSelected: true, Header: CluesHeader }),
++              /* @__PURE__ */ jsx(Clues, { direction: "down", scrollToSelected: true, Header: CluesHeader })
+             ]
+           }
+         )
 diff --git a/dist/theme.js b/dist/theme.js
 index df26ff9ee4b73c8526691ee16c38ad59ab347e9e..cef601277b011efbcca3aa539391b5512b039946 100644
 --- a/dist/theme.js
@@ -1084,3 +1191,54 @@ index ae0814d5e349f6e69dbbb125f67d4aa176959852..ecd4068e2699074a47dd70bf89aa1f8d
        groupProgress.push(
          ...getCellsWithProgressForEntry({ entry: entry2, cells, progress })
        );
+diff --git a/dist/utils/parseCrosswordData.js b/dist/utils/parseCrosswordData.js
+index d567b376a6e68b497f69ea5836df3a8c58a21dde..434902922a2dd13b64a78a24f30e59df5ffb6222 100644
+--- a/dist/utils/parseCrosswordData.js
++++ b/dist/utils/parseCrosswordData.js
+@@ -4,6 +4,10 @@ const parseCrosswordData = (data) => {
+   const entries = /* @__PURE__ */ new Map();
+   const separators = [];
+   const { cols, rows } = data.dimensions;
++  const styleByCoord = new Map();
++  for (const style of data.cellStyles ?? []) {
++    styleByCoord.set(`x${style.x}y${style.y}`, style.style);
++  }
+   const cells = Object.assign(
+     // create an initial map of all possible cells that assumes they are all empty (black)
+     new Map(
+@@ -19,13 +23,21 @@ const parseCrosswordData = (data) => {
+       getByCoords: ({ x, y }) => cells.get(`x${x}y${y}`)
+     }
+   );
++  // Linear order: every across (in entries-array order), then every down.
++  // ']' walks forward through this sequence and wraps at the end, so the
++  // user steps through all across, crosses to the first down, steps through
++  // all down, and then comes back to the first across.
++  const acrossEntries = data.entries.filter((e) => e.direction === 'across');
++  const downEntries = data.entries.filter((e) => e.direction === 'down');
++  const orderedEntries = [...acrossEntries, ...downEntries];
+   for (const [index, entry] of data.entries.entries()) {
+-    const prevIndex = (index + data.entries.length - 1) % data.entries.length;
+-    const nextIndex = (index + 1) % data.entries.length;
++    const orderedIndex = orderedEntries.findIndex((e) => e.id === entry.id);
++    const prevOrderedIndex = (orderedIndex + orderedEntries.length - 1) % orderedEntries.length;
++    const nextOrderedIndex = (orderedIndex + 1) % orderedEntries.length;
+     entries.set(entry.id, {
+       ...entry,
+-      nextEntryId: data.entries[nextIndex]?.id,
+-      previousEntryId: data.entries[prevIndex]?.id
++      nextEntryId: orderedEntries[nextOrderedIndex]?.id,
++      previousEntryId: orderedEntries[prevOrderedIndex]?.id
+     });
+     for (const [separator, locations] of Object.entries(
+       entry.separatorLocations
+@@ -57,7 +69,8 @@ const parseCrosswordData = (data) => {
+         number,
+         x,
+         y,
+-        solution: entry.solution?.[i]
++        solution: entry.solution?.[i],
++        style: styleByCoord.get(`x${x}y${y}`)
+       });
+     }
+   }

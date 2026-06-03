@@ -9,7 +9,8 @@
         <%- series_config.each do |name, meta| -%>
           <option value="<%= name %>"
                   data-first-puzzle="<%= meta[:first_puzzle] %>"
-                  data-latest-puzzle="<%= latest_by_series[name] %>"><%= name.titleize %></option>
+                  data-latest-puzzle="<%= latest_by_series[name] %>"
+                  data-days="<%= meta[:days]&.to_a&.join(',') %>"><%= Series.display_name(name) %></option>
         <%- end -%>
       </select>
 
@@ -17,11 +18,13 @@
         <legend>Day</legend>
         <div class="day-options">
           <label><input type="radio" name="day" value="" checked> Any</label>
-          <label><input type="radio" name="day" value="1"> Mon</label>
-          <label><input type="radio" name="day" value="2"> Tue</label>
-          <label><input type="radio" name="day" value="3"> Wed</label>
-          <label><input type="radio" name="day" value="4"> Thu</label>
-          <label><input type="radio" name="day" value="5"> Fri</label>
+          <label data-day="1"><input type="radio" name="day" value="1"> Mon</label>
+          <label data-day="2"><input type="radio" name="day" value="2"> Tue</label>
+          <label data-day="3"><input type="radio" name="day" value="3"> Wed</label>
+          <label data-day="4"><input type="radio" name="day" value="4"> Thu</label>
+          <label data-day="5"><input type="radio" name="day" value="5"> Fri</label>
+          <label data-day="6"><input type="radio" name="day" value="6"> Sat</label>
+          <label data-day="7"><input type="radio" name="day" value="7"> Sun</label>
         </div>
       </fieldset>
 
@@ -58,7 +61,7 @@
     </p>
 
     <%- @series_with_crosswords.each do |series, crosswords| -%>
-      <h3><%= series.titleize %></h3>
+      <h3><%= Series.display_name(series) %></h3>
       <ul>
       <%- crosswords.each do |crossword| -%>
         <li class="crossword-link">

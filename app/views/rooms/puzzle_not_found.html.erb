@@ -3,11 +3,11 @@
   <p>
     Sorry, we couldn't find
     <% if @series && @identifier %>
-      <strong><%= @series.titleize %> crossword No <%= @identifier %></strong>.
+      <strong><%= Series.display_name(@series) %> crossword No <%= @identifier %></strong>.
     <% else %>
       that puzzle.
     <% end %>
   </p>
-  <p>The puzzle may not exist, or it may not be available from the Guardian.</p>
+  <p>The puzzle may not exist, or it may not be available from the publisher.</p>
   <p><a href="/">Back to the homepage</a></p>
 </div>

@@ -141,6 +141,12 @@ a {
   margin-right: 0;
 }
 
+/* Beat the inline-block rule above when JS hides a day label for a series
+   that doesn't publish on that weekday (e.g. Sat/Sun for Cryptic). */
+.homepage-sidebar .day-filter label[hidden] {
+  display: none;
+}
+
 .homepage-sidebar select,
 .homepage-sidebar input[type="text"] {
   width: 100%;
@@ -224,6 +230,18 @@ a {
     margin-top: 0px;
 }
 
+.crossword-footer {
+    margin-top: 8px;
+    margin-bottom: 0px;
+}
+
+.crossword-subtitle {
+    margin-top: -0.5em;
+    margin-bottom: 0.2em;
+    font-size: 1.15em;
+    font-weight: normal;
+}
+
 @media (max-width: 600px) {
   .homepage {
     flex-direction: column;
@@ -237,5 +255,22 @@ a {
   .homepage-sidebar .day-filter .day-options {
     display: flex;
     text-align: center;
+  }
+}
+
+/* Room page: cap each clue list at viewport height so long lists scroll in
+   place rather than stretching the page below the grid. Page flows
+   naturally; below 768px we leave the upstream sticky-clue layout alone. */
+@media (min-width: 768px) {
+  body:has(.js-crossword) [role="listbox"] {
+    max-height: calc(98dvh - 200px);
+    overflow-y: auto;
+  }
+
+  /* When the Across/Down lists are stacked (intermediate viewport widths,
+     below the upstream twoColWidth threshold), split the cap so both lists
+     remain visible without scrolling the page. */
+  body:has(.js-crossword) [data-clues-layout="stacked"] [role="listbox"] {
+    max-height: calc(48dvh - 130px);
   }
 }

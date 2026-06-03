@@ -108,7 +108,24 @@ const mountCrossword = (progress, onMove) => {
     }
   });
   remotePresence.setCellMap(cellMap);
+  setupClueColumnLayout();
 };
+
+// Tag the clue column with whether the upstream container query has put
+// the Across/Down lists side-by-side or stacked, so our CSS can give each
+// listbox half-viewport (stacked) vs full-viewport (side-by-side) caps.
+function setupClueColumnLayout() {
+  const firstListbox = crosswordElement.querySelector('[role="listbox"]');
+  if (!firstListbox) return;
+  const clueColumn = firstListbox.parentElement.parentElement;
+  const update = () => {
+    const direction = getComputedStyle(clueColumn).flexDirection;
+    clueColumn.dataset.cluesLayout = direction === 'row' ? 'row' : 'stacked';
+  };
+  const observer = new ResizeObserver(update);
+  observer.observe(crosswordElement);
+  update();
+}
 
 const { moves: movesSub, presence: presenceSub } = createSubscriptions(
   crosswordIdentifier,

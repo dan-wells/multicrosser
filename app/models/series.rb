@@ -1,10 +1,16 @@
 class Series
   #SERIES = ['quiptic', 'quick', 'weekend', 'cryptic', 'speedy', 'prize', 'everyman']
   SERIES = {
-    'quiptic' => { first_puzzle: 1 },
-    'cryptic' => { first_puzzle: 21620 },
-    'quick-cryptic' => { first_puzzle: 1 },
+    'quiptic' => { source: 'guardian', first_puzzle: 1 },
+    'cryptic' => { source: 'guardian', first_puzzle: 21620, days: 1..5 },
+    'quick-cryptic' => { source: 'guardian', first_puzzle: 1 },
+    #'quick' => { source: 'guardian', first_puzzle: 9093 },
+    'nytimes' => { source: 'nytimes', first_puzzle: '080602', days: 1..7, display_name: 'New York Times' },
   }
+
+  def self.display_name(name)
+    SERIES.dig(name, :display_name) || name.to_s.titleize
+  end
 
   def self.get_all
     keys = SERIES.keys.map{|name| "crossword-series-#{name}"}

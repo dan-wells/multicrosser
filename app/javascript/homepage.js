@@ -17,16 +17,35 @@ function updatePuzzlePlaceholder() {
 
 function updateDayFilter() {
   var select = document.getElementById('goto-series');
+  var option = select.options[select.selectedIndex];
   var dayFilter = document.getElementById('day-filter');
-  dayFilter.hidden = (select.value !== 'cryptic');
+  var daysAttr = option ? option.getAttribute('data-days') : '';
+  var supportedDays = (daysAttr || '').split(',').filter(function (d) { return d !== ''; });
+
+  dayFilter.hidden = supportedDays.length === 0;
+
+  // Show/hide each day label according to series support
+  dayFilter.querySelectorAll('label[data-day]').forEach(function (label) {
+    var d = label.getAttribute('data-day');
+    label.hidden = supportedDays.indexOf(d) === -1;
+  });
+
   if (dayFilter.hidden) {
     dayFilter.querySelector('input[value=""]').checked = true;
+    return;
+  }
+
+  // Restore the previously chosen day if it's still valid for this series,
+  // otherwise reset to "Any".
+  var savedDay = lastDay();
+  var savedRadio = savedDay !== null
+    ? dayFilter.querySelector('input[name="day"][value="' + savedDay + '"]')
+    : null;
+  var savedLabel = savedRadio ? savedRadio.closest('label[data-day]') : null;
+  if (savedRadio && (!savedLabel || !savedLabel.hidden)) {
+    savedRadio.checked = true;
   } else {
-    var savedDay = lastDay();
-    if (savedDay !== null) {
-      var radio = dayFilter.querySelector('input[name="day"][value="' + savedDay + '"]');
-      if (radio) radio.checked = true;
-    }
+    dayFilter.querySelector('input[value=""]').checked = true;
   }
 }
 
@@ -136,25 +155,27 @@ function goToPuzzle(form) {
   var room = form.room.value.trim();
   var errorEl = document.getElementById('goto-error');
   var option = form.series.options[form.series.selectedIndex];
+  var seriesName = (option && option.textContent.trim()) || series;
 
   if (!number) {
     var latest = option.getAttribute('data-latest-puzzle');
     if (!latest) {
-      errorEl.textContent = 'No puzzles available for ' + series.charAt(0).toUpperCase() + series.slice(1);
+      errorEl.textContent = 'No puzzles available for ' + seriesName;
       return false;
     }
     number = latest;
   } else {
-    var firstPuzzle = parseInt(option.getAttribute('data-first-puzzle'), 10);
-    var latestPuzzle = parseInt(option.getAttribute('data-latest-puzzle'), 10);
-    var seriesName = series.charAt(0).toUpperCase() + series.slice(1);
+    var firstPuzzleStr = option.getAttribute('data-first-puzzle');
+    var latestPuzzleStr = option.getAttribute('data-latest-puzzle');
+    var firstPuzzle = parseInt(firstPuzzleStr, 10);
+    var latestPuzzle = parseInt(latestPuzzleStr, 10);
     var num = parseInt(number, 10);
     if (isNaN(num) || num < firstPuzzle) {
-      errorEl.textContent = seriesName + ' puzzles start at No\u00A0' + firstPuzzle;
+      errorEl.textContent = seriesName + ' puzzles start at No\u00A0' + firstPuzzleStr;
       return false;
     }
     if (!isNaN(latestPuzzle) && num > latestPuzzle) {
-      errorEl.textContent = seriesName + ' puzzles only go up to No\u00A0' + latestPuzzle;
+      errorEl.textContent = seriesName + ' puzzles only go up to No\u00A0' + latestPuzzleStr;
       return false;
     }
   }
@@ -172,10 +193,11 @@ function goToRandomPuzzle(form) {
   var room = form.room.value.trim();
   var errorEl = document.getElementById('goto-error');
   var option = form.series.options[form.series.selectedIndex];
+  var seriesName = (option && option.textContent.trim()) || series;
   var latest = option.getAttribute('data-latest-puzzle');
 
   if (!latest) {
-    errorEl.textContent = 'No puzzles available for ' + series.charAt(0).toUpperCase() + series.slice(1);
+    errorEl.textContent = 'No puzzles available for ' + seriesName;
     return false;
   }
 

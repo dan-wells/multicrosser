@@ -1,13 +1,21 @@
 <h1><%= @parsed_crossword['name'] %></h1>
+<%- if @parsed_crossword['subtitle'].present? -%>
+  <h2 class="crossword-subtitle"><%= @parsed_crossword['subtitle'] %></h2>
+<%- end -%>
 <p class="crossword-info">
-  <%= Time.at(@parsed_crossword['date']/1000).to_date.strftime("%a %-d %b %Y") %> |
+  <%= Time.at(@parsed_crossword['date']/1000).to_date.strftime("%a %-d %b %Y") %>
   <%- if @parsed_crossword['creator'] -%>
-    Set by <%= link_to @parsed_crossword['creator']['name'], @parsed_crossword['creator']['webUrl'] %> |
+    <%- creator_name = @parsed_crossword['creator']['name'] -%>
+    <%- creator_url = @parsed_crossword['creator']['webUrl'] -%>
+    | Set by <%= creator_url.present? ? link_to(creator_name, creator_url) : creator_name %>
   <%- end -%>
-  <%- if @fifteensquared_is_search -%>
-    Search on <%= link_to "Fifteensquared", @fifteensquared_url %>
-  <%- else -%>
-    <%= link_to "Fifteensquared", @fifteensquared_url %>
+  <%- if @commentary_url -%>
+    |
+    <%- if @commentary_is_search -%>
+      Search on <%= link_to @commentary_label, @commentary_url %>
+    <%- else -%>
+      <%= link_to @commentary_label, @commentary_url %>
+    <%- end -%>
   <%- end -%>
 </p>
 
@@ -28,7 +36,7 @@
 <%= stylesheet_link_tag "crossword" %>
 <%= javascript_include_tag "crossword" %>
 
-<p class="crossword-info" style="clear: both;">
+<p class="crossword-footer" style="clear: both;">
   Share this page with others to solve this crossword with them.
-  <br><a href="<%= @url %>">Published by the Guardian</a>
+  <br><a href="<%= @publisher_url %>">Published by <%= @publisher_name %></a>
 </p>

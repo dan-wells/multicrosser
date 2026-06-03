@@ -1,20 +1,5 @@
 class CrosswordFeed
   def self.load
-    response = Faraday.get "https://www.theguardian.com/crosswords/rss"
-    xml = Nokogiri::XML(response.body)
-    xml.css('item').each do |element|
-      link = element.css('link').text
-      series, identifier = link.split('/').last(2)
-      next unless series.in?(Series::SERIES.keys)
-
-      crossword = Crossword.new(
-        "title" => element.css('title').text,
-        "series" => series,
-        "identifier" => identifier,
-        "date" => element.at('dc|date').text
-      )
-      crossword.save
-    end
+    Source.all.each(&:feed_load)
   end
-
 end

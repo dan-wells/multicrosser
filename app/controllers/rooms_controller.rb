@@ -5,11 +5,12 @@ class RoomsController < ApplicationController
     raise ActionController::RoutingError.new('Series not Found') unless params[:series].in?(Series::SERIES.keys)
     @crossword = crossword
     @parsed_crossword = JSON.parse(crossword)
-    @url = CrosswordFetcher.guardian_url(params[:series], params[:identifier])
-    direct_url = ::REDIS.get("fifteensquared-#{crossword_identifier}")
-    @fifteensquared_is_search = direct_url.nil?
-    @fifteensquared_url = direct_url ||
-      "https://www.fifteensquared.net/?s=#{CGI.escape("guardian #{params[:series]} #{params[:identifier]}")}"
+    source = Source.for(params[:series])
+    @publisher_url = source.publisher_url(params[:series], params[:identifier])
+    @publisher_name = source.publisher_name
+    @commentary_url = source.commentary_url(params[:series], params[:identifier])
+    @commentary_label = source.commentary_label
+    @commentary_is_search = source.commentary_is_search?(params[:series], params[:identifier])
   end
 
   def crossword_identifier
