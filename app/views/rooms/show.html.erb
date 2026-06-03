@@ -12,9 +12,9 @@
   <%- if @commentary_url -%>
     |
     <%- if @commentary_is_search -%>
-      Search on <%= link_to @commentary_label, @commentary_url %>
+      Search on <%= link_to @commentary_label, @commentary_url, target: "_blank", rel: "noopener" %>
     <%- else -%>
-      <%= link_to @commentary_label, @commentary_url %>
+      <%= link_to @commentary_label, @commentary_url, target: "_blank", rel: "noopener" %>
     <%- end -%>
   <%- end -%>
 </p>
