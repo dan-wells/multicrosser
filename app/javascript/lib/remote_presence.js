@@ -8,7 +8,6 @@ class RemotePresence {
     this.sessions = new Map(); // sessionId -> { x, y, entry_id, entry_cells }
     this.cellMap = null; // Map<"x-y", Element>
     this.crosswordElement = null;
-    this.localEntryCells = new Set(); // local user's selected clue cells as "x-y" keys
     this.localEntryId = null; // local user's selected entry id, e.g. "12-across"
   }
 
@@ -20,9 +19,8 @@ class RemotePresence {
     this.crosswordElement = el;
   }
 
-  setLocalEntry(entryId, cells) {
+  setLocalEntry(entryId) {
     this.localEntryId = entryId || null;
-    this.localEntryCells = new Set((cells || []).map(([x, y]) => `${x}-${y}`));
     this.apply();
   }
 
@@ -71,10 +69,10 @@ class RemotePresence {
         el.removeAttribute('data-remote-cursor');
       }
 
-      // Suppress remote-clue tint on cells that are part of the local user's
-      // own selected clue -- their local yellow should always win there.
-      const shouldTint = clueCells.has(key) && !this.localEntryCells.has(key);
-      if (shouldTint) {
+      // Cells in any remote user's selected clue carry data-remote-clue. CSS
+      // composes this with data-cell-connected / :focus-within / data-cell-style
+      // so cells in both a local and a remote clue get a combined visual.
+      if (clueCells.has(key)) {
         el.setAttribute('data-remote-clue', 'true');
       } else if (el.hasAttribute('data-remote-clue')) {
         el.removeAttribute('data-remote-clue');

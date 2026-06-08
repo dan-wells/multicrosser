@@ -53,6 +53,15 @@ index c0161d6d60e119127048ccc745a28604937aa570..c7d28b54420102b3ba79f5b0bea5c2df
  const noop = () => {
  };
  const CellComponent = ({
+@@ -38,7 +39,7 @@ const CellComponent = ({
+       const tabIndex = isCurrentCell && isBlackCell ? "0" : "-1";
+       currentRef.setAttribute("tabindex", tabIndex);
+     }
+   }, [isBlackCell, isCurrentCell]);
+-  return /* @__PURE__ */ jsxs("g", { ref: cellRef, ...props, children: [
++  return /* @__PURE__ */ jsxs("g", { ref: cellRef, ...props, "data-cell-style": (!isBlackCell && data.style) ? data.style : void 0, "data-cell-connected": isConnected ? "" : void 0, children: [
+     /* @__PURE__ */ jsx(
+       "rect",
 @@ -51,6 +52,19 @@ const CellComponent = ({
          css: cellStyles
        }

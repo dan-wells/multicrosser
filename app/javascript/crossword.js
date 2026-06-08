@@ -226,11 +226,7 @@ function currentSelectedEntry() {
 // rather than after cursor update debounce.
 function applyLocalEntry() {
   const entry = currentSelectedEntry();
-  if (entry) {
-    remotePresence.setLocalEntry(entry.id, entry.cells);
-  } else {
-    remotePresence.setLocalEntry(null, []);
-  }
+  remotePresence.setLocalEntry(entry?.id);
 }
 
 function sendCursor() {

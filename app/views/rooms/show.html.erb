@@ -24,6 +24,11 @@
     <pattern id="crossword-black-hatch" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
       <line x1="0" y1="0" x2="0" y2="4" stroke-width="1"></line>
     </pattern>
+    <%= render "hatch_pattern", name: "shaded" %>
+    <%= render "hatch_pattern", name: "connected-shaded" %>
+    <%= render "hatch_pattern", name: "remote-shaded" %>
+    <%= render "hatch_pattern", name: "local-remote" %>
+    <%= render "hatch_pattern", name: "focus-remote" %>
   </defs>
 </svg>
 

@@ -47,12 +47,9 @@ class Source::NytimesTest < ActiveSupport::TestCase
     end
   end
 
-  test "fetch writes the shaded sentinel when the layout has a ^ marker" do
-    body = File.read(Rails.root.join('test/fixtures/files/nytimes/240808.txt'))
-    Faraday.stub(:get, stub_response(body)) do
-      assert_nil @source.fetch('nytimes', '240808')
-    end
-    assert_equal 'unsupported:shaded', REDIS.get('nytimes/240808')
+  test "fetch reads back nil for any transient: sentinel" do
+    REDIS.set('nytimes/sample', 'transient:xwordinfo-unavailable')
+    assert_nil @source.fetch('nytimes', 'sample')
   end
 
   test "fetch writes the rebus sentinel when the layout has a , marker" do
@@ -70,9 +67,55 @@ class Source::NytimesTest < ActiveSupport::TestCase
     assert_equal 'unsupported:malformed', REDIS.get('nytimes/garbage')
   end
 
+  # --- Shaded fallback via xwordinfo ----------------------------------------
+
+  test "shaded puzzle falls back to xwordinfo and caches the parsed JSON on success" do
+    nytsyn_body = File.read(Rails.root.join('test/fixtures/files/nytimes/240808.txt'))
+    xwordinfo_body = File.read(Rails.root.join('test/fixtures/files/nytimes/xwordinfo_260430.html'))
+
+    Faraday.stub(:get, faraday_router(nytsyn_body, xwordinfo_body)) do
+      result = @source.fetch('nytimes', '240808')
+      refute_nil result, 'expected fallback to return puzzle JSON'
+      parsed = JSON.parse(result)
+      assert_equal 'The New York Times crossword', parsed['name']
+      # Shaded cells should be present in the parsed output.
+      assert parsed['cellStyles'].any? { |s| s['style'] == 'shaded' }
+    end
+
+    cached = REDIS.get('nytimes/240808')
+    refute cached.start_with?('unsupported:'), "expected JSON, got sentinel: #{cached}"
+    refute cached.start_with?('transient:'),   "expected JSON, got sentinel: #{cached}"
+  end
+
+  test "shaded puzzle writes transient sentinel with TTL when xwordinfo returns a login page" do
+    nytsyn_body = File.read(Rails.root.join('test/fixtures/files/nytimes/240808.txt'))
+    login_body = "<html><a href='/Account/Login.aspx'>log in</a></html>"
+
+    Faraday.stub(:get, faraday_router(nytsyn_body, login_body)) do
+      assert_nil @source.fetch('nytimes', '240808')
+    end
+    assert_equal 'transient:xwordinfo-unavailable', REDIS.get('nytimes/240808')
+    ttl = REDIS.ttl('nytimes/240808')
+    assert ttl.positive? && ttl <= Source::Nytimes::TRANSIENT_TTL,
+           "expected positive TTL <= #{Source::Nytimes::TRANSIENT_TTL}, got #{ttl}"
+  end
+
   private
 
   def stub_response(body)
-    Struct.new(:body).new(body)
+    Struct.new(:body, :env).new(body, nil)
+  end
+
+  # Faraday.get(url, params, headers) — return different bodies based on the URL.
+  def faraday_router(nytsyn_body, xwordinfo_body)
+    lambda do |url, *_args|
+      if url == Source::Nytimes::BASE_URL
+        stub_response(nytsyn_body)
+      elsif url == Source::Nytimes::XWORDINFO_URL
+        stub_response(xwordinfo_body)
+      else
+        raise "unexpected Faraday.get URL: #{url.inspect}"
+      end
+    end
   end
 end

@@ -142,7 +142,7 @@ describe('RemotePresence.applyGrid', () => {
     });
   });
 
-  it('suppresses data-remote-clue on cells in the local user\'s selected entry', () => {
+  it('keeps data-remote-clue on cells in the local user\'s selected entry (CSS composes them)', () => {
     const rp = new RemotePresence();
     const { cellMap } = buildGrid(3, 1);
     rp.setCellMap(cellMap);
@@ -156,13 +156,13 @@ describe('RemotePresence.applyGrid', () => {
     expect(cellMap.get('1-0').hasAttribute('data-remote-clue')).toBe(true);
     expect(cellMap.get('2-0').hasAttribute('data-remote-clue')).toBe(true);
 
-    // The local user selects the same clue. None should be tinted now, but the
-    // remote cursor border on (1, 0) stays.
-    rp.setLocalEntry('1-across', [[0, 0], [1, 0], [2, 0]]);
+    // The local user selects the same clue. data-remote-clue stays so CSS can
+    // compose it with data-cell-connected for a combined hatch.
+    rp.setLocalEntry('1-across');
 
-    expect(cellMap.get('0-0').hasAttribute('data-remote-clue')).toBe(false);
-    expect(cellMap.get('1-0').hasAttribute('data-remote-clue')).toBe(false);
-    expect(cellMap.get('2-0').hasAttribute('data-remote-clue')).toBe(false);
+    expect(cellMap.get('0-0').getAttribute('data-remote-clue')).toBe('true');
+    expect(cellMap.get('1-0').getAttribute('data-remote-clue')).toBe('true');
+    expect(cellMap.get('2-0').getAttribute('data-remote-clue')).toBe('true');
     expect(cellMap.get('1-0').getAttribute('data-remote-cursor')).toBe('true');
   });
 
@@ -215,7 +215,7 @@ describe('RemotePresence.applyClueList', () => {
     rp.handleMessage({
       type: 'presence', session_id: 's1', x: 0, y: 0, entry_id: '1-across', entry_cells: [],
     });
-    rp.setLocalEntry('1-across', []);
+    rp.setLocalEntry('1-across');
 
     expect(container.querySelector('[data-entry-id="1-across"]').hasAttribute('data-remote-entry')).toBe(false);
   });

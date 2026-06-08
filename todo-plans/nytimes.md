@@ -178,3 +178,36 @@ test "120105 corner rebus is handled" do
   assert_equal 'LUMBERJ', row_0_acrosses.last['solution']
 end
 ```
+
+
+## Purge `unsupported:shaded` keys
+
+Open the Rails console with the conda env:
+
+```
+conda activate multicrosser
+bundle exec rails console
+```
+
+That gives you a prompt where you can poke at the live Redis. Before deleting anything, do a dry run to see what's there:
+
+```ruby
+keys = REDIS.scan_each(match: 'nytimes/*').to_a
+shaded = keys.select { |k| REDIS.get(k) == 'unsupported:shaded' }
+puts "#{shaded.size} shaded sentinel(s):"
+puts shaded
+```
+
+If the list looks right, run the actual purge:
+
+```ruby
+shaded.each { |k| REDIS.del(k); puts "deleted #{k}" }
+```
+
+Then `exit` to leave the console.
+
+A few notes:
+
+- This hits whichever Redis the running Rails environment is configured for -- in dev that's local Redis, in production it's whatever `REDIS_URL` points at. To run it against production, you'd need to open a console on the production host (or set `REDIS_URL` to the prod URL before launching, but the former is safer because it picks up the rest of the app's prod config too).
+- After the purge, the next time anyone navigates to one of those puzzle URLs the app will re-fetch from nytsyn, hit `UnsupportedShaded`, and try xwordinfo automatically -- no manual triggering needed.
+- If your production host has its own way of opening a Rails console (e.g. a deploy script, container exec, or `heroku run rails console`), use that instead of the conda command above -- but the Ruby block itself is the same.

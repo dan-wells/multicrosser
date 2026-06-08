@@ -1,7 +1,11 @@
 class Source::Nytimes::Parser
   class Error < StandardError; end
   class UnsupportedPuzzle < Error; end
-  class UnsupportedShaded < UnsupportedPuzzle; end
+  # Carries the metadata we already extracted from the nytsyn response so the
+  # xwordinfo fallback can build a full CAPI hash without re-parsing.
+  class UnsupportedShaded < UnsupportedPuzzle
+    attr_accessor :orig_date, :syn_date, :subtitle
+  end
   class UnsupportedRebus < UnsupportedPuzzle; end
   class MalformedPuzzle < Error; end
 
@@ -32,13 +36,19 @@ class Source::Nytimes::Parser
     down_count = parse_int(blocks[7])
     raise MalformedPuzzle, 'zero dimensions' if rows.zero? || cols.zero? || across_count.zero? || down_count.zero?
 
+    # Stash for UnsupportedShaded -- parse_row raises it before grid construction
+    # completes, and the xwordinfo fallback wants the dates + subtitle back.
+    @orig_date = orig_date
+    @syn_date = syn_date
+    @subtitle = extra_title
+
     grid = parse_grid(blocks[8], rows, cols)
     across_clues = blocks[9].lines.map(&:strip).reject(&:empty?)
     down_clues = blocks[10].lines.map(&:strip).reject(&:empty?)
     raise MalformedPuzzle, "across count mismatch (#{across_clues.size} vs #{across_count})" unless across_clues.size == across_count
     raise MalformedPuzzle, "down count mismatch (#{down_clues.size} vs #{down_count})" unless down_clues.size == down_count
 
-    entries, cell_styles = build_entries_and_styles(grid, across_clues, down_clues)
+    entries, cell_styles = Source::Nytimes::EntryBuilder.call(grid, across_clues, down_clues, error_class: MalformedPuzzle)
 
     {
       'id' => "crossword/nytimes/#{syn_date.strftime('%y%m%d')}",
@@ -95,7 +105,13 @@ class Source::Nytimes::Parser
   end
 
   def parse_row(line, expected_cols)
-    raise UnsupportedShaded, 'shaded marker (^) in layout' if line.include?('^')
+    if line.include?('^')
+      err = UnsupportedShaded.new('shaded marker (^) in layout')
+      err.orig_date = @orig_date
+      err.syn_date = @syn_date
+      err.subtitle = @subtitle
+      raise err
+    end
     raise UnsupportedRebus, 'rebus marker (,) in layout' if line.include?(',')
 
     cells = []
@@ -121,82 +137,4 @@ class Source::Nytimes::Parser
     cells
   end
 
-  def build_entries_and_styles(grid, across_clues, down_clues)
-    rows = grid.size
-    cols = grid[0].size
-
-    number = 0
-    entries = []
-    cell_styles = []
-    across_idx = 0
-    down_idx = 0
-
-    rows.times do |y|
-      cols.times do |x|
-        cell = grid[y][x]
-        next if cell[:type] == :black
-
-        if cell[:style]
-          cell_styles << { 'x' => x, 'y' => y, 'style' => cell[:style].to_s }
-        end
-
-        left_black = x.zero? || grid[y][x - 1][:type] == :black
-        right_open = x + 1 < cols && grid[y][x + 1][:type] != :black
-        above_black = y.zero? || grid[y - 1][x][:type] == :black
-        below_open = y + 1 < rows && grid[y + 1][x][:type] != :black
-
-        starts_across = left_black && right_open
-        starts_down = above_black && below_open
-        next unless starts_across || starts_down
-
-        number += 1
-
-        if starts_across
-          word = +''
-          length = 0
-          (x...cols).each do |xx|
-            break if grid[y][xx][:type] == :black
-            length += 1
-            word << grid[y][xx][:letter]
-          end
-          id = "#{number}-across"
-          entries << build_entry(id, number, 'across', x, y, length, across_clues[across_idx].to_s, word)
-          across_idx += 1
-        end
-
-        if starts_down
-          word = +''
-          length = 0
-          (y...rows).each do |yy|
-            break if grid[yy][x][:type] == :black
-            length += 1
-            word << grid[yy][x][:letter]
-          end
-          id = "#{number}-down"
-          entries << build_entry(id, number, 'down', x, y, length, down_clues[down_idx].to_s, word)
-          down_idx += 1
-        end
-      end
-    end
-
-    raise MalformedPuzzle, "across clues consumed #{across_idx} of #{across_clues.size}" unless across_idx == across_clues.size
-    raise MalformedPuzzle, "down clues consumed #{down_idx} of #{down_clues.size}" unless down_idx == down_clues.size
-
-    [entries, cell_styles]
-  end
-
-  def build_entry(id, number, direction, x, y, length, clue, solution)
-    {
-      'id' => id,
-      'number' => number,
-      'humanNumber' => number.to_s,
-      'direction' => direction,
-      'position' => { 'x' => x, 'y' => y },
-      'length' => length,
-      'clue' => clue,
-      'solution' => solution,
-      'group' => [id],
-      'separatorLocations' => {},
-    }
-  end
 end

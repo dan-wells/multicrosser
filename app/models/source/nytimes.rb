@@ -1,16 +1,22 @@
 class Source::Nytimes < Source
   BASE_URL = 'https://nytsyn.pzzl.com/nytsyn-crossword/nytsyncrossword'.freeze
+  XWORDINFO_URL = 'https://www.xwordinfo.com/Crossword'.freeze
   # Wordplay's archive only goes back this far; older puzzles get no link.
   WORDPLAY_EARLIEST = Date.new(2017, 7, 1).freeze
   # Sentinel prefix for puzzles the parser can't handle yet. The suffix records
   # why, so when support lands later we can purge just the affected entries
   # (e.g. all `unsupported:rebus`) and let them re-fetch with the new parser.
   UNSUPPORTED_PREFIX = 'unsupported:'.freeze
+  # Sentinel prefix for puzzles the fallback couldn't fetch right now (xwordinfo
+  # unreachable or login-walled). Cached with a TTL so the next user request
+  # after the window re-attempts without us having to track anything in-app.
+  TRANSIENT_PREFIX = 'transient:'.freeze
+  TRANSIENT_TTL = 1.hour.to_i
 
   def fetch(_series, identifier)
     key = redis_key(identifier)
     cached = ::REDIS.get(key)
-    return nil if cached.is_a?(String) && cached.start_with?(UNSUPPORTED_PREFIX)
+    return nil if cached.is_a?(String) && (cached.start_with?(UNSUPPORTED_PREFIX) || cached.start_with?(TRANSIENT_PREFIX))
     return cached if cached.present?
 
     response = Faraday.get(BASE_URL, date: identifier)
@@ -19,9 +25,8 @@ class Source::Nytimes < Source
       json = parsed.to_json
       ::REDIS.set(key, json)
       json
-    rescue Parser::UnsupportedShaded
-      ::REDIS.set(key, "#{UNSUPPORTED_PREFIX}shaded")
-      nil
+    rescue Parser::UnsupportedShaded => e
+      fetch_xwordinfo_fallback(key, e)
     rescue Parser::UnsupportedRebus
       ::REDIS.set(key, "#{UNSUPPORTED_PREFIX}rebus")
       nil
@@ -96,6 +101,23 @@ class Source::Nytimes < Source
   end
 
   private
+
+  def fetch_xwordinfo_fallback(key, err)
+    response = Faraday.get(XWORDINFO_URL, { date: err.orig_date.strftime('%-m/%-d/%Y') },
+                           { 'User-Agent' => 'Mozilla/5.0' })
+    parsed = XwordinfoParser.parse(
+      response.body,
+      syn_date: err.syn_date,
+      orig_date: err.orig_date,
+      subtitle: err.subtitle,
+    )
+    json = parsed.to_json
+    ::REDIS.set(key, json)
+    json
+  rescue Faraday::Error, XwordinfoParser::LoginRequired, XwordinfoParser::MalformedPage
+    ::REDIS.setex(key, TRANSIENT_TTL, "#{TRANSIENT_PREFIX}xwordinfo-unavailable")
+    nil
+  end
 
   def redis_key(identifier)
     "nytimes/#{identifier}"

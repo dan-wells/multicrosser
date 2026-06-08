@@ -1,0 +1,7 @@
+<%# Render an SVG <pattern> for a 4x4 45-degree diagonal hatch. `name` slots
+    into id="crossword-<name>-hatch" and the bg/fg child classes "<name>-hatch-bg"
+    and "<name>-hatch-fg", which crossword-overrides.css recolours via CSS vars. %>
+<pattern id="crossword-<%= name %>-hatch" patternUnits="userSpaceOnUse" width="4" height="4" patternTransform="rotate(45)">
+  <rect class="<%= name %>-hatch-bg" width="4" height="4"></rect>
+  <line class="<%= name %>-hatch-fg" x1="0" y1="0" x2="0" y2="4" stroke-width="1"></line>
+</pattern>

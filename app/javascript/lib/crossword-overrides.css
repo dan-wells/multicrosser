@@ -17,40 +17,13 @@
   --crossword-remote-color: #5fb3e0;
   /* Stroke colour for circled cells (e.g. NYT theme indicators) */
   --crossword-circle-color: #888888;
+  /* Background fill colour for shaded cells (e.g. NYT theme indicators) */
+  --crossword-shaded-color: #d0d0d0;
 }
 
 /* Circled-cell stroke colour */
 [data-link-name="Crosswords"] svg circle[aria-hidden="true"] {
   stroke: var(--crossword-circle-color);
-}
-
-/* ============================================================
-   Typography / font overrides
-   ============================================================ */
-
-/* Apply our font family across all crossword content */
-[data-link-name="Crosswords"] {
-  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
-}
-
-/* Fix disappearing gridlines at non-native widths. */
-[data-link-name="Crosswords"] svg rect[role="presentation"] {
-  stroke: #000;
-  stroke-width: 0;
-  vector-effect: non-scaling-stroke;
-}
-
-/* Grid cell letter: rendered as SVG text (not inside the input) to avoid mobile caret handles */
-[data-link-name="Crosswords"] svg g text[pointer-events="none"] {
-  font-size: 18px !important;
-  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
-}
-
-/* Grid cell input: invisible (letter is displayed via SVG text above) */
-[data-link-name="Crosswords"] [data-clue-cell] input {
-  font-size: 18px !important;
-  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
-  line-height: 1 !important;
 }
 
 /* Tint cells in another solver's selected clue */
@@ -82,6 +55,66 @@ pattern#crossword-black-hatch > line {
   stroke: var(--crossword-black-focus-color);
 }
 
+/* ----- Composite cell-state rules -------------------------------------
+   The rules in this block all have equal CSS specificity, so source
+   order decides which wins when multiple cell states co-occur. The
+   ordering encodes the visual matrix and is load-bearing: re-ordering
+   (e.g. by a formatter or alphabetiser) will silently break the layering.
+
+   Required order, top to bottom:
+     1. default-shaded (solid grey)
+     2. non-shaded local+remote      (bright yellow + blue hatch)
+     3. non-shaded focused+remote    (pale yellow + blue hatch)
+     4. remote-only shaded           (grey + blue hatch)
+     5. local-connected shaded       (grey + bright yellow hatch)
+     6. focused shaded               (pale yellow + grey hatch)
+   -------------------------------------------------------------------- */
+
+/* Shaded cells (no clue context): solid grey. */
+[data-link-name="Crosswords"] svg g[data-clue-cell][data-cell-style="shaded"] > rect[role="presentation"] {
+  fill: var(--crossword-shaded-color) !important;
+}
+
+/* Non-shaded local + remote: bright yellow field with blue hatch lines. */
+[data-link-name="Crosswords"] svg g[data-clue-cell][data-cell-connected][data-remote-clue] > rect[role="presentation"] {
+  fill: url(#crossword-local-remote-hatch) !important;
+}
+
+/* Non-shaded focused + remote: pale yellow field with blue hatch lines. */
+[data-link-name="Crosswords"] svg g[data-clue-cell][data-remote-clue]:focus-within > rect[role="presentation"] {
+  fill: url(#crossword-focus-remote-hatch) !important;
+}
+
+/* Remote-only shaded (no local clue): grey field with blue hatch lines. */
+[data-link-name="Crosswords"] svg g[data-clue-cell][data-remote-clue][data-cell-style="shaded"] > rect[role="presentation"] {
+  fill: url(#crossword-remote-shaded-hatch) !important;
+}
+
+/* Local current-clue cell over shaded: grey field with bright yellow hatch lines. */
+[data-link-name="Crosswords"] svg g[data-clue-cell][data-cell-connected][data-cell-style="shaded"] > rect[role="presentation"] {
+  fill: url(#crossword-connected-shaded-hatch) !important;
+}
+
+/* Focused shaded cell: pale yellow field with grey hatch lines. */
+[data-link-name="Crosswords"] svg g[data-clue-cell][data-cell-style="shaded"]:focus-within > rect[role="presentation"] {
+  fill: url(#crossword-shaded-hatch) !important;
+}
+
+pattern#crossword-shaded-hatch > .shaded-hatch-bg { fill: var(--crossword-focus-color); }
+pattern#crossword-shaded-hatch > .shaded-hatch-fg { stroke: var(--crossword-shaded-color); }
+
+pattern#crossword-connected-shaded-hatch > .connected-shaded-hatch-bg { fill: var(--crossword-shaded-color); }
+pattern#crossword-connected-shaded-hatch > .connected-shaded-hatch-fg { stroke: var(--crossword-selected-color); }
+
+pattern#crossword-remote-shaded-hatch > .remote-shaded-hatch-bg { fill: var(--crossword-shaded-color); }
+pattern#crossword-remote-shaded-hatch > .remote-shaded-hatch-fg { stroke: var(--crossword-remote-color); }
+
+pattern#crossword-local-remote-hatch > .local-remote-hatch-bg { fill: var(--crossword-selected-color); }
+pattern#crossword-local-remote-hatch > .local-remote-hatch-fg { stroke: var(--crossword-remote-color); }
+
+pattern#crossword-focus-remote-hatch > .focus-remote-hatch-bg { fill: var(--crossword-focus-color); }
+pattern#crossword-focus-remote-hatch > .focus-remote-hatch-fg { stroke: var(--crossword-remote-color); }
+
 /* Hide the upstream rounded-corner focus indicator; we use background fills instead */
 [data-link-name="Crosswords"] svg > rect[rx] {
   display: none;
@@ -90,6 +123,35 @@ pattern#crossword-black-hatch > line {
 [data-link-name="Crosswords"] [data-clue-cell] input:focus {
   outline: none !important;
   box-shadow: none !important;
+}
+
+/* ============================================================
+   Typography / font overrides
+   ============================================================ */
+
+/* Apply our font family across all crossword content */
+[data-link-name="Crosswords"] {
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+/* Fix disappearing gridlines at non-native widths. */
+[data-link-name="Crosswords"] svg rect[role="presentation"] {
+  stroke: #000;
+  stroke-width: 0;
+  vector-effect: non-scaling-stroke;
+}
+
+/* Grid cell letter: rendered as SVG text (not inside the input) to avoid mobile caret handles */
+[data-link-name="Crosswords"] svg g text[pointer-events="none"] {
+  font-size: 18px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+}
+
+/* Grid cell input: invisible (letter is displayed via SVG text above) */
+[data-link-name="Crosswords"] [data-clue-cell] input {
+  font-size: 18px !important;
+  font-family: "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif !important;
+  line-height: 1 !important;
 }
 
 /* Grid cell numbers: 10px */
