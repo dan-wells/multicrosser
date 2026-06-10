@@ -60,16 +60,24 @@
       Pick one of the crosswords below then share the link with friends to solve together.
     </p>
 
-    <%- @series_with_crosswords.each do |series, crosswords| -%>
-      <h3><%= Series.display_name(series) %></h3>
-      <ul>
-      <%- crosswords.each do |crossword| -%>
-        <li class="crossword-link">
-          <%= link_to(crossword.name, crossword_path(crossword.series, crossword.identifier)) %>
-        </li>
-      <%- end -%>
-      </ul>
+    <div class="series-columns">
+    <%- @series_with_crosswords.each_slice((@series_with_crosswords.length / 2.0).ceil) do |column_series| -%>
+      <div class="series-column">
+        <%- column_series.each do |series, crosswords| -%>
+          <div class="series-block">
+            <h3><%= Series.display_name(series) %></h3>
+            <ul>
+            <%- crosswords.each do |crossword| -%>
+              <li class="crossword-link">
+                <%= link_to(crossword.name, crossword_path(crossword.series, crossword.identifier)) %>
+              </li>
+            <%- end -%>
+            </ul>
+          </div>
+        <%- end -%>
+      </div>
     <%- end -%>
+    </div>
 
     <p class="about">
       <strong>Several People are Solving</strong> is an experiment with multiplayer crosswords created by <a href="https://chriszetter.com">Chris Zetter</a>. You can <a href="https://github.com/dan-wells/multicrosser">view the code on GitHub</a>.

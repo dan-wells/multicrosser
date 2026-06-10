@@ -43,13 +43,13 @@ h3 {
   font-size: 1.1em;
 }
 
-ul  {
+.series-block ul  {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-ul li {
+.series-block ul li {
   margin-bottom: 5px;
 }
 
@@ -84,7 +84,7 @@ a {
 }
 
 .about {
-  margin-top: 50px;
+  margin-top: 0;
 }
 
 .homepage {
@@ -94,6 +94,20 @@ a {
 
 .homepage-main {
   flex: 1;
+}
+
+.series-columns {
+  display: flex;
+  gap: 4rem;
+  align-items: flex-start;
+}
+
+.series-block h3 {
+  margin-top: 0;
+}
+
+.series-block {
+  margin-bottom: 20px;
 }
 
 .homepage-sidebar {

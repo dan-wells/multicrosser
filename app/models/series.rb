@@ -1,9 +1,9 @@
 class Series
   #SERIES = ['quiptic', 'quick', 'weekend', 'cryptic', 'speedy', 'prize', 'everyman']
   SERIES = {
-    'quiptic' => { source: 'guardian', first_puzzle: 1 },
     'cryptic' => { source: 'guardian', first_puzzle: 21620, days: 1..5 },
     'quick-cryptic' => { source: 'guardian', first_puzzle: 1 },
+    'quiptic' => { source: 'guardian', first_puzzle: 1 },
     #'quick' => { source: 'guardian', first_puzzle: 9093 },
     'nytimes' => { source: 'nytimes', first_puzzle: '080602', days: 1..7, display_name: 'New York Times' },
   }
