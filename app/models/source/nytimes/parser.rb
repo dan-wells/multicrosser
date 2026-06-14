@@ -43,6 +43,7 @@ class Source::Nytimes::Parser
     @subtitle = extra_title
 
     grid = parse_grid(blocks[8], rows, cols)
+    grid, rows, cols = trim_padding(grid)
     across_clues = blocks[9].lines.map(&:strip).reject(&:empty?)
     down_clues = blocks[10].lines.map(&:strip).reject(&:empty?)
     raise MalformedPuzzle, "across count mismatch (#{across_clues.size} vs #{across_count})" unless across_clues.size == across_count
@@ -122,6 +123,12 @@ class Source::Nytimes::Parser
       when '#'
         cells << { type: :black }
         i += 1
+      when '.'
+        # Syndication pads non-square grids out to a square shape with `.`.
+        # Tag these so trim_padding can crop entire padding rows/cols and
+        # convert any remaining interior ones to black cells.
+        cells << { type: :padding }
+        i += 1
       when '%'
         letter = line[i + 1]
         raise MalformedPuzzle, 'circle marker without letter' if letter.nil? || letter == '#' || letter == '%'
@@ -135,6 +142,26 @@ class Source::Nytimes::Parser
 
     raise MalformedPuzzle, "row width mismatch: expected #{expected_cols}, got #{cells.size}" unless cells.size == expected_cols
     cells
+  end
+
+  # Crops rows/cols whose every cell is `:padding`, then rewrites any
+  # remaining interior `:padding` cells as `:black` so EntryBuilder only
+  # has to know about the two original cell types. Returns the trimmed
+  # grid plus its new (rows, cols).
+  def trim_padding(grid)
+    row_has_content = grid.map { |row| row.any? { |c| c[:type] != :padding } }
+    col_has_content = (0...grid.first.size).map { |x| grid.any? { |row| row[x][:type] != :padding } }
+
+    top    = row_has_content.index(true)
+    bottom = row_has_content.rindex(true)
+    left   = col_has_content.index(true)
+    right  = col_has_content.rindex(true)
+    raise MalformedPuzzle, 'grid is entirely padding' if top.nil? || left.nil?
+
+    trimmed = grid[top..bottom].map do |row|
+      row[left..right].map { |c| c[:type] == :padding ? { type: :black } : c }
+    end
+    [trimmed, trimmed.size, trimmed.first.size]
   end
 
 end

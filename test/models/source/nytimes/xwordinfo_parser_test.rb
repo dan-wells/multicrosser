@@ -80,6 +80,32 @@ class Source::Nytimes::XwordinfoParserTest < ActiveSupport::TestCase
     assert_match(/Grammy-winning singer/, one_across['clue'])
   end
 
+  # --- Non-square grid ---
+  # 10/6/2022 is one of the rare NYT puzzles whose grid is rectangular but
+  # not square (16 rows x 14 cols), with shaded cells. xwordinfo represents
+  # this as a #PuzTable with uniformly-14-cell rows -- no padding character
+  # is needed -- so the parser should hand back the true non-square shape.
+
+  test "xwordinfo_221006 parses non-square (16x14) shaded grid" do
+    data = Parser.parse(
+      fixture('xwordinfo_221006'),
+      syn_date: Date.new(2022, 11, 10),
+      orig_date: Date.new(2022, 10, 6),
+    )
+    assert_equal({ 'rows' => 16, 'cols' => 14 }, data['dimensions'])
+    assert_equal 'Simeon Seigel / Will Shortz', data.dig('creator', 'name')
+
+    # 44 shaded cells in the fixture (confirmed by greping the source HTML).
+    shaded = data['cellStyles'].select { |s| s['style'] == 'shaded' }
+    assert_equal 44, shaded.size
+
+    # 1-across is CIVET at (0, 0), a five-letter row-0 entry.
+    across = data['entries'].select { |e| e['direction'] == 'across' }
+    one_across = across.find { |e| e['number'] == 1 }
+    assert_equal 'CIVET', one_across['solution']
+    assert_equal({ 'x' => 0, 'y' => 0 }, one_across['position'])
+  end
+
   # --- Failure modes ---
 
   test "raises LoginRequired when given a login-redirect page" do

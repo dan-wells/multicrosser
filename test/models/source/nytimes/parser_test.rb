@@ -92,6 +92,75 @@ class Source::Nytimes::ParserTest < ActiveSupport::TestCase
     end
   end
 
+  # --- Non-square / `.`-padded grids ---
+  # The syndication feed always reports a square rows/cols count, but pads
+  # unused cells with `.`. We trim edge rows/cols that are entirely padding
+  # and treat any remaining internal `.` as a regular black cell.
+
+  test "260609 trims a whole row of `.` padding to non-square dimensions" do
+    data = Parser.parse(fixture('260609'))
+    # Declared 16x16, last row is 16 dots -> trims to 15x16.
+    assert_equal({ 'rows' => 15, 'cols' => 16 }, data['dimensions'])
+    assert_equal 37, data['entries'].count { |e| e['direction'] == 'across' }
+    assert_equal 42, data['entries'].count { |e| e['direction'] == 'down' }
+    assert_equal [], data['cellStyles']
+  end
+
+  test "221014 trims whole columns of `.` padding to non-square dimensions" do
+    data = Parser.parse(fixture('221014'))
+    # Declared 19x19. Cols 0-1 and 17-18 are entirely `.`, so they trim --
+    # leaving 19 rows x 15 cols. No row is fully padding.
+    assert_equal({ 'rows' => 19, 'cols' => 15 }, data['dimensions'])
+    assert_equal 34, data['entries'].count { |e| e['direction'] == 'across' }
+    assert_equal 34, data['entries'].count { |e| e['direction'] == 'down' }
+  end
+
+  test "240801 octagonal `.` corners are converted to black within an unchanged bbox" do
+    # 240801 is a stepped-octagon puzzle. Every row and column has at
+    # least one content cell, so the bbox stays the full 16x16 -- no edge
+    # trimming is possible. The four stepped triangles of `.` in the
+    # corners must all become black cells (i.e. not covered by any entry).
+    data = Parser.parse(fixture('240801'))
+    assert_equal({ 'rows' => 16, 'cols' => 16 }, data['dimensions'])
+
+    occupied = Set.new
+    data['entries'].each do |e|
+      e['length'].times do |i|
+        ex = e['position']['x'] + (e['direction'] == 'across' ? i : 0)
+        ey = e['position']['y'] + (e['direction'] == 'down' ? i : 0)
+        occupied << [ex, ey]
+      end
+    end
+
+    # Each row of the stepped corners that was `.` in the source -- they
+    # all sit inside the bbox, so they must be converted to black.
+    expected_black = [
+      # Top-left triangle (rows 0..3)
+      [0, 0], [1, 0], [2, 0], [3, 0],
+      [0, 1], [1, 1], [2, 1],
+      [0, 2], [1, 2],
+      [0, 3],
+      # Top-right triangle (rows 0..3)
+      [12, 0], [13, 0], [14, 0], [15, 0],
+      [13, 1], [14, 1], [15, 1],
+      [14, 2], [15, 2],
+      [15, 3],
+      # Bottom-left triangle (rows 12..15)
+      [0, 12],
+      [0, 13], [1, 13],
+      [0, 14], [1, 14], [2, 14],
+      [0, 15], [1, 15], [2, 15], [3, 15],
+      # Bottom-right triangle (rows 12..15)
+      [15, 12],
+      [14, 13], [15, 13],
+      [13, 14], [14, 14], [15, 14],
+      [12, 15], [13, 15], [14, 15], [15, 15],
+    ]
+    expected_black.each do |x, y|
+      refute_includes occupied, [x, y], "expected (#{x}, #{y}) to be a black cell"
+    end
+  end
+
   # --- Pre-archive degenerate document (080601 = day before earliest) ---
 
   test "080601 (pre-archive dummy doc with all zeros) raises MalformedPuzzle" do
