@@ -9,6 +9,14 @@ class CrosswordsController < ApplicationController
     )
   end
 
+  def print
+    require_known_series!
+    @crossword = fetch_crossword!
+    @parsed_crossword = JSON.parse(@crossword)
+    @source_type = Series::SERIES[params[:series]][:source]
+    render layout: 'print'
+  end
+
   def random
     series = params[:series]
     unless Series::SERIES.key?(series)
@@ -17,12 +25,7 @@ class CrosswordsController < ApplicationController
     end
 
     day, status = parse_day_param(series)
-    if status == :invalid
-      @series = series
-      @identifier = nil
-      render template: 'rooms/puzzle_not_found', status: :not_found
-      return
-    end
+    raise ActionController::RoutingError.new('Invalid day') if status == :invalid
 
     identifier = Source.for(series).random_identifier(series, day: day)
     unless identifier

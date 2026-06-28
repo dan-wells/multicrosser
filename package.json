@@ -17,7 +17,7 @@
     "vitest": "^4.1.7"
   },
   "scripts": {
-    "build": "esbuild app/javascript/crossword.js app/javascript/homepage.js --bundle --sourcemap --outdir=app/assets/builds --loader:.css=css --loader:.js=jsx",
+    "build": "esbuild app/javascript/crossword.js app/javascript/homepage.js app/javascript/print_crossword.js --bundle --sourcemap --outdir=app/assets/builds --loader:.css=css --loader:.js=jsx",
     "lint": "eslint --ext .js --ext .jsx app/javascript",
     "test": "vitest run"
   },

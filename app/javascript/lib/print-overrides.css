@@ -1,0 +1,274 @@
+/* Print-friendly puzzle view (rendered on screen too -- WYSIWYG with the PDF) */
+
+@page {
+  size: A4 portrait;
+  margin: 10mm;
+}
+
+body.print-body {
+  margin: 0;
+  padding: 10mm;
+  background-color: #fff;
+  /* Lock the on-screen layout to A4 width so window resizing doesn't reflow it. */
+  width: 210mm;
+  box-sizing: border-box;
+}
+
+@media print {
+  body.print-body {
+    padding: 0;
+    width: auto;
+  }
+}
+
+.print-page {
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+  color: #000;
+}
+
+/* The print view is non-interactive: no cursor changes, no focus, no clicks. */
+.print-page,
+.print-page * {
+  cursor: default !important;
+  pointer-events: none !important;
+}
+
+.print-header {
+  margin-bottom: 6px;
+}
+
+.print-header h1 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.print-header .crossword-subtitle {
+  margin: 0;
+  font-size: 14px;
+  font-weight: normal;
+}
+
+.print-header .print-meta {
+  margin: 2px 0 0 0;
+  font-size: 12px;
+  color: #333;
+}
+
+/* -----------------------------------------------------------------
+   Grid: explicit black strokes so prints don't rely on background bleed
+   ----------------------------------------------------------------- */
+.print-grid svg[role="grid"] {
+  display: block;
+  background: #fff;
+}
+
+.print-grid svg g[data-clue-cell] > rect[role="presentation"],
+.print-grid svg g[data-black-cell] > rect[role="presentation"] {
+  stroke: #000 !important;
+  stroke-width: 1px !important;
+}
+
+.print-grid svg g[data-clue-cell] > rect[role="presentation"] {
+  fill: #fff !important;
+}
+
+/* Shaded cells (NYT theme markers): light grey fill. More specific than the
+   plain clue-cell rule above, so it wins. */
+.print-grid svg g[data-clue-cell][data-cell-style="shaded"] > rect[role="presentation"] {
+  fill: #d0d0d0 !important;
+}
+
+.print-grid svg g[data-black-cell] > rect[role="presentation"] {
+  fill: #000 !important;
+}
+
+/* Circled cells: grey stroke (the library's default stroke is black). */
+.print-grid svg circle[aria-hidden="true"] {
+  stroke: #888 !important;
+  fill: none !important;
+}
+
+/* Hide the library's interactive overlays (selected-word yellow rect, etc.) */
+.print-grid svg > rect:not([role="presentation"]) {
+  display: none !important;
+}
+
+/* Cell letters (filled in if any) and numbers */
+.print-grid svg g text {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif !important;
+  fill: #000 !important;
+}
+
+/* Clue numbers in grid cells. Numbers lack pointer-events="none" -- that
+   attribute is reserved for cell letters. The library anchors the text by
+   its baseline `y`, so growing the font extends the glyph upward; nudge the
+   baseline down so the top of the number stays clear of the cell edge. */
+.print-grid svg g text:not([pointer-events="none"]) {
+  font-size: 11px !important;
+  transform: translateY(1px) !important;
+}
+
+/* -----------------------------------------------------------------
+   Clue lists: drop the library's caps and ornamentation
+   ----------------------------------------------------------------- */
+.print-clues label {
+  display: block;
+  border: none !important;
+  padding: 4px 0 4px 0 !important;
+  margin: 0 !important;
+  font-family: 'Catamaran', sans-serif;
+  font-size: 14px;
+  font-weight: bold;
+  break-after: avoid-column;
+}
+
+/* The library renders a separate CluesHeader <div> just before each <ul role="listbox">
+   with a fixed 2em height, dotted bottom border and bottom margin. Flatten it. */
+.print-clues .print-clue-header {
+  border: none !important;
+  height: auto !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  break-after: avoid-column;
+}
+
+.print-clues [role="listbox"] {
+  max-height: none !important;
+  overflow: visible !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  list-style: none;
+  display: block !important;
+}
+
+.print-clues [role="option"] {
+  font-size: 12px !important;
+  line-height: 1.25 !important;
+  padding: 1px 0 !important;
+  display: flex !important;
+  align-items: baseline !important;
+  break-inside: avoid;
+}
+
+/* Clue number column: left-aligned, sized to content */
+.print-clues [role="option"] > span[aria-hidden="true"]:first-child {
+  width: auto !important;
+  min-width: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 4px !important;
+  flex: 0 0 auto !important;
+  text-align: left;
+  font-family: 'Catamaran', sans-serif !important;
+}
+
+/* -----------------------------------------------------------------
+   Layout: Guardian -- grid top-left, Across | Down side-by-side below
+   ----------------------------------------------------------------- */
+.print-page[data-source="guardian"] .print-layout {
+  display: block;
+}
+
+.print-page[data-source="guardian"] .print-grid {
+  margin: 0 0 8px 0;
+}
+
+.print-page[data-source="guardian"] .print-grid svg[role="grid"] {
+  width: 60%;
+  max-width: 460px;
+  height: auto;
+}
+
+.print-page[data-source="guardian"] .print-clues {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 24px;
+}
+
+.print-page[data-source="guardian"] .print-clues > * {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* -----------------------------------------------------------------
+   Layout: NYT -- grid top-left, clue stream in 3 columns spanning page below
+   ----------------------------------------------------------------- */
+.print-page[data-source="nytimes"] .print-layout {
+  display: block;
+}
+
+.print-page[data-source="nytimes"] .print-grid {
+  margin: 0 0 10px 0;
+}
+
+.print-page[data-source="nytimes"] .print-grid svg[role="grid"] {
+  width: 60%;
+  max-width: 460px;
+  height: auto;
+}
+
+/* Across-then-Down as a single multi-column flow under the grid. */
+.print-page[data-source="nytimes"] .print-clues {
+  column-count: 3;
+  column-gap: 18px;
+  column-fill: balance;
+}
+
+.print-page[data-source="nytimes"] .print-clues > * {
+  break-inside: auto;
+}
+
+/* -----------------------------------------------------------------
+   Larger NYT (21x21 Sunday): 5 equal-width tracks. Column 1 is a single clue
+   stream spanning rows 1-2. Columns 2-5 hold the grid in row 1 and a
+   four-column clue block in row 2. The grid SVG sets its width independently
+   (a percentage of its grid area) and centers within that area so it doesn't
+   butt against the left clue column; shrinking the grid frees vertical room
+   for the bottom clue rows. JS balances the left and bottom streams so they
+   end at the same y.
+   ----------------------------------------------------------------- */
+.print-page.print-large .print-layout {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: auto auto;
+  column-gap: 12px;
+  row-gap: 8px;
+}
+
+.print-page.print-large .print-clues-left {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  column-count: 1;
+}
+
+.print-page.print-large .print-grid {
+  grid-column: 2 / -1;
+  grid-row: 1;
+  margin: 0;
+  /* Grid shrinks within its 4-track area; adjust width to taste. */
+  width: 90%;
+  justify-self: start;
+}
+
+.print-page.print-large .print-grid svg[role="grid"] {
+  width: 100%;
+  max-width: none;
+}
+
+.print-page.print-large .print-clues-bottom {
+  grid-column: 2 / -1;
+  grid-row: 2;
+  column-count: 4;
+  column-gap: 12px;
+  column-fill: balance;
+}
+
+.print-page.print-large .print-clues [role="option"] {
+  font-size: 11px !important;
+  line-height: 1.2 !important;
+}
+
+.print-page.print-large .print-clues [role="option"] > span[aria-hidden="true"]:first-child {
+  padding-right: 4px !important;
+}

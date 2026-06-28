@@ -14,6 +14,53 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{\A.+/cryptic/21620/[0-9a-f]{8}\z}, response.location
   end
 
+  # --- print ---
+
+  test "print renders the crossword in a stripped-down layout" do
+    crossword_json = {
+      "name" => "Cryptic crossword No 21620",
+      "date" => 1_700_000_000_000,
+      "dimensions" => { "cols" => 15, "rows" => 15 },
+      "creator" => { "name" => "Picaroon" }
+    }.to_json
+    CrosswordFetcher.stub(:fetch, crossword_json) do
+      get "/print/cryptic/21620"
+    end
+
+    assert_response :success
+    assert_match(/Cryptic crossword No 21620/, response.body)
+    assert_match(/print-page/, response.body)
+    assert_match(/data-source="guardian"/, response.body)
+    # Print layout should not include the live-page banner
+    assert_no_match(/Several People are Solving/, response.body)
+  end
+
+  test "print sets the NYT source for nytimes series" do
+    crossword_json = {
+      "name" => "NY Times, Sun, Apr 26, 2026",
+      "date" => 1_700_000_000_000,
+      "dimensions" => { "cols" => 21, "rows" => 21 }
+    }.to_json
+    CrosswordFetcher.stub(:fetch, crossword_json) do
+      get "/print/nytimes/250426"
+    end
+
+    assert_response :success
+    assert_match(/data-source="nytimes"/, response.body)
+  end
+
+  test "print renders 404 for an unknown series" do
+    get "/print/garbage/123"
+    assert_response :not_found
+  end
+
+  test "print renders 404 when the fetcher returns nil" do
+    CrosswordFetcher.stub(:fetch, nil) do
+      get "/print/cryptic/21620"
+    end
+    assert_response :not_found
+  end
+
   # --- random: error paths ---
 
   test "random redirects to root with random_failed for an unknown series" do
