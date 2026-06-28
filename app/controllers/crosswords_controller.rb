@@ -18,26 +18,49 @@ class CrosswordsController < ApplicationController
   end
 
   def random
+    identifier = resolve_random_identifier or return
+    room = params[:room].presence || SecureRandom.hex(4)
+    redirect_to room_path(series: params[:series], identifier: identifier, room: room)
+  end
+
+  def print_random
+    identifier = resolve_random_identifier or return
+    redirect_to print_crossword_path(series: params[:series], identifier: identifier)
+  end
+
+  def print_latest
     series = params[:series]
     unless Series::SERIES.key?(series)
       redirect_to root_path(error: 'random_failed')
       return
     end
-
-    day, status = parse_day_param(series)
-    raise ActionController::RoutingError.new('Invalid day') if status == :invalid
-
-    identifier = Source.for(series).random_identifier(series, day: day)
+    identifier = Series.latest_puzzle(series)
     unless identifier
       redirect_to root_path(error: 'random_failed')
       return
     end
-
-    room = params[:room].presence || SecureRandom.hex(4)
-    redirect_to room_path(series: series, identifier: identifier, room: room)
+    redirect_to print_crossword_path(series: series, identifier: identifier)
   end
 
   private
+
+  # Returns the identifier of a random puzzle in the requested series, or nil
+  # after having already issued a redirect (caller should bail with `or return`).
+  def resolve_random_identifier
+    series = params[:series]
+    unless Series::SERIES.key?(series)
+      redirect_to root_path(error: 'random_failed')
+      return nil
+    end
+    day, status = parse_day_param(series)
+    raise ActionController::RoutingError.new('Invalid day') if status == :invalid
+    identifier = Source.for(series).random_identifier(series, day: day)
+    unless identifier
+      redirect_to root_path(error: 'random_failed')
+      return nil
+    end
+    identifier
+  end
 
   def parse_day_param(series)
     raw = params[:day]

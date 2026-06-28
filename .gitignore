@@ -46,3 +46,4 @@ yarn-debug.log*
 dump.rdb
 CLAUDE.md
 deploy/nginx-local-test.conf
+*.pdf

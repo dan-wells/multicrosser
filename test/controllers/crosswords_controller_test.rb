@@ -155,4 +155,60 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
 
     assert_redirected_to root_path(error: 'random_failed')
   end
+
+  # --- print_random ---
+
+  test "print_random redirects to the print view for a cached puzzle" do
+    REDIS.set("crossword-series-cryptic", [{ "identifier" => "21620" }].to_json)
+    REDIS.set("cryptic/21620", '{"some":"data"}')
+
+    Net::HTTP.stub(:start, ->(*) { raise "should not hit the network" }) do
+      get "/print/cryptic/random"
+    end
+
+    assert_response :redirect
+    assert_match %r{/print/cryptic/21620\z}, response.location
+  end
+
+  test "print_random redirects to root with random_failed for an unknown series" do
+    get "/print/garbage/random"
+    assert_redirected_to root_path(error: 'random_failed')
+  end
+
+  test "print_random honors the day param" do
+    REDIS.set("crossword-series-cryptic", [{ "identifier" => "21620" }].to_json)
+
+    monday_ms = Time.utc(2024, 6, 10).to_i * 1000
+    CrosswordFetcher.stub(:fetch, { "date" => monday_ms }.to_json) do
+      get "/print/cryptic/random", params: { day: 1 }
+    end
+
+    assert_response :redirect
+    assert_match %r{/print/cryptic/21620\z}, response.location
+  end
+
+  # --- print_latest ---
+
+  test "print_latest redirects to the print view for the most recent puzzle" do
+    REDIS.set("crossword-series-cryptic", [
+      { "identifier" => "21620" },
+      { "identifier" => "21619" },
+    ].to_json)
+
+    get "/print/cryptic/latest"
+
+    assert_response :redirect
+    assert_match %r{/print/cryptic/21620\z}, response.location
+  end
+
+  test "print_latest redirects to root with random_failed for an unknown series" do
+    get "/print/garbage/latest"
+    assert_redirected_to root_path(error: 'random_failed')
+  end
+
+  test "print_latest redirects to root with random_failed when the series cache is empty" do
+    # No Redis entry for crossword-series-cryptic
+    get "/print/cryptic/latest"
+    assert_redirected_to root_path(error: 'random_failed')
+  end
 end
