@@ -1,0 +1,95 @@
+.nonogram-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75em;
+  margin-bottom: 0.75em;
+}
+
+.nonogram-timer {
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+
+.nonogram-solved {
+  font-weight: bold;
+}
+
+.nonogram-wrapper {
+  overflow-x: auto;
+  touch-action: none;
+}
+
+.nonogram-grid {
+  user-select: none;
+}
+
+.nonogram-cell-bg {
+  fill: transparent;
+}
+
+.nonogram-cell.is-lined .nonogram-cell-bg {
+  fill: rgba(0, 0, 0, 0.06);
+}
+
+.nonogram-cell.is-cursor .nonogram-cell-bg {
+  fill: rgba(0, 0, 0, 0.12);
+}
+
+.nonogram-cell.is-last-change .nonogram-cell-bg {
+  fill: rgba(255, 200, 0, 0.35);
+}
+
+.nonogram-cell-fill {
+  fill: #222;
+}
+
+.nonogram-cell-cross line {
+  stroke: #555;
+  stroke-width: 1.5;
+}
+
+/* Crosses the player never drew, standing in for a line they have marked off. */
+.nonogram-cell.is-derived .nonogram-cell-cross line {
+  stroke: #aaa;
+}
+
+.nonogram-rule {
+  stroke: #bbb;
+  stroke-width: 1;
+}
+
+.nonogram-rule.is-block {
+  stroke: #444;
+  stroke-width: 2;
+}
+
+.nonogram-clue {
+  cursor: pointer;
+}
+
+.nonogram-clue-hit {
+  fill: transparent;
+}
+
+.nonogram-clue text {
+  fill: #222;
+}
+
+.nonogram-clue.is-marked text,
+.nonogram-clue.is-highlighted text {
+  fill: #999;
+}
+
+.nonogram-clue-strike {
+  stroke: #999;
+  stroke-width: 1.5;
+}
+
+.nonogram-counter {
+  fill: #888;
+}
+
+.nonogram-counter.is-complete {
+  fill: #2a7;
+}
