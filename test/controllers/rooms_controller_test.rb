@@ -95,7 +95,8 @@ class RoomsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/js-nonogram/, response.body)
     assert_match(/15x15 Nonogram No 2,401,181/, response.body)
-    assert_match(/Published by Puzzle Nonograms/, response.body)
+    # Nonograms are generated here, so there is no publisher to credit.
+    assert_no_match(/Published by/, response.body)
   end
 
   # A nonogram carries no `date` or `creator`, so rendering the crossword

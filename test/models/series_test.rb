@@ -49,7 +49,6 @@ class SeriesTest < ActiveSupport::TestCase
       assert_equal 1, meta[:first_puzzle], "#{name} should start at ID 1"
       assert meta[:last_puzzle].is_a?(Integer), "#{name} missing an Integer :last_puzzle"
       assert meta[:last_puzzle] > meta[:first_puzzle], "#{name} has an empty ID range"
-      assert_includes 0..4, meta[:size_param], "#{name} missing the upstream :size_param"
       assert_equal "#{meta[:size]}x#{meta[:size]} Nonograms", meta[:display_name]
     end
   end

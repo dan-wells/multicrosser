@@ -1,6 +1,6 @@
-// RFC 1321 MD5. Present only because puzzle-nonograms.com identifies a solved
-// grid by md5(task + solution) and MD5 is not available through SubtleCrypto.
-// Input is treated as Latin-1; the strings hashed here are ASCII.
+// RFC 1321 MD5. A solved grid is identified by md5(task + solution), so the
+// answer never has to reach the browser, and MD5 is not available through
+// SubtleCrypto. Input is treated as Latin-1; the strings hashed here are ASCII.
 
 const S = [
   7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,

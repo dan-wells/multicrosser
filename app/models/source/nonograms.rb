@@ -1,34 +1,30 @@
-class Source::Nonograms < Source
-  BASE_URL = 'https://www.puzzle-nonograms.com/'.freeze
-  HEADERS = { 'User-Agent' => 'Mozilla/5.0' }.freeze
+require 'open3'
 
-  # The puzzle page carries the clues in a `task` string and the solution only
-  # as md5(task + solution), so there is nothing to parse but these four values.
-  TASK_RE = /var task = '([^']*)'/.freeze
-  HASHED_SOLUTION_RE = /hashedSolution:\s*'([0-9a-f]+)'/.freeze
-  WIDTH_RE = /puzzleWidth:\s*(\d+)/.freeze
-  HEIGHT_RE = /puzzleHeight:\s*(\d+)/.freeze
+class Source::Nonograms < Source
+  # Puzzles are generated on demand rather than fetched. The identifier is the
+  # generator's seed, so a link keeps meaning the same puzzle without anything
+  # being stored; the Redis cache is for latency, and to pin what a room is
+  # solving against a future change to the generator.
+  GENERATOR = Rails.root.join('ext/nonogen/nonogen').to_s.freeze
+  DENSITY = '0.5'.freeze
 
   def fetch(series, identifier)
     key = "#{series}/#{identifier}"
     cached = ::REDIS.get(key)
     return cached if cached.present?
 
-    response = Faraday.get(BASE_URL, query_params(series, identifier), HEADERS)
-    data = parse(response.body, series, identifier) or return nil
+    data = generate(series, identifier) or return nil
     json = data.to_json
     ::REDIS.set(key, json)
     json
-  rescue Faraday::Error
+  end
+
+  def publisher_url(_series, _identifier)
     nil
   end
 
-  def publisher_url(series, identifier)
-    "#{BASE_URL}?#{query_params(series, identifier).to_query}"
-  end
-
   def publisher_name
-    'Puzzle Nonograms'
+    nil
   end
 
   def puzzle_name(series, identifier)
@@ -62,52 +58,35 @@ class Source::Nonograms < Source
 
   private
 
-  def query_params(series, identifier)
-    { specific: 1, size: Series::SERIES[series][:size_param], specid: identifier }
+  # Returns nil for an identifier outside the series' seed range, so that a
+  # made-up URL 404s rather than generating a puzzle nothing else can reach.
+  def generate(series, identifier)
+    meta = Series::SERIES[series]
+    return nil unless identifier.to_s.match?(/\A\d+\z/)
+    return nil unless (meta[:first_puzzle]..meta[:last_puzzle]).cover?(identifier.to_i)
+
+    stdout, status = Open3.capture2(
+      GENERATOR,
+      '--seed', identifier.to_s,
+      '--size', meta[:size].to_s,
+      '--density', DENSITY,
+    )
+    return nil unless status.success?
+
+    data = JSON.parse(stdout)
+    return nil unless generated?(data, meta[:size])
+
+    { 'type' => 'nonogram', 'id' => identifier.to_s, 'size' => meta[:size] }
+      .merge(data)
+      .merge('name' => puzzle_name(series, identifier))
   end
 
-  # Returns nil for the "No puzzle with such ID." page, which carries no task.
-  def parse(body, series, identifier)
-    task = body[TASK_RE, 1] or return nil
-    hashed_solution = body[HASHED_SOLUTION_RE, 1] or return nil
-    width = body[WIDTH_RE, 1]&.to_i or return nil
-    height = body[HEIGHT_RE, 1]&.to_i or return nil
-
-    groups = task.split('/').map { |group| group.split('.').map(&:to_i) }
-    return nil unless groups.length == width + height
-
-    col_clues = groups.first(width)
-    row_clues = groups.last(height)
-    return nil unless clues_consistent?(col_clues, row_clues, width, height)
-
-    {
-      'type' => 'nonogram',
-      'id' => identifier.to_s,
-      'size' => Series::SERIES[series][:size],
-      'dimensions' => { 'cols' => width, 'rows' => height },
-      'task' => task,
-      'colClues' => col_clues,
-      'rowClues' => row_clues,
-      'hashedSolution' => hashed_solution,
-      'name' => puzzle_name(series, identifier),
-    }
-  end
-
-  # Necessary conditions for any nonogram, used to reject a mangled or
-  # deliberately corrupted `task` string before it reaches the Redis cache,
-  # where a bad puzzle would otherwise stick around indefinitely. These are
-  # cheap invariants, not a solvability check.
-  def clues_consistent?(col_clues, row_clues, width, height)
-    return false unless col_clues.sum(&:sum) == row_clues.sum(&:sum)
-    return false unless (col_clues + row_clues).all? { |clue| clue.all?(&:positive?) }
-    return false unless col_clues.all? { |clue| fits?(clue, height) }
-    row_clues.all? { |clue| fits?(clue, width) }
-  end
-
-  # Runs plus the single gap each one needs after it must span no more than
-  # the line. An empty clue (a blank line) trivially fits.
-  def fits?(clue, line_length)
-    clue.empty? || clue.sum + clue.length - 1 <= line_length
+  # Catches a generator whose output no longer matches what the client reads,
+  # which otherwise reaches the cache and stays there indefinitely.
+  def generated?(data, size)
+    data['task'].present? && data['hashedSolution'].present? &&
+      data.dig('dimensions', 'cols') == size && data.dig('dimensions', 'rows') == size &&
+      data['colClues']&.length == size && data['rowClues']&.length == size
   end
 
   def size_label(series)

@@ -28,14 +28,15 @@ class PageControllerTest < ActionDispatch::IntegrationTest
     end
   end
 
-  # The picker validates the puzzle number client-side, and a nonogram's upper
-  # bound is the publisher's ID cap rather than anything a feed reports.
+  # The picker validates the puzzle number client-side, and a nonogram's upper bound
+  # is the highest seed the generator accepts rather than anything a feed reports.
   test "index carries each nonogram size's ID range on its radio" do
     Series.stub :get_all, [] do
       get root_url
     end
 
-    assert_match(/value="nonogram-5"[^>]*data-last-puzzle="12002239"/, response.body)
+    last_puzzle = Series::SERIES['nonogram-5'][:last_puzzle]
+    assert_match(/value="nonogram-5"[^>]*data-last-puzzle="#{last_puzzle}"/, response.body)
     assert_match(/value="nonogram-5"[^>]*data-first-puzzle="1"/, response.body)
     assert_match(/value="nonogram-5"[^>]*data-display-name="5x5 Nonograms"/, response.body)
   end

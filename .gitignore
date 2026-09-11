@@ -44,6 +44,7 @@ yarn-debug.log*
 
 .tags
 dump.rdb
+/ext/nonogen/nonogen
 CLAUDE.md
 deploy/nginx-local-test.conf
 *.pdf

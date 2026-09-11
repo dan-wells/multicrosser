@@ -1,5 +1,6 @@
 require 'test_helper'
 require 'minitest/mock'
+require 'open3'
 
 class Source::NonogramsTest < ActiveSupport::TestCase
   setup do
@@ -8,108 +9,96 @@ class Source::NonogramsTest < ActiveSupport::TestCase
 
   # --- fetch ---
 
-  test "fetch parses the task string into column and row clues" do
-    Faraday.stub(:get, stub_response(fixture('15x15_2401181'))) do
-      data = JSON.parse(source.fetch('nonogram-15', '2401181'))
+  test "fetch generates a puzzle of the size the series asks for" do
+    data = JSON.parse(source.fetch('nonogram-10', '4242'))
 
-      assert_equal 15, data['colClues'].length
-      assert_equal 15, data['rowClues'].length
-      # Columns come first in the task string, rows after.
-      assert_equal [6], data['colClues'].first
-      assert_equal [1, 1, 1, 3, 2], data['colClues'][9]
-      assert_equal [6, 1], data['rowClues'].first
-      assert_equal [6, 1, 4], data['rowClues'].last
-    end
+    assert_equal 'nonogram', data['type']
+    assert_equal '4242', data['id']
+    assert_equal 10, data['size']
+    assert_equal({ 'cols' => 10, 'rows' => 10 }, data['dimensions'])
+    assert_equal 10, data['colClues'].length
+    assert_equal 10, data['rowClues'].length
+    assert_equal '10x10 Nonogram No 4,242', data['name']
   end
 
-  test "fetch records dimensions, size and the verbatim task string" do
-    Faraday.stub(:get, stub_response(fixture('15x15_2401181'))) do
-      data = JSON.parse(source.fetch('nonogram-15', '2401181'))
+  test "fetch returns clues that describe a half-filled grid" do
+    data = JSON.parse(source.fetch('nonogram-15', '77'))
+    filled = data['rowClues'].sum(&:sum)
 
-      assert_equal 'nonogram', data['type']
-      assert_equal '2401181', data['id']
-      assert_equal 15, data['size']
-      assert_equal({ 'cols' => 15, 'rows' => 15 }, data['dimensions'])
-      assert_equal 'f3de0201ee7b6cb75453b9a892cff602', data['hashedSolution']
-      assert_equal '15x15 Nonogram No 2,401,181', data['name']
-      # The completion check hashes task + solution, so it must survive intact.
-      assert data['task'].start_with?('6/6.1.1/6.4/'), "task was not stored verbatim"
-    end
+    assert_equal data['colClues'].sum(&:sum), filled
+    assert_equal (15 * 15 + 1) / 2, filled
+    assert data['rowClues'].none?(&:empty?), "a row was left blank"
+    assert data['colClues'].none?(&:empty?), "a column was left blank"
   end
 
-  test "fetch caches the parsed puzzle in Redis" do
-    Faraday.stub(:get, stub_response(fixture('15x15_2401181'))) do
-      source.fetch('nonogram-15', '2401181')
-    end
+  # The client checks completion by hashing the clues together with the grid it
+  # has, so the generator's hash has to be over exactly that string.
+  test "fetch ships a hash of the task and its solution" do
+    data = JSON.parse(source.fetch('nonogram-10', '31337'))
+    solution = generate_with_solution(10, '31337').fetch('solution')
 
-    cached = REDIS.get('nonogram-15/2401181')
+    assert_equal 100, solution.length
+    assert_equal Digest::MD5.hexdigest(data['task'] + solution), data['hashedSolution']
+  end
+
+  test "fetch returns the same puzzle for the same identifier" do
+    first = source.fetch('nonogram-10', '4242')
+    REDIS.flushdb
+
+    assert_equal first, source.fetch('nonogram-10', '4242')
+  end
+
+  test "fetch returns different puzzles for neighbouring identifiers" do
+    refute_equal source.fetch('nonogram-10', '1'), source.fetch('nonogram-10', '2')
+  end
+
+  test "fetch caches the generated puzzle in Redis" do
+    source.fetch('nonogram-5', '9')
+
+    cached = REDIS.get('nonogram-5/9')
     assert cached.present?, "expected the puzzle to be cached"
-    assert_equal 15, JSON.parse(cached)['colClues'].length
+    assert_equal 5, JSON.parse(cached)['colClues'].length
   end
 
-  test "fetch serves a cached puzzle without hitting the network" do
+  test "fetch serves a cached puzzle without running the generator" do
     REDIS.set('nonogram-15/2401181', '{"some":"data"}')
 
-    Faraday.stub(:get, ->(*) { raise "should not hit the network" }) do
+    Open3.stub(:capture2, ->(*) { raise "should not run the generator" }) do
       assert_equal '{"some":"data"}', source.fetch('nonogram-15', '2401181')
     end
   end
 
-  test "fetch returns nil for an out-of-range ID and caches nothing" do
-    Faraday.stub(:get, stub_response(fixture('not_found'))) do
-      assert_nil source.fetch('nonogram-15', '99999999')
-    end
-
-    refute REDIS.exists?('nonogram-15/99999999'), "a missing puzzle should not be cached"
+  test "fetch returns nil for an identifier outside the series range" do
+    assert_nil source.fetch('nonogram-5', '0')
+    assert_nil source.fetch('nonogram-5', (Series::SERIES['nonogram-5'][:last_puzzle] + 1).to_s)
+    assert_nil source.fetch('nonogram-5', 'nonsense')
+    refute REDIS.exists?('nonogram-5/nonsense'), "a bad identifier should not be cached"
   end
 
-  test "fetch returns nil when the clue count does not match the grid" do
-    truncated = fixture('15x15_2401181').sub(%r{/6\.1\.4'}, "'")
-
-    Faraday.stub(:get, stub_response(truncated)) do
-      assert_nil source.fetch('nonogram-15', '2401181')
-    end
-  end
-
-  # The upstream site serves randomised, invalid `task` strings when it decides
-  # it is being scraped. Those must never reach the cache, where a bad puzzle
-  # would stick around indefinitely under an otherwise valid key.
-
-  test "fetch rejects a task whose column and row totals disagree" do
-    Faraday.stub(:get, stub_response(retasked("7/"))) do
-      assert_nil source.fetch('nonogram-15', '2401181')
+  test "fetch returns nil when the generator fails" do
+    Open3.stub(:capture2, ['', failed_status]) do
+      assert_nil source.fetch('nonogram-5', '9')
     end
 
-    refute REDIS.exists?('nonogram-15/2401181'), "an inconsistent puzzle should not be cached"
+    refute REDIS.exists?('nonogram-5/9'), "a failed generation should not be cached"
   end
 
-  test "fetch rejects a task with a run too long for its line" do
-    Faraday.stub(:get, stub_response(retasked("16/"))) do
-      assert_nil source.fetch('nonogram-15', '2401181')
+  test "fetch returns nil when the generator emits a puzzle of the wrong size" do
+    wrong_size = source.fetch('nonogram-10', '4242')
+    REDIS.flushdb
+
+    Open3.stub(:capture2, [wrong_size, ok_status]) do
+      assert_nil source.fetch('nonogram-5', '4242')
     end
   end
 
-  test "fetch rejects a task containing a zero-length run" do
-    Faraday.stub(:get, stub_response(retasked("0/"))) do
-      assert_nil source.fetch('nonogram-15', '2401181')
-    end
-  end
+  # --- the generator itself ---
 
-  test "fetch returns nil when the request fails" do
-    Faraday.stub(:get, ->(*) { raise Faraday::ConnectionFailed, 'boom' }) do
-      assert_nil source.fetch('nonogram-15', '2401181')
-    end
-  end
+  test "the generator passes its own checks" do
+    out, status = Open3.capture2(Source::Nonograms::GENERATOR, '--selftest', '--cases', '20000')
 
-  # --- publisher_url ---
-
-  test "publisher_url points at the specific puzzle for the series size" do
-    url = source.publisher_url('nonogram-25', '2401181')
-
-    assert url.start_with?('https://www.puzzle-nonograms.com/?'), "unexpected host: #{url}"
-    assert_includes url, 'size=4'
-    assert_includes url, 'specid=2401181'
-    assert_includes url, 'specific=1'
+    assert status.success?, "selftest failed: #{out}"
+    assert_includes out, '0 failures'
   end
 
   # --- random_identifier ---
@@ -156,17 +145,22 @@ class Source::NonogramsTest < ActiveSupport::TestCase
     Source::Nonograms.new
   end
 
-  def stub_response(body)
-    Struct.new(:body).new(body)
+  # The solution never reaches the browser, so the test asks the generator for
+  # it directly rather than reading it back out of the puzzle.
+  def generate_with_solution(size, seed)
+    out, status = Open3.capture2(
+      Source::Nonograms::GENERATOR,
+      '--seed', seed, '--size', size.to_s, '--density', '0.5', '--solution',
+    )
+    assert status.success?, "generator failed: #{out}"
+    JSON.parse(out)
   end
 
-  def fixture(name)
-    File.read(Rails.root.join('test/fixtures/files/nonograms', "#{name}.html"))
+  def ok_status
+    Struct.new(:success?).new(true)
   end
 
-  # Replaces the first column clue in the fixture, keeping the group count
-  # intact so validation rather than the length check is what rejects it.
-  def retasked(first_clue)
-    fixture('15x15_2401181').sub("var task = '6/", "var task = '#{first_clue}")
+  def failed_status
+    Struct.new(:success?).new(false)
   end
 end

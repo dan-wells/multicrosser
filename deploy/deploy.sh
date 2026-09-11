@@ -14,6 +14,9 @@ git pull
 echo "== Installing Ruby dependencies =="
 bundle install
 
+echo "== Building the nonogram generator =="
+make -C ext/nonogen
+
 echo "== Installing JavaScript dependencies =="
 yarn install
 
