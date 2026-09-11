@@ -85,4 +85,39 @@ describe('MoveBuffer', () => {
     expect(all[999].id).toBe('m1000');
   });
 
+
+  it('removes a cell from inside a buffered batch and keeps the rest', () => {
+    const buffer = new MoveBuffer('k');
+    buffer.queue({
+      id: '1', space: 'board', value: '1', cells: [{ x: 1, y: 1 }, { x: 1, y: 2 }],
+    });
+
+    buffer.removeCell(1, 2);
+
+    expect(buffer.getAll()[0].cells).toEqual([{ x: 1, y: 1 }]);
+  });
+
+  it('drops a batch entirely once its last cell is removed', () => {
+    const buffer = new MoveBuffer('k');
+    buffer.queue({ id: '1', space: 'board', value: '1', cells: [{ x: 1, y: 1 }] });
+
+    buffer.removeCell(1, 1);
+
+    expect(buffer.getAll()).toHaveLength(0);
+  });
+
+  it('leaves the same cell in another space untouched', () => {
+    const buffer = new MoveBuffer('k');
+    buffer.queue({
+      id: '1', space: 'row_marks', x: 1, y: 1, value: '1',
+    });
+    buffer.queue({
+      id: '2', x: 1, y: 1, value: 'A',
+    });
+
+    buffer.removeCell(1, 1, 'row_marks');
+
+    expect(buffer.getAll()).toHaveLength(1);
+    expect(buffer.getAll()[0].id).toBe('2');
+  });
 });

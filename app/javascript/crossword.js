@@ -4,6 +4,7 @@ import { flushSync } from 'react-dom';
 import { Crossword } from '@guardian/react-crossword';
 import './lib/crossword-overrides.css';
 import { createSubscriptions } from './lib/subscription';
+import { toGrid } from './lib/grid';
 import RemotePresence from './lib/remote_presence';
 import generateId from './lib/generate_id';
 import { recordSeries, recordPuzzle, recordRoom } from './lib/history_storage';
@@ -19,16 +20,6 @@ const [series, identifier] = crosswordIdentifier.split('/');
 recordSeries(series);
 recordPuzzle(series, identifier);
 recordRoom(room);
-
-// Convert server initial state (cols x rows array with nulls) to Progress format
-// (dimensions.cols x dimensions.rows array with empty strings)
-function toProgress(initialState, dimensions) {
-  return Array.from({ length: dimensions.cols }, (_, x) =>
-    Array.from({ length: dimensions.rows }, (_, y) =>
-      (initialState[x] && initialState[x][y]) || ''
-    )
-  );
-}
 
 // Per-tab session ID for presence. sessionStorage means a reload reuses the
 // same id; a new tab gets a new one (each tab is an independent cursor).
@@ -174,7 +165,7 @@ const { moves: movesSub, presence: presenceSub } = createSubscriptions(
   sessionId,
   onReceiveMove,
   (initialState, pendingMoves) => {
-    const progress = toProgress(initialState, crosswordData.dimensions);
+    const progress = toGrid(initialState, crosswordData.dimensions);
     // Overlay any moves still waiting on a server ack so the user's pending
     // letters don't briefly disappear when the server's initialState lands.
     pendingMoves.forEach((m) => {

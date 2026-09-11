@@ -36,8 +36,18 @@ class MoveBuffer {
     this.setObject(this.getAll().filter((m) => m.id !== id));
   }
 
-  removeCell(x, y) {
-    this.setObject(this.getAll().filter((m) => m.x !== x || m.y !== y));
+  // Drops a cell from the queue wherever it appears, including from inside a
+  // buffered batch, whose other cells are still worth sending.
+  removeCell(x, y, space = 'board') {
+    const remaining = this.getAll().map((m) => {
+      if ((m.space || 'board') !== space) return m;
+      if (m.cells) {
+        const cells = m.cells.filter((c) => c.x !== x || c.y !== y);
+        return cells.length > 0 ? { ...m, cells } : null;
+      }
+      return (m.x === x && m.y === y) ? null : m;
+    });
+    this.setObject(remaining.filter(Boolean));
   }
 
   getAll() {
