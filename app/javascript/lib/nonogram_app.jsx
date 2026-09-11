@@ -42,7 +42,7 @@ const formatTime = (seconds) => {
 const emptyBoard = (dimensions) =>
   Array.from({ length: dimensions.cols }, () => Array(dimensions.rows).fill(EMPTY));
 
-function Nonogram({ data, storageKey, onMove, onMoveBatch, controlRef }) {
+function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef }) {
   const { dimensions } = data;
 
   const boardRef = useRef(emptyBoard(dimensions));
@@ -62,6 +62,7 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, controlRef }) {
   const svgRef = useRef(null);
   const strokeRef = useRef(null);
   const undoRef = useRef(new UndoStack());
+  const engagedRef = useRef(false);
 
   const commitBoard = useCallback((next, changedKey) => {
     boardRef.current = next;
@@ -174,6 +175,7 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, controlRef }) {
     const mode = event.button === 2 ? 'cross' : settings.cursorMode;
     const value = clickValue(mode, boardRef.current[cell.x][cell.y]);
     strokeRef.current = { start: cell, value };
+    engagedRef.current = true;
     setCursor(cell);
     setPending({ value, keys: new Set([cellKey(cell.x, cell.y)]) });
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch (e) { /* no capture in jsdom */ }
@@ -214,6 +216,7 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, controlRef }) {
     const step = moves[event.key];
     if (step) {
       event.preventDefault();
+      engagedRef.current = true;
       setCursor((current) => ({
         x: Math.min(Math.max(current.x + step[0], 0), dimensions.cols - 1),
         y: Math.min(Math.max(current.y + step[1], 0), dimensions.rows - 1),
@@ -289,6 +292,18 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, controlRef }) {
     });
   }, []);
 
+  useEffect(() => {
+    if (!onCursor || !engagedRef.current) return;
+    const cells = [];
+    for (let offset = 0; offset < dimensions.cols; offset += 1) cells.push([offset, cursor.y]);
+    for (let offset = 0; offset < dimensions.rows; offset += 1) {
+      if (offset !== cursor.y) cells.push([cursor.x, offset]);
+    }
+    onCursor({
+      x: cursor.x, y: cursor.y, entry_id: null, entry_cells: cells,
+    });
+  }, [cursor, dimensions, onCursor]);
+
   const clues = useMemo(
     () => ({ rowClues: data.rowClues, colClues: data.colClues }),
     [data],
@@ -300,7 +315,7 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, controlRef }) {
   );
 
   return (
-    <div className="nonogram">
+    <div className="nonogram" data-highlight-lines={settings.highlightLines ? 'true' : 'false'}>
       <div className="nonogram-controls">
         <label>
           Click

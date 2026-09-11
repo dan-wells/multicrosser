@@ -2,8 +2,10 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import './lib/nonogram.css';
+import './lib/nonogram-overrides.css';
 import Nonogram from './lib/nonogram_app';
 import { createSubscriptions } from './lib/subscription';
+import RemotePresence from './lib/remote_presence';
 import { toGrid } from './lib/grid';
 import generateId from './lib/generate_id';
 import { recordSeries, recordPuzzle, recordRoom } from './lib/history_storage';
@@ -36,6 +38,8 @@ const controlRef = React.createRef();
 const root = createRoot(nonogramElement);
 let mounted = false;
 
+const remotePresence = new RemotePresence();
+
 const onReceiveMove = (move) => {
   if (!controlRef.current) return;
   if (move.batch) {
@@ -45,7 +49,17 @@ const onReceiveMove = (move) => {
   }
 };
 
-const mount = (onMove, onMoveBatch) => {
+// React keys every cell group by its coordinates, so the elements survive
+// re-renders and the map only has to be built once.
+const buildCellMap = () => {
+  const cellMap = new Map();
+  nonogramElement.querySelectorAll('[data-cell]').forEach((group) => {
+    cellMap.set(group.dataset.cell, group);
+  });
+  remotePresence.setCellMap(cellMap);
+};
+
+const mount = (onMove, onMoveBatch, onCursor) => {
   flushSync(() => {
     root.render(<Nonogram
       data={data}
@@ -53,11 +67,27 @@ const mount = (onMove, onMoveBatch) => {
       controlRef={controlRef}
       onMove={onMove}
       onMoveBatch={onMoveBatch}
+      onCursor={onCursor}
     />);
   });
+  buildCellMap();
 };
 
-const { moves: movesSub } = createSubscriptions(
+let lastCursorPayload = null;
+let cursorDebounce = null;
+
+const sendCursor = (presenceSub, payload) => {
+  const serialized = JSON.stringify(payload);
+  if (serialized === lastCursorPayload) return;
+  lastCursorPayload = serialized;
+  if (cursorDebounce) clearTimeout(cursorDebounce);
+  cursorDebounce = setTimeout(() => {
+    cursorDebounce = null;
+    presenceSub.cursor(payload);
+  }, 50);
+};
+
+const { moves: movesSub, presence: presenceSub } = createSubscriptions(
   crosswordIdentifier,
   room,
   data.dimensions,
@@ -81,11 +111,13 @@ const { moves: movesSub } = createSubscriptions(
       mount(
         (move) => movesSub.move(move),
         (batch) => movesSub.moveBatch(batch),
+        (payload) => sendCursor(presenceSub, payload),
       );
       mounted = true;
     }
     controlRef.current.replaceState(board, initialSpaces);
+    remotePresence.apply();
   },
-  () => {},
+  (msg) => { remotePresence.handleMessage(msg); },
   { spaces: ['row_marks', 'col_marks'] },
 );

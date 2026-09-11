@@ -1,0 +1,12 @@
+/* Other players' cursors and lines. */
+.nonogram {
+  --crossword-remote-color: #5fb3e0;
+}
+
+.nonogram[data-highlight-lines="true"] .nonogram-cell[data-remote-clue] .nonogram-cell-bg {
+  fill: color-mix(in srgb, var(--crossword-remote-color) 18%, transparent);
+}
+
+.nonogram .nonogram-cell[data-remote-cursor] .nonogram-cell-bg {
+  fill: color-mix(in srgb, var(--crossword-remote-color) 45%, transparent);
+}
