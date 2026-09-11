@@ -31,14 +31,19 @@ class Source::NonogramsTest < ActiveSupport::TestCase
     assert data['colClues'].none?(&:empty?), "a column was left blank"
   end
 
-  # The client checks completion by hashing the clues together with the grid it
-  # has, so the generator's hash has to be over exactly that string.
-  test "fetch ships a hash of the task and its solution" do
+  # The client checks completion by comparing its grid against this string, so
+  # it has to be row-major 'y'/'n' over the whole grid.
+  test "fetch ships the solution the clues describe" do
     data = JSON.parse(source.fetch('nonogram-10', '31337'))
-    solution = generate_with_solution(10, '31337').fetch('solution')
+    solution = data['solution']
 
     assert_equal 100, solution.length
-    assert_equal Digest::MD5.hexdigest(data['task'] + solution), data['hashedSolution']
+    assert_match(/\A[yn]+\z/, solution)
+    assert_equal data['rowClues'].sum(&:sum), solution.count('y')
+    data['rowClues'].each_with_index do |clue, row|
+      runs = solution[row * 10, 10].split('n').reject(&:empty?).map(&:length)
+      assert_equal clue, runs, "row #{row} does not match its clue"
+    end
   end
 
   test "fetch returns the same puzzle for the same identifier" do
@@ -143,17 +148,6 @@ class Source::NonogramsTest < ActiveSupport::TestCase
 
   def source
     Source::Nonograms.new
-  end
-
-  # The solution never reaches the browser, so the test asks the generator for
-  # it directly rather than reading it back out of the puzzle.
-  def generate_with_solution(size, seed)
-    out, status = Open3.capture2(
-      Source::Nonograms::GENERATOR,
-      '--seed', seed, '--size', size.to_s, '--density', '0.5', '--solution',
-    )
-    assert status.success?, "generator failed: #{out}"
-    JSON.parse(out)
   end
 
   def ok_status

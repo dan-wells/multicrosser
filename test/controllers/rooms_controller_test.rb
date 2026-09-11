@@ -16,7 +16,7 @@ class RoomsControllerTest < ActionDispatch::IntegrationTest
     "task" => "6/6.1.1",
     "colClues" => [[6], [6, 1, 1]],
     "rowClues" => [[5, 1]],
-    "hashedSolution" => "f3de0201ee7b6cb75453b9a892cff602",
+    "solution" => "n" * 225,
     "name" => "15x15 Nonogram No 2,401,181"
   }.to_json
 

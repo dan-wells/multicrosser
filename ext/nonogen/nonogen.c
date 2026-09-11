@@ -5,7 +5,7 @@
  * guessing, and prints it as JSON for `Source::Nonograms` to cache.
  *
  *   nonogen --seed 12345 --size 15
- *   nonogen --seed 12345 --rows 10 --cols 20 --density 0.5 --solution
+ *   nonogen --seed 12345 --rows 10 --cols 20 --density 0.5
  *   nonogen --selftest
  *
  * Output is a pure function of the arguments, so a seed can be used as a
@@ -26,72 +26,6 @@
 
 typedef uint64_t u64;
 typedef uint32_t u32;
-
-/* ---------- md5 ---------- */
-
-/* RFC 1321, enough of it to hash the short strings we produce. The client
- * checks completion against md5(task + solution), so this has to agree with
- * `lib/md5.js` byte for byte.
- */
-static const u32 MD5_K[64] = {
-    0xd76aa478, 0xe8c7b756, 0x242070db, 0xc1bdceee, 0xf57c0faf, 0x4787c62a,
-    0xa8304613, 0xfd469501, 0x698098d8, 0x8b44f7af, 0xffff5bb1, 0x895cd7be,
-    0x6b901122, 0xfd987193, 0xa679438e, 0x49b40821, 0xf61e2562, 0xc040b340,
-    0x265e5a51, 0xe9b6c7aa, 0xd62f105d, 0x02441453, 0xd8a1e681, 0xe7d3fbc8,
-    0x21e1cde6, 0xc33707d6, 0xf4d50d87, 0x455a14ed, 0xa9e3e905, 0xfcefa3f8,
-    0x676f02d9, 0x8d2a4c8a, 0xfffa3942, 0x8771f681, 0x6d9d6122, 0xfde5380c,
-    0xa4beea44, 0x4bdecfa9, 0xf6bb4b60, 0xbebfbc70, 0x289b7ec6, 0xeaa127fa,
-    0xd4ef3085, 0x04881d05, 0xd9d4d039, 0xe6db99e5, 0x1fa27cf8, 0xc4ac5665,
-    0xf4292244, 0x432aff97, 0xab9423a7, 0xfc93a039, 0x655b59c3, 0x8f0ccc92,
-    0xffeff47d, 0x85845dd1, 0x6fa87e4f, 0xfe2ce6e0, 0xa3014314, 0x4e0811a1,
-    0xf7537e82, 0xbd3af235, 0x2ad7d2bb, 0xeb86d391
-};
-
-static const int MD5_S[64] = {
-    7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22, 7, 12, 17, 22,
-    5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20, 5,  9, 14, 20,
-    4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23, 4, 11, 16, 23,
-    6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21, 6, 10, 15, 21
-};
-
-static u32 rotl32(u32 x, int c) { return (x << c) | (x >> (32 - c)); }
-
-static void md5_hex(const unsigned char *msg, size_t len, char *out)
-{
-    u32 h[4] = { 0x67452301, 0xefcdab89, 0x98badcfe, 0x10325476 };
-    size_t padded = ((len + 8) / 64 + 1) * 64;
-    unsigned char *buf = calloc(padded, 1);
-    size_t off;
-    int i;
-
-    memcpy(buf, msg, len);
-    buf[len] = 0x80;
-    for (i = 0; i < 8; i++) buf[padded - 8 + i] = (unsigned char)((u64)(len * 8) >> (8 * i));
-
-    for (off = 0; off < padded; off += 64) {
-        u32 m[16], a = h[0], b = h[1], c = h[2], d = h[3];
-        for (i = 0; i < 16; i++)
-            m[i] = (u32)buf[off + i * 4] | ((u32)buf[off + i * 4 + 1] << 8) |
-                   ((u32)buf[off + i * 4 + 2] << 16) | ((u32)buf[off + i * 4 + 3] << 24);
-        for (i = 0; i < 64; i++) {
-            u32 f;
-            int g;
-            if (i < 16)      { f = (b & c) | (~b & d);          g = i; }
-            else if (i < 32) { f = (d & b) | (~d & c);          g = (5 * i + 1) % 16; }
-            else if (i < 48) { f = b ^ c ^ d;                   g = (3 * i + 5) % 16; }
-            else             { f = c ^ (b | ~d);                g = (7 * i) % 16; }
-            f += a + MD5_K[i] + m[g];
-            a = d; d = c; c = b;
-            b += rotl32(f, MD5_S[i]);
-        }
-        h[0] += a; h[1] += b; h[2] += c; h[3] += d;
-    }
-    free(buf);
-
-    for (i = 0; i < 16; i++)
-        sprintf(out + i * 2, "%02x", (unsigned char)(h[i / 4] >> (8 * (i % 4))));
-    out[32] = '\0';
-}
 
 /* ---------- bit helpers ---------- */
 
@@ -444,7 +378,7 @@ static long generate(const Options *opt, u64 *grid, Puzzle *p, int *passes_out)
 /* The clue string the client already understands: column clues first, then
  * row clues, groups separated by '/' and runs within a group by '.'.
  */
-static int write_task(const Puzzle *p, char *out)
+static void write_task(const Puzzle *p, char *out)
 {
     int len = 0, i, j;
 
@@ -460,17 +394,15 @@ static int write_task(const Puzzle *p, char *out)
             len += sprintf(out + len, "%d%s", p->row_clue[i][j], j + 1 < p->row_len[i] ? "." : "");
         if (i + 1 < p->rows) len += sprintf(out + len, "/");
     }
-    return len;
 }
 
-static int write_solution(const u64 *grid, const Puzzle *p, char *out)
+static void write_solution(const u64 *grid, const Puzzle *p, char *out)
 {
     int r, c, len = 0;
 
     for (r = 0; r < p->rows; r++)
         for (c = 0; c < p->cols; c++) out[len++] = ((grid[r] >> c) & 1) ? 'y' : 'n';
     out[len] = '\0';
-    return len;
 }
 
 static void print_clue_array(const int clue[][MAXK], const int *len, int count)
@@ -486,18 +418,12 @@ static void print_clue_array(const int clue[][MAXK], const int *len, int count)
     putchar(']');
 }
 
-static void print_json(const u64 *grid, const Puzzle *p, int passes, long solves,
-                       int with_solution)
+static void print_json(const u64 *grid, const Puzzle *p, int passes, long solves)
 {
-    char task[MAXN * MAXN * 4], solution[MAXN * MAXN + 1], hash[33];
-    char *hashed = malloc(sizeof task + sizeof solution);
-    int task_len = write_task(p, task);
-    int solution_len = write_solution(grid, p, solution);
+    char task[MAXN * MAXN * 4], solution[MAXN * MAXN + 1];
 
-    memcpy(hashed, task, (size_t)task_len);
-    memcpy(hashed + task_len, solution, (size_t)solution_len);
-    md5_hex((unsigned char *)hashed, (size_t)(task_len + solution_len), hash);
-    free(hashed);
+    write_task(p, task);
+    write_solution(grid, p, solution);
 
     printf("{\"task\":\"%s\",", task);
     printf("\"dimensions\":{\"cols\":%d,\"rows\":%d},", p->cols, p->rows);
@@ -505,10 +431,8 @@ static void print_json(const u64 *grid, const Puzzle *p, int passes, long solves
     print_clue_array(p->col_clue, p->col_len, p->cols);
     printf(",\"rowClues\":");
     print_clue_array(p->row_clue, p->row_len, p->rows);
-    printf(",\"hashedSolution\":\"%s\"", hash);
-    printf(",\"generator\":\"%s\",\"passes\":%d,\"solves\":%ld", GENERATOR_VERSION, passes, solves);
-    if (with_solution) printf(",\"solution\":\"%s\"", solution);
-    printf("}\n");
+    printf(",\"solution\":\"%s\"", solution);
+    printf(",\"generator\":\"%s\",\"passes\":%d,\"solves\":%ld}\n", GENERATOR_VERSION, passes, solves);
 }
 
 /* ---------- selftest ---------- */
@@ -541,28 +465,6 @@ static int brute_line(const int *clue, int k, int n, u64 known, u64 val,
     *out_known = fullmask(n) & (all_filled | ~any_filled);
     *out_val = all_filled;
     return 1;
-}
-
-static int selftest_md5(void)
-{
-    struct { const char *in, *out; } cases[] = {
-        { "", "d41d8cd98f00b204e9800998ecf8427e" },
-        { "abc", "900150983cd24fb0d6963f7d28e17f72" },
-        { "The quick brown fox jumps over the lazy dog", "9e107d9d372bb6826bd81d3542a419d6" },
-        { "1.1/1/1.1/2.2/4/1.3/2/1/2/4ynyyynnnyynnnnynnnyyyyyyn",
-          "a0c8982877013b2ad405a4a751bf4ec2" },
-    };
-    int i, failures = 0;
-
-    for (i = 0; i < (int)(sizeof cases / sizeof cases[0]); i++) {
-        char hash[33];
-        md5_hex((const unsigned char *)cases[i].in, strlen(cases[i].in), hash);
-        if (strcmp(hash, cases[i].out)) {
-            printf("md5 mismatch for \"%s\": got %s want %s\n", cases[i].in, hash, cases[i].out);
-            failures++;
-        }
-    }
-    return failures;
 }
 
 static int selftest_lines(long cases)
@@ -666,9 +568,9 @@ static int selftest_puzzles(long count)
 
 static int selftest(long cases)
 {
-    int failures = selftest_md5() + selftest_lines(cases) + selftest_puzzles(60);
+    int failures = selftest_lines(cases) + selftest_puzzles(60);
 
-    printf("selftest: %ld line cases, 4 md5 vectors, 60 puzzles -- %d failures\n", cases, failures);
+    printf("selftest: %ld line cases, 60 puzzles -- %d failures\n", cases, failures);
     return failures;
 }
 
@@ -679,7 +581,7 @@ static void usage(void)
     fprintf(stderr,
             "usage: nonogen --seed N [--size N | --rows N --cols N] [--density D]\n"
             "               [--allow-empty-lines] [--min-passes N] [--max-passes N]\n"
-            "               [--repair N] [--timeout-ms N] [--solution]\n"
+            "               [--repair N] [--timeout-ms N]\n"
             "       nonogen --selftest [--cases N]\n");
 }
 
@@ -689,14 +591,13 @@ int main(int argc, char **argv)
     double density = 0.5;
     u64 seed = 0;
     long cases = 200000, solves;
-    int with_solution = 0, run_selftest = 0, have_seed = 0, passes = 0, i;
+    int run_selftest = 0, have_seed = 0, passes = 0, i;
     u64 grid[MAXN];
     Puzzle p;
 
     for (i = 1; i < argc; i++) {
         const char *arg = argv[i];
-        int needs_value = strcmp(arg, "--allow-empty-lines") && strcmp(arg, "--solution") &&
-                          strcmp(arg, "--selftest");
+        int needs_value = strcmp(arg, "--allow-empty-lines") && strcmp(arg, "--selftest");
         if (needs_value && i + 1 >= argc) { usage(); return 2; }
 
         if (!strcmp(arg, "--seed")) { seed = strtoull(argv[++i], NULL, 10); have_seed = 1; }
@@ -710,7 +611,6 @@ int main(int argc, char **argv)
         else if (!strcmp(arg, "--timeout-ms")) opt.timeout_ms = atol(argv[++i]);
         else if (!strcmp(arg, "--cases")) cases = atol(argv[++i]);
         else if (!strcmp(arg, "--allow-empty-lines")) opt.allow_empty_lines = 1;
-        else if (!strcmp(arg, "--solution")) with_solution = 1;
         else if (!strcmp(arg, "--selftest")) run_selftest = 1;
         else { usage(); return 2; }
     }
@@ -738,6 +638,6 @@ int main(int argc, char **argv)
         fprintf(stderr, "nonogen: no puzzle found within %ld ms\n", opt.timeout_ms);
         return 1;
     }
-    print_json(grid, &p, passes, solves, with_solution);
+    print_json(grid, &p, passes, solves);
     return 0;
 }

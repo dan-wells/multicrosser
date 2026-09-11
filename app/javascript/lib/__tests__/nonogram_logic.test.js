@@ -13,13 +13,12 @@ const PUZZLE_5 = {
   dimensions: { cols: 5, rows: 5 },
   colClues: [[1, 1], [1], [1, 1], [2, 2], [4]],
   rowClues: [[1, 3], [2], [1], [2], [4]],
-  hashedSolution: 'a0c8982877013b2ad405a4a751bf4ec2',
+  solution: 'ynyyynnnyynnnnynnnyyyyyyn',
 };
 
-// board[x][y]; the solution above serialises row-major to
-// 'ynyyynnnyynnnnynnnyyyyyyn'.
+// board[x][y], from the row-major solution above.
 const SOLVED_5 = (() => {
-  const serialized = 'ynyyynnnyynnnnynnnyyyyyyn';
+  const serialized = PUZZLE_5.solution;
   const board = Array.from({ length: 5 }, () => Array(5).fill(EMPTY));
   for (let y = 0; y < 5; y += 1) {
     for (let x = 0; x < 5; x += 1) {

@@ -84,7 +84,7 @@ class Source::Nonograms < Source
   # Catches a generator whose output no longer matches what the client reads,
   # which otherwise reaches the cache and stays there indefinitely.
   def generated?(data, size)
-    data['task'].present? && data['hashedSolution'].present? &&
+    data['task'].present? && data['solution']&.length == size * size &&
       data.dig('dimensions', 'cols') == size && data.dig('dimensions', 'rows') == size &&
       data['colClues']&.length == size && data['rowClues']&.length == size
   end

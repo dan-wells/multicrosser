@@ -11,7 +11,7 @@ const DATA = {
   dimensions: { cols: 5, rows: 5 },
   colClues: [[1, 1], [1], [1, 1], [2, 2], [4]],
   rowClues: [[1, 3], [2], [1], [2], [4]],
-  hashedSolution: 'a0c8982877013b2ad405a4a751bf4ec2',
+  solution: 'ynyyynnnyynnnnynnnyyyyyyn',
 };
 
 const CELL = 20;
@@ -174,7 +174,7 @@ describe('Nonogram', () => {
     expect(handlers.onMoveBatch).not.toHaveBeenCalled();
   });
 
-  it('announces the puzzle as solved once the grid matches the hash', () => {
+  it('announces the puzzle as solved once the grid matches the solution', () => {
     const controlRef = createRef();
     mount({ controlRef });
 

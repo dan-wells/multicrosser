@@ -10,7 +10,7 @@ const DATA = {
   dimensions: { cols: 5, rows: 5 },
   colClues: [[1, 1], [1], [1, 1], [2, 2], [4]],
   rowClues: [[1, 3], [2], [1], [2], [4]],
-  hashedSolution: 'a0c8982877013b2ad405a4a751bf4ec2',
+  solution: 'ynyyynnnyynnnnynnnyyyyyyn',
 };
 
 const SETTINGS = {

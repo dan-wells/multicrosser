@@ -1,4 +1,3 @@
-import md5 from './md5';
 
 export const EMPTY = '';
 export const FILLED = '1';
@@ -152,6 +151,7 @@ export function dragCells(start, current) {
 // --- completion ---
 
 // Row-major, 'y' for filled and 'n' for anything else -- crosses never count.
+// The same shape the generator emits its solution in, so the two compare directly.
 export function serializeSolution(board, dimensions) {
   let result = '';
   for (let y = 0; y < dimensions.rows; y += 1) {
@@ -163,8 +163,8 @@ export function serializeSolution(board, dimensions) {
 }
 
 export function isSolved(data, board) {
-  if (!data.hashedSolution) return false;
-  return md5(data.task + serializeSolution(board, data.dimensions)) === data.hashedSolution;
+  if (!data.solution) return false;
+  return serializeSolution(board, data.dimensions) === data.solution;
 }
 
 // --- undo ---
