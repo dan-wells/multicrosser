@@ -40,12 +40,6 @@ function seriesAttribute(name) {
   return el ? el.getAttribute('data-' + name) : null;
 }
 
-// The highest number the series accepts: the newest puzzle for a series with a
-// feed, and the publisher's cap for one addressed purely by ID like nonograms.
-function highestPuzzle() {
-  return seriesAttribute('latest-puzzle') || seriesAttribute('last-puzzle') || '';
-}
-
 function updatePuzzlePlaceholder() {
   updateSizeFilter();
   document.getElementById('goto-number').placeholder = seriesAttribute('first-puzzle') + ' onwards';
@@ -235,30 +229,22 @@ function goToPuzzle(form) {
   var errorEl = document.getElementById('goto-error');
   var displayName = seriesDisplayName();
 
-  if (!number) {
-    var latest = seriesAttribute('latest-puzzle');
-    if (!latest) {
-      // A series addressed purely by ID has no most recent puzzle to fall
-      // back on, so an empty number means "surprise me".
-      if (seriesAttribute('last-puzzle')) return goToRandomPuzzle(form);
-      errorEl.textContent = 'No puzzles available for ' + displayName;
-      return false;
-    }
-    number = latest;
-  } else {
-    var firstPuzzleStr = seriesAttribute('first-puzzle');
-    var highestPuzzleStr = highestPuzzle();
-    var firstPuzzle = parseInt(firstPuzzleStr, 10);
-    var highest = parseInt(highestPuzzleStr, 10);
-    var num = parseInt(number, 10);
-    if (isNaN(num) || num < firstPuzzle) {
-      errorEl.textContent = displayName + ' puzzles start at No\u00A0' + firstPuzzleStr;
-      return false;
-    }
-    if (!isNaN(highest) && num > highest) {
-      errorEl.textContent = displayName + ' puzzles only go up to No\u00A0' + highestPuzzleStr;
-      return false;
-    }
+  // Which puzzle is the most recent is the server's to know, so an empty
+  // number is handed straight to it.
+  if (!number) return goToLatestPuzzle(form);
+
+  var firstPuzzleStr = seriesAttribute('first-puzzle');
+  var lastPuzzleStr = seriesAttribute('last-puzzle');
+  var firstPuzzle = parseInt(firstPuzzleStr, 10);
+  var lastPuzzle = parseInt(lastPuzzleStr, 10);
+  var num = parseInt(number, 10);
+  if (isNaN(num) || num < firstPuzzle) {
+    errorEl.textContent = displayName + ' puzzles start at No\u00A0' + firstPuzzleStr;
+    return false;
+  }
+  if (!isNaN(lastPuzzle) && num > lastPuzzle) {
+    errorEl.textContent = displayName + ' puzzles only go up to No\u00A0' + lastPuzzleStr;
+    return false;
   }
 
   errorEl.textContent = '';
@@ -269,20 +255,22 @@ function goToPuzzle(form) {
   return false;
 }
 
+function goToLatestPuzzle(form) {
+  document.getElementById('goto-error').textContent = '';
+  window.location = shortcutUrl(form, 'latest');
+  return false;
+}
+
 function goToRandomPuzzle(form) {
-  var series = seriesName();
-  var room = form.room.value.trim();
   var errorEl = document.getElementById('goto-error');
 
-  if (!highestPuzzle()) {
+  if (!seriesAttribute('last-puzzle')) {
     errorEl.textContent = 'No puzzles available for ' + seriesDisplayName();
     return false;
   }
 
   errorEl.textContent = '';
-  var pathPrefix = form.dataset.pathPrefix || '';
-  var url = pathPrefix + '/' + encodeURIComponent(series) + '/random';
-  if (room) url += '/' + encodeURIComponent(room);
+  var url = shortcutUrl(form, 'random');
   var dayInput = form.querySelector('input[name="day"]:checked');
   if (dayInput && dayInput.value) {
     url += '?day=' + dayInput.value;
@@ -291,8 +279,20 @@ function goToRandomPuzzle(form) {
   return false;
 }
 
+function shortcutUrl(form, shortcut) {
+  var room = form.room.value.trim();
+  var url = (form.dataset.pathPrefix || '') + '/' + encodeURIComponent(seriesName()) + '/' + shortcut;
+  return room ? url + '/' + encodeURIComponent(room) : url;
+}
+
+var ERROR_MESSAGES = {
+  random_failed: "Couldn't find a random puzzle — please try again.",
+  latest_failed: "Couldn't find the most recent puzzle — try entering a number.",
+};
+
 var errorParams = new URLSearchParams(window.location.search);
-if (errorParams.get('error') === 'random_failed') {
-  document.getElementById('goto-error').textContent = "Couldn't find a random puzzle — please try again.";
+var errorMessage = ERROR_MESSAGES[errorParams.get('error')];
+if (errorMessage) {
+  document.getElementById('goto-error').textContent = errorMessage;
   history.replaceState(null, '', window.location.pathname);
 }

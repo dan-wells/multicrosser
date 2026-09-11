@@ -207,6 +207,53 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{/print/cryptic/21620\z}, response.location
   end
 
+  # --- latest ---
+
+  test "latest redirects into a fresh room for the most recent puzzle" do
+    REDIS.set("crossword-series-cryptic", [
+      { "identifier" => "21620" },
+      { "identifier" => "21619" },
+    ].to_json)
+
+    get "/cryptic/latest"
+
+    assert_response :redirect
+    assert_match %r{/cryptic/21620/[0-9a-f]{8}\z}, response.location
+  end
+
+  test "latest keeps a room the player named" do
+    REDIS.set("crossword-series-cryptic", [{ "identifier" => "21620" }].to_json)
+
+    get "/cryptic/latest/my-room"
+
+    assert_redirected_to "/cryptic/21620/my-room"
+  end
+
+  # Nonograms have no feed and so no most recent puzzle, but their ID range is
+  # known, so any puzzle in it will do.
+  test "latest falls back to a random puzzle for a series with an ID range" do
+    get "/nonogram-15/latest"
+
+    assert_response :redirect
+    assert_match %r{/nonogram-15/random\z}, response.location
+  end
+
+  test "latest carries the room into the random fallback" do
+    get "/nonogram-15/latest/my-room"
+
+    assert_redirected_to "/nonogram-15/random/my-room"
+  end
+
+  test "latest redirects to root with latest_failed when the series cache is empty" do
+    get "/cryptic/latest"
+    assert_redirected_to root_path(error: 'latest_failed')
+  end
+
+  test "latest redirects to root with latest_failed for an unknown series" do
+    get "/garbage/latest"
+    assert_redirected_to root_path(error: 'latest_failed')
+  end
+
   # --- print_latest ---
 
   test "print_latest redirects to the print view for the most recent puzzle" do
@@ -221,14 +268,20 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
     assert_match %r{/print/cryptic/21620\z}, response.location
   end
 
-  test "print_latest redirects to root with random_failed for an unknown series" do
+  test "print_latest redirects to root with latest_failed for an unknown series" do
     get "/print/garbage/latest"
-    assert_redirected_to root_path(error: 'random_failed')
+    assert_redirected_to root_path(error: 'latest_failed')
   end
 
-  test "print_latest redirects to root with random_failed when the series cache is empty" do
+  test "print_latest redirects to root with latest_failed when the series cache is empty" do
     # No Redis entry for crossword-series-cryptic
     get "/print/cryptic/latest"
-    assert_redirected_to root_path(error: 'random_failed')
+    assert_redirected_to root_path(error: 'latest_failed')
+  end
+
+  test "print_latest falls back to a random puzzle for a series with an ID range" do
+    get "/print/nonogram-15/latest"
+
+    assert_redirected_to print_random_path(series: 'nonogram-15')
   end
 end

@@ -23,26 +23,55 @@ class CrosswordsController < ApplicationController
     redirect_to room_path(series: params[:series], identifier: identifier, room: room)
   end
 
+  def latest
+    identifier = resolve_latest_identifier do
+      redirect_to random_crossword_path(series: params[:series], room: params[:room])
+    end or return
+
+    redirect_to room_path(
+      series: params[:series],
+      identifier: identifier,
+      room: params[:room].presence || SecureRandom.hex(4)
+    )
+  end
+
   def print_random
     identifier = resolve_random_identifier or return
     redirect_to print_crossword_path(series: params[:series], identifier: identifier)
   end
 
   def print_latest
-    series = params[:series]
-    unless Series::SERIES.key?(series)
-      redirect_to root_path(error: 'random_failed')
-      return
-    end
-    identifier = Series.latest_puzzle(series)
-    unless identifier
-      redirect_to root_path(error: 'random_failed')
-      return
-    end
-    redirect_to print_crossword_path(series: series, identifier: identifier)
+    identifier = resolve_latest_identifier do
+      redirect_to print_random_path(series: params[:series])
+    end or return
+
+    redirect_to print_crossword_path(series: params[:series], identifier: identifier)
   end
 
   private
+
+  # Returns the identifier of the most recent puzzle in the requested series, or
+  # nil after having already issued a redirect (caller should bail with `or
+  # return`). A series with a known ID range needs no feed to offer a puzzle and
+  # has no most recent one to offer either, so the block is given the chance to
+  # send the player to a random puzzle instead.
+  def resolve_latest_identifier
+    series = params[:series]
+    unless Series::SERIES.key?(series)
+      redirect_to root_path(error: 'latest_failed')
+      return nil
+    end
+
+    identifier = Series.latest_puzzle(series)
+    return identifier if identifier
+
+    if Series::SERIES[series][:last_puzzle]
+      yield
+    else
+      redirect_to root_path(error: 'latest_failed')
+    end
+    nil
+  end
 
   # Returns the identifier of a random puzzle in the requested series, or nil
   # after having already issued a redirect (caller should bail with `or return`).

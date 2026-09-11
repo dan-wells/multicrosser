@@ -5,9 +5,9 @@ import {
 const HTML_FIXTURE = `
   <form id="goto-form" data-path-prefix="">
     <select id="goto-series" name="series">
-      <option value="cryptic" data-first-puzzle="21620" data-latest-puzzle="21700" data-days="1,2,3,4,5">Cryptic</option>
-      <option value="quiptic" data-first-puzzle="1" data-latest-puzzle="" data-days="">Quiptic</option>
-      <option value="nytimes" data-first-puzzle="080602" data-latest-puzzle="260601" data-days="1,2,3,4,5,6,7">New York Times</option>
+      <option value="cryptic" data-first-puzzle="21620" data-last-puzzle="21700" data-days="1,2,3,4,5">Cryptic</option>
+      <option value="quiptic" data-first-puzzle="1" data-last-puzzle="" data-days="">Quiptic</option>
+      <option value="nytimes" data-first-puzzle="080602" data-last-puzzle="260601" data-days="1,2,3,4,5,6,7">New York Times</option>
       <option value="nonograms" data-group="nonograms">Nonograms</option>
     </select>
     <fieldset id="size-filter" hidden>
@@ -86,13 +86,24 @@ const clickRandom = () => {
 };
 
 describe('homepage goToPuzzle', () => {
-  it('errors when puzzle is empty and the series has no latest puzzle', async () => {
+  it('leaves an empty puzzle number to the server, room and all', async () => {
     await loadHomepage();
-    document.getElementById('goto-series').value = 'quiptic';
-    // quiptic has data-latest-puzzle="" (no published puzzles yet)
     document.getElementById('goto-number').value = '';
+    document.getElementById('goto-room').value = 'my room';
 
     submitForm();
+
+    expect(navigatedTo).toBe('/cryptic/latest/my%20room');
+    expect(document.getElementById('goto-error').textContent).toBe('');
+  });
+
+  it('errors on Random when the series has no puzzles to pick from', async () => {
+    await loadHomepage();
+    const series = document.getElementById('goto-series');
+    series.value = 'quiptic';
+    series.dispatchEvent(new Event('change', { bubbles: true }));
+
+    clickRandom();
 
     expect(navigatedTo).toBeNull();
     expect(document.getElementById('goto-error').textContent)
@@ -110,7 +121,7 @@ describe('homepage goToPuzzle', () => {
       .toMatch(/Cryptic puzzles start at No\u00A021620/);
   });
 
-  it('errors when the puzzle number is above the series latest_puzzle', async () => {
+  it('errors when the puzzle number is above the series last_puzzle', async () => {
     await loadHomepage();
     document.getElementById('goto-number').value = '99999';
 
@@ -215,6 +226,37 @@ describe('homepage day filter persistence', () => {
   });
 });
 
+describe('homepage error banner', () => {
+  const loadWithError = async (error) => {
+    Object.defineProperty(window, 'location', {
+      configurable: true,
+      get() { return { pathname: '/', search: '?error=' + error }; },
+      set(value) { navigatedTo = value; },
+    });
+    await loadHomepage();
+  };
+
+  it('explains a failed latest lookup', async () => {
+    await loadWithError('latest_failed');
+
+    expect(document.getElementById('goto-error').textContent)
+      .toMatch(/most recent puzzle/);
+  });
+
+  it('explains a failed random pick', async () => {
+    await loadWithError('random_failed');
+
+    expect(document.getElementById('goto-error').textContent)
+      .toMatch(/random puzzle/);
+  });
+
+  it('says nothing for an unknown error', async () => {
+    await loadWithError('nonsense');
+
+    expect(document.getElementById('goto-error').textContent).toBe('');
+  });
+});
+
 describe('homepage series groups', () => {
   const selectNonograms = () => {
     const series = document.getElementById('goto-series');
@@ -279,14 +321,14 @@ describe('homepage series groups', () => {
     expect(document.getElementById('goto-error').textContent).toBe('');
   });
 
-  it('treats an empty puzzle number as random when the series has no latest', async () => {
+  it('sends an empty puzzle number to the chosen size\'s latest', async () => {
     await loadHomepage();
     selectNonograms();
     document.getElementById('goto-number').value = '';
 
     submitForm();
 
-    expect(navigatedTo).toBe('/nonogram-5/random');
+    expect(navigatedTo).toBe('/nonogram-5/latest');
   });
 
   it('restores a saved group member into the dropdown and the radios', async () => {
