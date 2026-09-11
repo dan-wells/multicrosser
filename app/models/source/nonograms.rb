@@ -31,6 +31,10 @@ class Source::Nonograms < Source
     'Puzzle Nonograms'
   end
 
+  def room_partial
+    'nonogram'
+  end
+
   def random_identifier(series, day: nil)
     last = Series::SERIES[series][:last_puzzle] or return nil
     rand(1..last).to_s

@@ -8,6 +8,18 @@ class RoomsControllerTest < ActionDispatch::IntegrationTest
     "creator" => { "name" => "Picaroon", "webUrl" => "https://example.com" }
   }.to_json
 
+  NONOGRAM_JSON = {
+    "type" => "nonogram",
+    "id" => "2401181",
+    "size" => 15,
+    "dimensions" => { "cols" => 15, "rows" => 15 },
+    "task" => "6/6.1.1",
+    "colClues" => [[6], [6, 1, 1]],
+    "rowClues" => [[5, 1]],
+    "hashedSolution" => "f3de0201ee7b6cb75453b9a892cff602",
+    "name" => "15x15 Nonogram No 2,401,181"
+  }.to_json
+
   setup do
     REDIS.flushdb
   end
@@ -52,5 +64,40 @@ class RoomsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_includes response.body, direct_url
     refute_match %r{fifteensquared\.net/\?s=}, response.body
+  end
+
+  # --- puzzle type dispatch ---
+
+  test "show renders the nonogram partial for a nonogram series" do
+    CrosswordFetcher.stub(:fetch, NONOGRAM_JSON) do
+      get "/nonogram-15/2401181/room1"
+    end
+
+    assert_response :success
+    assert_match(/js-nonogram/, response.body)
+    assert_match(/15x15 Nonogram No 2,401,181/, response.body)
+    assert_match(/Published by Puzzle Nonograms/, response.body)
+  end
+
+  # A nonogram carries no `date` or `creator`, so rendering the crossword
+  # partial for one would raise rather than merely look wrong.
+  test "show does not render crossword furniture for a nonogram" do
+    CrosswordFetcher.stub(:fetch, NONOGRAM_JSON) do
+      get "/nonogram-15/2401181/room1"
+    end
+
+    assert_response :success
+    refute_match(/js-crossword/, response.body)
+    refute_match(/Set by/, response.body)
+  end
+
+  test "show still renders the crossword partial for a crossword series" do
+    CrosswordFetcher.stub(:fetch, CROSSWORD_JSON) do
+      get "/cryptic/21620/room1"
+    end
+
+    assert_response :success
+    assert_match(/js-crossword/, response.body)
+    refute_match(/js-nonogram/, response.body)
   end
 end

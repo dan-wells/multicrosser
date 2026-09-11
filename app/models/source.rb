@@ -41,6 +41,14 @@ class Source
     false
   end
 
+  def room_partial
+    'crossword'
+  end
+
+  def print_partial
+    'print_crossword'
+  end
+
   def feed_load
   end
 
