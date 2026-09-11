@@ -125,6 +125,11 @@ class Source::NonogramsTest < ActiveSupport::TestCase
     assert_match(/\A\d+\z/, source.random_identifier('nonogram-10', day: 3))
   end
 
+  test "puzzle_name delimits a real ID and passes anything else through" do
+    assert_equal '15x15 Nonogram No 2,401,181', source.puzzle_name('nonogram-15', '2401181')
+    assert_equal '5x5 Nonogram No nonsense', source.puzzle_name('nonogram-5', 'nonsense')
+  end
+
   # --- picker ---
 
   test "picker_group puts every size in one family" do

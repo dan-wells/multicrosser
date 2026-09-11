@@ -31,6 +31,10 @@ class Source::Nonograms < Source
     'Puzzle Nonograms'
   end
 
+  def puzzle_name(series, identifier)
+    "#{size_label(series)} Nonogram No #{puzzle_number(identifier)}"
+  end
+
   def picker_group
     'nonograms'
   end
@@ -85,7 +89,7 @@ class Source::Nonograms < Source
       'colClues' => col_clues,
       'rowClues' => row_clues,
       'hashedSolution' => hashed_solution,
-      'name' => name_for(series, identifier),
+      'name' => puzzle_name(series, identifier),
     }
   end
 
@@ -111,8 +115,10 @@ class Source::Nonograms < Source
     "#{size}x#{size}"
   end
 
-  def name_for(series, identifier)
-    number = ActiveSupport::NumberHelper.number_to_delimited(identifier.to_i)
-    "#{size_label(series)} Nonogram No #{number}"
+  # Thousands separators for a real ID. Anything else reaches this only from
+  # the 404 page, where the identifier is whatever was asked for.
+  def puzzle_number(identifier)
+    return identifier unless identifier.to_s.match?(/\A\d+\z/)
+    ActiveSupport::NumberHelper.number_to_delimited(identifier.to_i)
   end
 end

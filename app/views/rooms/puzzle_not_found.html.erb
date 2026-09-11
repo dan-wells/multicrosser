@@ -2,8 +2,8 @@
   <h1>Puzzle not found</h1>
   <p>
     Sorry, we couldn't find
-    <% if @series && @identifier %>
-      <strong><%= Series.display_name(@series) %> crossword No <%= @identifier %></strong>.
+    <% if @puzzle_name %>
+      <strong><%= @puzzle_name %></strong>.
     <% else %>
       that puzzle.
     <% end %>

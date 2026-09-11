@@ -68,6 +68,25 @@ class RoomsControllerTest < ActionDispatch::IntegrationTest
 
   # --- puzzle type dispatch ---
 
+  test "show names a missing nonogram the way the publisher does" do
+    CrosswordFetcher.stub(:fetch, nil) do
+      get "/nonogram-15/2401181/room1"
+    end
+
+    assert_response :not_found
+    assert_match(/15x15 Nonogram No 2,401,181/, response.body)
+    assert_no_match(/crossword/i, response.body)
+  end
+
+  test "show still names a missing crossword as a crossword" do
+    CrosswordFetcher.stub(:fetch, nil) do
+      get "/cryptic/21620/room1"
+    end
+
+    assert_response :not_found
+    assert_match(/Cryptic crossword No 21620/, response.body)
+  end
+
   test "show renders the nonogram partial for a nonogram series" do
     CrosswordFetcher.stub(:fetch, NONOGRAM_JSON) do
       get "/nonogram-15/2401181/room1"

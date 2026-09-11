@@ -6,8 +6,9 @@ class ApplicationController < ActionController::Base
   private
 
   def puzzle_not_found
-    @series = params[:series]
-    @identifier = params[:identifier]
+    if params[:series].in?(Series::SERIES.keys) && params[:identifier].present?
+      @puzzle_name = Source.for(params[:series]).puzzle_name(params[:series], params[:identifier])
+    end
     render 'rooms/puzzle_not_found', status: :not_found
   end
 

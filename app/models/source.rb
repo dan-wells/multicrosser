@@ -29,6 +29,10 @@ class Source
     raise NotImplementedError
   end
 
+  def puzzle_name(series, identifier)
+    "#{Series.display_name(series)} crossword No #{identifier}"
+  end
+
   def commentary_url(series, identifier)
     nil
   end
