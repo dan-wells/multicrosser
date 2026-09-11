@@ -49,6 +49,26 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/data-source="nytimes"/, response.body)
   end
 
+  test "print renders the nonogram partial for a nonogram series" do
+    nonogram_json = {
+      "type" => "nonogram",
+      "dimensions" => { "cols" => 15, "rows" => 15 },
+      "task" => "6/6.1.1",
+      "colClues" => [[6], [6, 1, 1]],
+      "rowClues" => [[5, 1]],
+      "hashedSolution" => "f3de0201ee7b6cb75453b9a892cff602",
+      "name" => "15x15 Nonogram No 2,401,181"
+    }.to_json
+    CrosswordFetcher.stub(:fetch, nonogram_json) do
+      get "/print/nonogram-15/2401181"
+    end
+
+    assert_response :success
+    assert_match(/js-print-nonogram/, response.body)
+    assert_match(/15x15 Nonogram No 2,401,181/, response.body)
+    assert_no_match(/js-print-crossword/, response.body)
+  end
+
   test "print renders 404 for an unknown series" do
     get "/print/garbage/123"
     assert_response :not_found

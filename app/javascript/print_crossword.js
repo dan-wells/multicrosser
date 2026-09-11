@@ -3,7 +3,8 @@ import { createRoot } from 'react-dom/client';
 import { flushSync } from 'react-dom';
 import { Crossword } from '@guardian/react-crossword';
 import './lib/crossword-overrides.css';
-import './lib/print-overrides.css';
+import './lib/print-page.css';
+import './lib/crossword-print.css';
 
 const mountElement = document.getElementsByClassName('js-print-crossword')[0];
 const printPage = mountElement.closest('.print-page');

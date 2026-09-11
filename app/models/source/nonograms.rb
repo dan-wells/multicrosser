@@ -35,6 +35,10 @@ class Source::Nonograms < Source
     'nonogram'
   end
 
+  def print_partial
+    'print_nonogram'
+  end
+
   def random_identifier(series, day: nil)
     last = Series::SERIES[series][:last_puzzle] or return nil
     rand(1..last).to_s

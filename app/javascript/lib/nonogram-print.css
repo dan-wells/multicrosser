@@ -1,0 +1,20 @@
+/* Nonogram print view (rendered on screen too -- WYSIWYG with the PDF).
+   The page furniture it sits on is in `print-page.css`. */
+
+.print-nonogram .nonogram-grid {
+  display: block;
+  background: #fff;
+}
+
+.print-nonogram .nonogram-rule {
+  stroke: #777;
+}
+
+.print-nonogram .nonogram-rule.is-block {
+  stroke: #000;
+}
+
+.print-nonogram .nonogram-clue text {
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  fill: #000;
+}
