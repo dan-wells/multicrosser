@@ -18,6 +18,15 @@ class Series
                        size: 25, size_param: 4, display_name: '25x25 Nonograms' },
   }
 
+  # The picker collapses a family of series -- the nonogram sizes -- into one
+  # dropdown entry plus a selector for the member, so the dropdown stays short.
+  def self.picker_groups
+    SERIES.group_by { |name, _meta| Source.for(name).picker_group }.flat_map do |group, members|
+      next members.map { |name, meta| [name, [[name, meta]]] } if group.nil?
+      [[group, members]]
+    end
+  end
+
   def self.display_name(name)
     SERIES.dig(name, :display_name) || name.to_s.titleize
   end

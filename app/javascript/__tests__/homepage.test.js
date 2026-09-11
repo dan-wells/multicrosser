@@ -8,7 +8,14 @@ const HTML_FIXTURE = `
       <option value="cryptic" data-first-puzzle="21620" data-latest-puzzle="21700" data-days="1,2,3,4,5">Cryptic</option>
       <option value="quiptic" data-first-puzzle="1" data-latest-puzzle="" data-days="">Quiptic</option>
       <option value="nytimes" data-first-puzzle="080602" data-latest-puzzle="260601" data-days="1,2,3,4,5,6,7">New York Times</option>
+      <option value="nonograms" data-group="nonograms">Nonograms</option>
     </select>
+    <fieldset id="size-filter" hidden>
+      <label data-group="nonograms"><input type="radio" name="size" value="nonogram-5" checked
+        data-display-name="5x5 Nonograms" data-first-puzzle="1" data-last-puzzle="12002239"> 5x5</label>
+      <label data-group="nonograms"><input type="radio" name="size" value="nonogram-15"
+        data-display-name="15x15 Nonograms" data-first-puzzle="1" data-last-puzzle="15000000"> 15x15</label>
+    </fieldset>
     <fieldset id="day-filter" hidden>
       <label><input type="radio" name="day" value="" checked> Any</label>
       <label data-day="1"><input type="radio" name="day" value="1"> Mon</label>
@@ -100,7 +107,7 @@ describe('homepage goToPuzzle', () => {
 
     expect(navigatedTo).toBeNull();
     expect(document.getElementById('goto-error').textContent)
-      .toMatch(/Cryptic puzzles start at No 21620/);
+      .toMatch(/Cryptic puzzles start at No\u00A021620/);
   });
 
   it('errors when the puzzle number is above the series latest_puzzle', async () => {
@@ -111,7 +118,7 @@ describe('homepage goToPuzzle', () => {
 
     expect(navigatedTo).toBeNull();
     expect(document.getElementById('goto-error').textContent)
-      .toMatch(/Cryptic puzzles only go up to No 21700/);
+      .toMatch(/Cryptic puzzles only go up to No\u00A021700/);
   });
 
   it('navigates to /series/number/room when all fields are valid', async () => {
@@ -205,5 +212,92 @@ describe('homepage day filter persistence', () => {
     expect(dayFilter.querySelector('input[name="day"][value=""]').checked).toBe(true);
     // The stored choice should not have been overwritten.
     expect(window.localStorage.getItem('last-day')).toBe('6');
+  });
+});
+
+describe('homepage series groups', () => {
+  const selectNonograms = () => {
+    const series = document.getElementById('goto-series');
+    series.value = 'nonograms';
+    series.dispatchEvent(new Event('change', { bubbles: true }));
+    return series;
+  };
+
+  it('reveals the size radios only for a grouped series', async () => {
+    await loadHomepage();
+    const sizeFilter = document.getElementById('size-filter');
+    expect(sizeFilter.hidden).toBe(true);
+
+    const series = selectNonograms();
+    expect(sizeFilter.hidden).toBe(false);
+
+    series.value = 'cryptic';
+    series.dispatchEvent(new Event('change', { bubbles: true }));
+    expect(sizeFilter.hidden).toBe(true);
+  });
+
+  it('navigates to the series named by the chosen size', async () => {
+    await loadHomepage();
+    selectNonograms();
+    document.getElementById('size-filter')
+      .querySelector('input[value="nonogram-15"]').click();
+    document.getElementById('goto-number').value = '2401181';
+
+    submitForm();
+
+    expect(navigatedTo).toBe('/nonogram-15/2401181');
+  });
+
+  it('validates against the chosen size, not the group', async () => {
+    await loadHomepage();
+    selectNonograms();
+    document.getElementById('goto-number').value = '13000000';
+
+    submitForm();
+
+    // 13,000,000 is past the 5x5 cap but within the 15x15 one.
+    expect(navigatedTo).toBeNull();
+    expect(document.getElementById('goto-error').textContent)
+      .toMatch(/5x5 Nonograms puzzles only go up to/);
+
+    // Switching size clears the number, as switching series does.
+    document.getElementById('size-filter')
+      .querySelector('input[value="nonogram-15"]').click();
+    document.getElementById('goto-number').value = '13000000';
+    submitForm();
+
+    expect(navigatedTo).toBe('/nonogram-15/13000000');
+  });
+
+  it('offers a random puzzle for a series with a cap but no feed', async () => {
+    await loadHomepage();
+    selectNonograms();
+
+    clickRandom();
+
+    expect(navigatedTo).toBe('/nonogram-5/random');
+    expect(document.getElementById('goto-error').textContent).toBe('');
+  });
+
+  it('treats an empty puzzle number as random when the series has no latest', async () => {
+    await loadHomepage();
+    selectNonograms();
+    document.getElementById('goto-number').value = '';
+
+    submitForm();
+
+    expect(navigatedTo).toBe('/nonogram-5/random');
+  });
+
+  it('restores a saved group member into the dropdown and the radios', async () => {
+    window.localStorage.setItem('last-series', 'nonogram-15');
+    await loadHomepage();
+    window.dispatchEvent(new Event('pageshow'));
+
+    expect(document.getElementById('goto-series').value).toBe('nonograms');
+    expect(document.getElementById('size-filter').hidden).toBe(false);
+    expect(
+      document.getElementById('size-filter').querySelector('input[value="nonogram-15"]').checked,
+    ).toBe(true);
   });
 });

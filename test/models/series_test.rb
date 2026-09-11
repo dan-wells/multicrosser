@@ -60,6 +60,25 @@ class SeriesTest < ActiveSupport::TestCase
     end
   end
 
+  test "picker_groups collapses the nonogram sizes into one entry" do
+    groups = Series.picker_groups.to_h
+
+    assert_equal nonogram_series.keys, groups['nonograms'].map(&:first)
+    assert_equal %w[5x5 10x10 15x15 20x20 25x25],
+                 groups['nonograms'].map { |name, _meta| Source.for(name).picker_label(name) }
+  end
+
+  test "picker_groups leaves an ungrouped series standing alone, in SERIES order" do
+    groups = Series.picker_groups
+
+    ungrouped = Series::SERIES.keys.reject { |name| Source.for(name).picker_group }
+    assert_equal ungrouped + ['nonograms'], groups.map(&:first)
+    ungrouped.each do |name|
+      members = groups.to_h[name]
+      assert_equal [name], members.map(&:first)
+    end
+  end
+
   test "get_all omits nonogram series, which have no feed" do
     REDIS.set("crossword-series-quiptic", [{
       'title' => 'Quiptic No 1',

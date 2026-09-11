@@ -41,6 +41,16 @@ class Source
     false
   end
 
+  # A source whose series belong to a family names the family here, and the
+  # picker offers one dropdown entry for it plus a `picker_label` per member.
+  def picker_group
+    nil
+  end
+
+  def picker_label(series)
+    nil
+  end
+
   def room_partial
     'crossword'
   end

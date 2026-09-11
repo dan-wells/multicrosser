@@ -31,6 +31,14 @@ class Source::Nonograms < Source
     'Puzzle Nonograms'
   end
 
+  def picker_group
+    'nonograms'
+  end
+
+  def picker_label(series)
+    size_label(series)
+  end
+
   def room_partial
     'nonogram'
   end
@@ -98,9 +106,13 @@ class Source::Nonograms < Source
     clue.empty? || clue.sum + clue.length - 1 <= line_length
   end
 
-  def name_for(series, identifier)
+  def size_label(series)
     size = Series::SERIES[series][:size]
+    "#{size}x#{size}"
+  end
+
+  def name_for(series, identifier)
     number = ActiveSupport::NumberHelper.number_to_delimited(identifier.to_i)
-    "#{size}x#{size} Nonogram No #{number}"
+    "#{size_label(series)} Nonogram No #{number}"
   end
 end

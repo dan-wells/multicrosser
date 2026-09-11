@@ -126,38 +126,38 @@ a {
   font-size: 0.9em;
 }
 
-.homepage-sidebar .day-filter {
+.homepage-sidebar .radio-filter {
   border: none;
   padding: 0;
   margin: 10px 0 0 0;
 }
 
-.homepage-sidebar .day-filter legend {
+.homepage-sidebar .radio-filter legend {
   font-size: 0.9em;
   margin-bottom: 2px;
   padding: 0;
 }
 
-.homepage-sidebar .day-filter .day-options {
+.homepage-sidebar .radio-filter .radio-options {
   display: grid;
   grid-template-columns: repeat(3, auto);
   gap: 2px 4px;
   justify-content: start;
 }
 
-.homepage-sidebar .day-filter .day-options input[type="radio"] {
+.homepage-sidebar .radio-filter .radio-options input[type="radio"] {
   accent-color: #66a0ff;
 }
 
-.homepage-sidebar .day-filter label {
+.homepage-sidebar .radio-filter label {
   display: inline-block;
   margin-top: 0;
   margin-right: 0;
 }
 
-/* Beat the inline-block rule above when JS hides a day label for a series
-   that doesn't publish on that weekday (e.g. Sat/Sun for Cryptic). */
-.homepage-sidebar .day-filter label[hidden] {
+/* Beat the inline-block rule above when JS hides a label -- a day a series
+   doesn't publish on (Sat/Sun for Cryptic), or a size from another group. */
+.homepage-sidebar .radio-filter label[hidden] {
   display: none;
 }
 
@@ -266,7 +266,7 @@ a {
     width: 100%;
   }
 
-  .homepage-sidebar .day-filter .day-options {
+  .homepage-sidebar .radio-filter .radio-options {
     display: flex;
     text-align: center;
   }

@@ -125,6 +125,17 @@ class Source::NonogramsTest < ActiveSupport::TestCase
     assert_match(/\A\d+\z/, source.random_identifier('nonogram-10', day: 3))
   end
 
+  # --- picker ---
+
+  test "picker_group puts every size in one family" do
+    assert_equal 'nonograms', source.picker_group
+  end
+
+  test "picker_label names the size of the series" do
+    assert_equal '5x5', source.picker_label('nonogram-5')
+    assert_equal '25x25', source.picker_label('nonogram-25')
+  end
+
   # --- registration ---
 
   test "Source.for resolves every nonogram series to this source" do
