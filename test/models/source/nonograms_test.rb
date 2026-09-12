@@ -46,6 +46,19 @@ class Source::NonogramsTest < ActiveSupport::TestCase
     end
   end
 
+  # Clue gutters get unreadable, and the grid looks like noise, long before a
+  # line reaches its arithmetic limit of runs; a solid line gives itself away.
+  test "fetch keeps every line inside the generator's clue limits" do
+    { 'nonogram-5' => 5, 'nonogram-15' => 15, 'nonogram-25' => 25 }.each do |series, size|
+      clues = JSON.parse(source.fetch(series, '8675309')).values_at('rowClues', 'colClues').flatten(1)
+      spans = clues.map(&:length).max
+      longest = clues.flatten.max
+
+      assert_operator spans, :<=, 6, "#{series} has a line of #{spans} runs"
+      assert_operator longest, :<, size, "#{series} has a completely filled line"
+    end
+  end
+
   test "fetch returns the same puzzle for the same identifier" do
     first = source.fetch('nonogram-10', '4242')
     REDIS.flushdb

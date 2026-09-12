@@ -1,7 +1,7 @@
 CFLAGS ?= -O2 -Wall -Wextra
 
 nonogen: nonogen.c
-	$(CC) $(CFLAGS) -o $@ $<
+	$(CC) $(CFLAGS) -o $@ $< -lm
 
 .PHONY: clean
 clean:

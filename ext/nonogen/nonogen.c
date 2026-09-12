@@ -4,6 +4,10 @@
  * propagation alone, which makes its solution unique and reachable without
  * guessing, and prints it as JSON for `Source::Nonograms` to cache.
  *
+ * A uniformly random half-filled grid gives lines of many one- and two-cell
+ * runs, which read badly and fill the clue gutters; candidates are drawn
+ * clustered instead (see `anneal`) so runs are fewer and longer.
+ *
  *   nonogen --seed 12345 --size 15
  *   nonogen --seed 12345 --rows 10 --cols 20 --density 0.5
  *   nonogen --selftest
@@ -17,9 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdint.h>
+#include <math.h>
 #include <time.h>
 
-#define GENERATOR_VERSION "nonogen-1"
+#define GENERATOR_VERSION "nonogen-2"
 
 #define MAXN 64
 #define MAXK (MAXN / 2 + 1)
@@ -235,6 +240,10 @@ typedef struct {
     int min_passes, max_passes;
     int repair_budget;
     long timeout_ms;
+    double beta;
+    int sweeps;
+    int max_spans;
+    int max_run;
 } Options;
 
 static void clues_from_line(u64 line, int n, int *clue, int *len)
@@ -283,12 +292,125 @@ static void random_grid(u64 *grid, int rows, int cols, int fill)
     for (i = 0; i < fill; i++) grid[cells[i] / cols] |= 1ULL << (cells[i] % cols);
 }
 
+static int cell_bit(const u64 *grid, int r, int c)
+{
+    return (int)((grid[r] >> c) & 1);
+}
+
+/* The number of adjacent unlike pairs involving (r, c) -- that cell's share of
+ * the boundary between the filled and empty regions.
+ */
+static int local_energy(const u64 *grid, int rows, int cols, int r, int c)
+{
+    int v = cell_bit(grid, r, c), e = 0;
+
+    if (r > 0)        e += v != cell_bit(grid, r - 1, c);
+    if (r < rows - 1) e += v != cell_bit(grid, r + 1, c);
+    if (c > 0)        e += v != cell_bit(grid, r, c - 1);
+    if (c < cols - 1) e += v != cell_bit(grid, r, c + 1);
+    return e;
+}
+
+/* Clumps the filled cells together, leaving their number untouched: propose
+ * swapping a random filled cell with a random empty one and accept with
+ * probability min(1, exp(-beta * dE)) on the total boundary length. Shorter
+ * boundary means fewer, longer runs per line. `beta` 0 leaves the grid
+ * uniformly random; both cells are drawn uniformly, so no position in the
+ * grid is favoured. `sweeps` counts proposals per cell.
+ */
+static void anneal(u64 *grid, int rows, int cols, double beta, int sweeps)
+{
+    static int filled[MAXN * MAXN], empty[MAXN * MAXN];
+    int total = rows * cols, nfilled = 0, nempty = 0, i;
+    long n;
+
+    if (beta <= 0.0 || sweeps <= 0) return;
+
+    for (i = 0; i < total; i++) {
+        if (cell_bit(grid, i / cols, i % cols)) filled[nfilled++] = i;
+        else empty[nempty++] = i;
+    }
+    if (!nfilled || !nempty) return;
+
+    for (n = 0; n < (long)sweeps * total; n++) {
+        int fslot = (int)rng_below((u64)nfilled), eslot = (int)rng_below((u64)nempty);
+        int fi = filled[fslot], ei = empty[eslot];
+        int fr = fi / cols, fc = fi % cols, er = ei / cols, ec = ei % cols;
+        int before, after;
+
+        before = local_energy(grid, rows, cols, fr, fc) +
+                 local_energy(grid, rows, cols, er, ec);
+        grid[fr] ^= 1ULL << fc;
+        grid[er] ^= 1ULL << ec;
+        after = local_energy(grid, rows, cols, fr, fc) +
+                local_energy(grid, rows, cols, er, ec);
+
+        if (after > before &&
+            (double)rng_next() / 18446744073709551616.0 >= exp(-beta * (after - before))) {
+            grid[fr] ^= 1ULL << fc;
+            grid[er] ^= 1ULL << ec;
+            continue;
+        }
+        filled[fslot] = ei;
+        empty[eslot] = fi;
+    }
+}
+
+/* Clustering strength per size, calibrated so a line carries about as many
+ * runs as one from puzzle-nonograms of that size does. Keyed on the longer
+ * side, so a non-square grid still has an answer. Changing these changes
+ * every puzzle: bump GENERATOR_VERSION with them.
+ */
+static double default_beta(int rows, int cols)
+{
+    int n = rows > cols ? rows : cols;
+
+    if (n <= 5) return 0.3;
+    if (n <= 10) return 0.6;
+    if (n <= 15) return 0.7;
+    return 0.8;
+}
+
 static int has_empty_line(const Puzzle *p)
 {
     int i;
 
     for (i = 0; i < p->rows; i++) if (p->row_len[i] == 0) return 1;
     for (i = 0; i < p->cols; i++) if (p->col_len[i] == 0) return 1;
+    return 0;
+}
+
+/* Rejects a grid with a line of more runs than the clue gutter can carry
+ * legibly. Clustered candidates rarely trip this, which is what makes it
+ * affordable as a plain rejection.
+ */
+static int has_long_line(const Puzzle *p, int max_spans)
+{
+    int i;
+
+    if (max_spans <= 0) return 0;
+    for (i = 0; i < p->rows; i++) if (p->row_len[i] > max_spans) return 1;
+    for (i = 0; i < p->cols; i++) if (p->col_len[i] > max_spans) return 1;
+    return 0;
+}
+
+/* Rejects a line whose longest run is too long. `max_run` 0 asks for the
+ * implicit cap of one cell short of the line, which is what keeps a solid row
+ * or column -- the one clue that gives its whole line away -- out of the small
+ * sizes, where half-filled grids throw them up often.
+ */
+static int has_long_run(const Puzzle *p, int max_run)
+{
+    int row_cap = max_run > 0 ? max_run : p->cols - 1;
+    int col_cap = max_run > 0 ? max_run : p->rows - 1;
+    int i, j;
+
+    for (i = 0; i < p->rows; i++)
+        for (j = 0; j < p->row_len[i]; j++)
+            if (p->row_clue[i][j] > row_cap) return 1;
+    for (i = 0; i < p->cols; i++)
+        for (j = 0; j < p->col_len[i]; j++)
+            if (p->col_clue[i][j] > col_cap) return 1;
     return 0;
 }
 
@@ -343,12 +465,14 @@ static long generate(const Options *opt, u64 *grid, Puzzle *p, int *passes_out)
     p->rows = opt->rows;
     p->cols = opt->cols;
     random_grid(grid, opt->rows, opt->cols, opt->fill);
+    anneal(grid, opt->rows, opt->cols, opt->beta, opt->sweeps);
 
     for (;;) {
         int passes = 0, solved = 0, r;
 
         clues_from_grid(grid, p);
-        if (opt->allow_empty_lines || !has_empty_line(p)) {
+        if ((opt->allow_empty_lines || !has_empty_line(p)) &&
+            !has_long_line(p, opt->max_spans) && !has_long_run(p, opt->max_run)) {
             solves++;
             solved = grid_solve(p, &passes, known, NULL);
             if (solved &&
@@ -368,6 +492,7 @@ static long generate(const Options *opt, u64 *grid, Puzzle *p, int *passes_out)
 
         if (repairs_left-- <= 0 || !repair_grid(grid, known, opt->rows, opt->cols)) {
             random_grid(grid, opt->rows, opt->cols, opt->fill);
+            anneal(grid, opt->rows, opt->cols, opt->beta, opt->sweeps);
             repairs_left = opt->repair_budget;
         }
     }
@@ -533,13 +658,14 @@ static int selftest_puzzles(long count)
     int failures = 0;
 
     for (t = 0; t < count; t++) {
-        Options opt = { 0, 0, 0, 0, 0, 0, 50, 10000 };
+        Options opt = { 0, 0, 0, 0, 0, 0, 50, 10000, 0.0, 20, 6, 0 };
         Puzzle p, derived;
         u64 grid[MAXN], recovered[MAXN];
         int n = sizes[t % 3], passes = 0, r;
 
         opt.rows = opt.cols = n;
         opt.fill = (n * n + 1) / 2;
+        opt.beta = default_beta(n, n);
         if (generate(&opt, grid, &p, &passes) < 0) {
             printf("generate timed out at %dx%d\n", n, n);
             return ++failures;
@@ -549,6 +675,11 @@ static int selftest_puzzles(long count)
         clues_from_grid(grid, &derived);
         if (!clues_match(&derived, &p)) {
             printf("clues do not describe the emitted grid at %dx%d\n", n, n);
+            failures++;
+        }
+        if (has_empty_line(&p) || has_long_line(&p, opt.max_spans) ||
+            has_long_run(&p, opt.max_run)) {
+            printf("emitted puzzle breaks its line constraints at %dx%d\n", n, n);
             failures++;
         }
         if (!grid_solve(&p, NULL, NULL, recovered)) {
@@ -580,6 +711,7 @@ static void usage(void)
 {
     fprintf(stderr,
             "usage: nonogen --seed N [--size N | --rows N --cols N] [--density D]\n"
+            "               [--beta B] [--sweeps N] [--max-spans N] [--max-run N]\n"
             "               [--allow-empty-lines] [--min-passes N] [--max-passes N]\n"
             "               [--repair N] [--timeout-ms N]\n"
             "       nonogen --selftest [--cases N]\n");
@@ -587,8 +719,8 @@ static void usage(void)
 
 int main(int argc, char **argv)
 {
-    Options opt = { 15, 0, 0, 0, 0, 0, 50, 10000 };
-    double density = 0.5;
+    Options opt = { 15, 0, 0, 0, 0, 0, 50, 10000, 0.0, 20, 6, 0 };
+    double density = 0.5, beta = -1.0;
     u64 seed = 0;
     long cases = 200000, solves;
     int run_selftest = 0, have_seed = 0, passes = 0, i;
@@ -605,6 +737,10 @@ int main(int argc, char **argv)
         else if (!strcmp(arg, "--rows")) opt.rows = atoi(argv[++i]);
         else if (!strcmp(arg, "--cols")) opt.cols = atoi(argv[++i]);
         else if (!strcmp(arg, "--density")) density = atof(argv[++i]);
+        else if (!strcmp(arg, "--beta")) beta = atof(argv[++i]);
+        else if (!strcmp(arg, "--sweeps")) opt.sweeps = atoi(argv[++i]);
+        else if (!strcmp(arg, "--max-spans")) opt.max_spans = atoi(argv[++i]);
+        else if (!strcmp(arg, "--max-run")) opt.max_run = atoi(argv[++i]);
         else if (!strcmp(arg, "--min-passes")) opt.min_passes = atoi(argv[++i]);
         else if (!strcmp(arg, "--max-passes")) opt.max_passes = atoi(argv[++i]);
         else if (!strcmp(arg, "--repair")) opt.repair_budget = atoi(argv[++i]);
@@ -616,6 +752,9 @@ int main(int argc, char **argv)
     }
 
     if (!opt.cols) opt.cols = opt.rows;
+    /* Negative means the caller said nothing, so take the calibrated default;
+       `--beta 0` is a deliberate request for an unclustered grid. */
+    opt.beta = beta < 0.0 ? default_beta(opt.rows, opt.cols) : beta;
     rng_seed(seed);
 
     if (run_selftest) return selftest(cases) ? 1 : 0;
