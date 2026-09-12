@@ -7,6 +7,7 @@ class Source::Nonograms < Source
   # solving against a future change to the generator.
   GENERATOR = Rails.root.join('ext/nonogen/nonogen').to_s.freeze
   DENSITY = '0.5'.freeze
+  DIAGNOSTICS = %w[passes solves].freeze
 
   def fetch(series, identifier)
     key = "#{series}/#{identifier}"
@@ -65,19 +66,24 @@ class Source::Nonograms < Source
     return nil unless identifier.to_s.match?(/\A\d+\z/)
     return nil unless (meta[:first_puzzle]..meta[:last_puzzle]).cover?(identifier.to_i)
 
-    stdout, status = Open3.capture2(
-      GENERATOR,
-      '--seed', identifier.to_s,
-      '--size', meta[:size].to_s,
-      '--density', DENSITY,
-    )
+    stdout, status = begin
+      Open3.capture2(
+        GENERATOR,
+        '--seed', identifier.to_s,
+        '--size', meta[:size].to_s,
+        '--density', DENSITY,
+      )
+    rescue Errno::ENOENT, Errno::EACCES => e
+      Rails.logger.error("[Source::Nonograms] cannot run #{GENERATOR}: #{e.message}")
+      return nil
+    end
     return nil unless status.success?
 
     data = JSON.parse(stdout)
     return nil unless generated?(data, meta[:size])
 
     { 'type' => 'nonogram', 'id' => identifier.to_s, 'size' => meta[:size] }
-      .merge(data)
+      .merge(data.except(*DIAGNOSTICS))
       .merge('name' => puzzle_name(series, identifier))
   end
 

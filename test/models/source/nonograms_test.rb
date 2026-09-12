@@ -50,7 +50,7 @@ class Source::NonogramsTest < ActiveSupport::TestCase
   # line reaches its arithmetic limit of runs; a solid line gives itself away.
   test "fetch keeps every line inside the generator's clue limits" do
     { 'nonogram-5' => 5, 'nonogram-15' => 15, 'nonogram-25' => 25 }.each do |series, size|
-      clues = JSON.parse(source.fetch(series, '8675309')).values_at('rowClues', 'colClues').flatten(1)
+      clues = JSON.parse(source.fetch(series, '867530')).values_at('rowClues', 'colClues').flatten(1)
       spans = clues.map(&:length).max
       longest = clues.flatten.max
 
@@ -101,6 +101,29 @@ class Source::NonogramsTest < ActiveSupport::TestCase
     refute REDIS.exists?('nonogram-5/9'), "a failed generation should not be cached"
   end
 
+  test "fetch returns nil when the generator has not been built" do
+    original = Source::Nonograms::GENERATOR
+    silence_warnings { Source::Nonograms.const_set(:GENERATOR, Rails.root.join('ext/nonogen/absent').to_s) }
+
+    begin
+      assert_nil source.fetch('nonogram-5', '9')
+    ensure
+      silence_warnings { Source::Nonograms.const_set(:GENERATOR, original) }
+    end
+
+    refute REDIS.exists?('nonogram-5/9'), "a missing generator should not be cached"
+  end
+
+  # The version is kept so a cached puzzle says what made it; the counters
+  # behind it are generator diagnostics no client has any use for.
+  test "fetch caches the generator version but not its run counters" do
+    data = JSON.parse(source.fetch('nonogram-5', '9'))
+
+    assert_match(/\Anonogen-/, data['generator'])
+    refute data.key?('passes'), "passes reached the cache"
+    refute data.key?('solves'), "solves reached the cache"
+  end
+
   test "fetch returns nil when the generator emits a puzzle of the wrong size" do
     wrong_size = source.fetch('nonogram-10', '4242')
     REDIS.flushdb
@@ -117,6 +140,16 @@ class Source::NonogramsTest < ActiveSupport::TestCase
 
     assert status.success?, "selftest failed: #{out}"
     assert_includes out, '0 failures'
+  end
+
+  test "the generator gives up on an unsatisfiable request rather than spinning" do
+    out, status = Open3.capture2e(
+      Source::Nonograms::GENERATOR,
+      '--seed', '1', '--size', '10', '--max-run', '1', '--timeout-ms', '200',
+    )
+
+    refute status.success?
+    assert_match(/no puzzle found/, out)
   end
 
   # --- random_identifier ---

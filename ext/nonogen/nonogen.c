@@ -458,7 +458,7 @@ static int repair_grid(u64 *grid, const u64 *known, int rows, int cols)
 static long generate(const Options *opt, u64 *grid, Puzzle *p, int *passes_out)
 {
     double deadline = now_ms() + (double)opt->timeout_ms;
-    long solves = 0;
+    long solves = 0, attempts = 0;
     int repairs_left = opt->repair_budget;
     u64 known[MAXN];
 
@@ -488,7 +488,7 @@ static long generate(const Options *opt, u64 *grid, Puzzle *p, int *passes_out)
             for (r = 0; r < opt->rows; r++) known[r] = 0;
         }
 
-        if ((solves & 15) == 0 && now_ms() > deadline) return -1;
+        if ((attempts++ & 15) == 0 && now_ms() > deadline) return -1;
 
         if (repairs_left-- <= 0 || !repair_grid(grid, known, opt->rows, opt->cols)) {
             random_grid(grid, opt->rows, opt->cols, opt->fill);

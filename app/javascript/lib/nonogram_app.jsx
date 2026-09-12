@@ -511,13 +511,11 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   );
 
   const derivedRef = useRef(NOTHING_DERIVED);
-  const derived = useMemo(() => {
-    const next = derive(
-      board, dimensions, clues, marks, settings.autoMark ? null : derivedRef.current,
-    );
-    derivedRef.current = next;
-    return next;
-  }, [board, clues, dimensions, marks, settings.autoMark]);
+  const derived = useMemo(
+    () => derive(board, dimensions, clues, marks, settings.autoMark ? null : derivedRef.current),
+    [board, clues, dimensions, marks, settings.autoMark],
+  );
+  useEffect(() => { derivedRef.current = derived; }, [derived]);
 
   return (
     <div className={settings.highlightLines ? 'nonogram nonogram-highlighting' : 'nonogram'}>
