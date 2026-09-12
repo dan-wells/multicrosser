@@ -1,19 +1,13 @@
 class Source::Guardian < Source
   def fetch(series, identifier)
-    key = "#{series}/#{identifier}"
-    cached = ::REDIS.get(key)
-    return cached if cached.present?
-
-    response = Faraday.get(publisher_url(series, identifier))
-    html = Nokogiri::HTML(response.body)
-    island = html.css('gu-island[name="CrosswordComponent"]')
-    return nil unless island.any?
-    props = island.first['props']
-    return nil unless props
-    outer = JSON.parse(CGI.unescapeHTML(props))
-    data = outer['data'].to_json
-    ::REDIS.set(key, data)
-    data
+    cached("#{series}/#{identifier}") do
+      response = Faraday.get(publisher_url(series, identifier))
+      html = Nokogiri::HTML(response.body)
+      island = html.css('gu-island[name="CrosswordComponent"]')
+      props = island.any? ? island.first['props'] : nil
+      next nil unless props
+      JSON.parse(CGI.unescapeHTML(props))['data'].to_json
+    end
   rescue JSON::ParserError
     nil
   end

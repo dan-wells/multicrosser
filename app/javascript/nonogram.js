@@ -7,7 +7,8 @@ import Nonogram from './lib/nonogram_app';
 import { createSubscriptions } from './lib/subscription';
 import RemotePresence from './lib/remote_presence';
 import { toGrid, overlayPending } from './lib/grid';
-import generateId from './lib/generate_id';
+import sessionIdFor from './lib/session_id';
+import createCursorSender from './lib/cursor_sender';
 import { recordSeries, recordPuzzle, recordRoom } from './lib/history_storage';
 
 const nonogramElement = document.getElementsByClassName('js-nonogram')[0];
@@ -20,19 +21,6 @@ const [series, identifier] = crosswordIdentifier.split('/');
 recordSeries(series);
 recordPuzzle(series, identifier);
 recordRoom(room);
-
-function getSessionId() {
-  try {
-    let id = sessionStorage.getItem('crossword-session-id');
-    if (!id) {
-      id = generateId();
-      sessionStorage.setItem('crossword-session-id', id);
-    }
-    return id;
-  } catch (e) {
-    return generateId();
-  }
-}
 
 const controlRef = React.createRef();
 const root = createRoot(nonogramElement);
@@ -79,25 +67,13 @@ const mount = (onMoveBatch, onCursor) => {
   buildCellMap();
 };
 
-let lastCursorPayload = null;
-let cursorDebounce = null;
-
-const sendCursor = (presenceSub, payload) => {
-  const serialized = JSON.stringify(payload);
-  if (serialized === lastCursorPayload) return;
-  lastCursorPayload = serialized;
-  if (cursorDebounce) clearTimeout(cursorDebounce);
-  cursorDebounce = setTimeout(() => {
-    cursorDebounce = null;
-    presenceSub.cursor(payload);
-  }, 50);
-};
+const sendCursor = createCursorSender((payload) => presenceSub.cursor(payload));
 
 const { moves: movesSub, presence: presenceSub } = createSubscriptions(
   crosswordIdentifier,
   room,
   data.dimensions,
-  getSessionId(),
+  sessionIdFor(),
   onReceiveMove,
   (initialState, pendingMoves, initialSpaces) => {
     const board = toGrid(initialState, data.dimensions);
@@ -110,7 +86,7 @@ const { moves: movesSub, presence: presenceSub } = createSubscriptions(
     if (!mounted) {
       mount(
         (batch) => movesSub.moveBatch(batch),
-        (payload) => sendCursor(presenceSub, payload),
+        sendCursor,
       );
       mounted = true;
     }

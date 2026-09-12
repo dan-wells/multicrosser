@@ -3,9 +3,10 @@ import React, {
 } from 'react';
 import NonogramGrid, { gridLayout, MIN_CELL, MAX_CELL } from './nonogram_grid';
 import {
-  EMPTY, ROW, CURSOR_MODES, UndoStack,
-  cellKey, markKey, derive, NOTHING_DERIVED, clickValue, dragCells, isSolved, invertStroke,
+  EMPTY, CURSOR_MODES, UndoStack, MARK_FIELD, markSpace,
+  cellKey, markKey, parseKey, derive, NOTHING_DERIVED, clickValue, dragCells, isSolved, invertStroke,
 } from './nonogram_logic';
+import { safeGet, safeSet } from './history_storage';
 
 const CONFIRM_MS = 3000;
 
@@ -51,14 +52,6 @@ const DEFAULT_SETTINGS = {
   highlightLines: false,
   autoMark: false,
   touchDrag: false,
-};
-
-const safeGet = (key) => {
-  try { return localStorage.getItem(key); } catch (e) { return null; }
-};
-
-const safeSet = (key, value) => {
-  try { localStorage.setItem(key, value); } catch (e) { /* unavailable in e.g. private browsing */ }
 };
 
 function loadSettings() {
@@ -142,7 +135,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   // The clue-tick counterpart of `writeCells`, down to the previous values, so
   // a tick travels and is undone by the same machinery a stroke is.
   const writeMarks = useCallback((space, cells, value) => {
-    const field = space === 'row_marks' ? 'rowMarks' : 'colMarks';
+    const field = MARK_FIELD[space];
     const updated = { ...marksRef.current[field] };
     const written = cells.map(({ x, y }) => {
       const key = markKey(x, y);
@@ -173,31 +166,16 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   }, [onMoveBatch, writeCells, writeMarks]);
 
   const setMark = useCallback((axis, line, index) => {
-    const field = axis === ROW ? 'rowMarks' : 'colMarks';
-    const value = marksRef.current[field][markKey(line, index)] ? EMPTY : '1';
-    sendStroke(axis === ROW ? 'row_marks' : 'col_marks', [{ x: line, y: index }], value);
+    const space = markSpace(axis);
+    const value = marksRef.current[MARK_FIELD[space]][markKey(line, index)] ? EMPTY : '1';
+    sendStroke(space, [{ x: line, y: index }], value);
   }, [sendStroke]);
 
   // The entry point drives these as messages arrive from the other players.
-  useImperativeHandle(controlRef, () => ({
-    applyMove({ space, x, y, value }) {
-      if (space === 'row_marks' || space === 'col_marks') {
-        const field = space === 'row_marks' ? 'rowMarks' : 'colMarks';
-        commitMarks({
-          ...marksRef.current,
-          [field]: { ...marksRef.current[field], [markKey(x, y)]: value },
-        });
-        return;
-      }
-      const next = boardRef.current.map((column) => column.slice());
-      if (!next[x]) return;
-      next[x][y] = value;
-      commitBoard(next, [cellKey(x, y)]);
-    },
-
-    applyBatch({ space, value, cells }) {
-      if (space === 'row_marks' || space === 'col_marks') {
-        const field = space === 'row_marks' ? 'rowMarks' : 'colMarks';
+  useImperativeHandle(controlRef, () => {
+    const applyBatch = ({ space, value, cells }) => {
+      const field = MARK_FIELD[space];
+      if (field) {
         const updated = { ...marksRef.current[field] };
         cells.forEach(({ x, y }) => { updated[markKey(x, y)] = value; });
         commitMarks({ ...marksRef.current, [field]: updated });
@@ -206,19 +184,24 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
       const next = boardRef.current.map((column) => column.slice());
       cells.forEach(({ x, y }) => { if (next[x]) next[x][y] = value; });
       commitBoard(next, cells.map(({ x, y }) => cellKey(x, y)));
-    },
+    };
 
-    // A fresh subscription replaces everything wholesale.
-    replaceState(nextBoard, spaces) {
-      boardRef.current = nextBoard;
-      setBoard(nextBoard);
-      setSolvedAt(isSolved(data, nextBoard) ? elapsedRef.current : null);
-      commitMarks({
-        rowMarks: (spaces && spaces.row_marks) || {},
-        colMarks: (spaces && spaces.col_marks) || {},
-      });
-    },
-  }), [commitBoard, commitMarks, data]);
+    return {
+      applyBatch,
+      applyMove: ({ space, x, y, value }) => applyBatch({ space, value, cells: [{ x, y }] }),
+
+      // A fresh subscription replaces everything wholesale.
+      replaceState(nextBoard, spaces) {
+        boardRef.current = nextBoard;
+        setBoard(nextBoard);
+        setSolvedAt(isSolved(data, nextBoard) ? elapsedRef.current : null);
+        commitMarks({
+          rowMarks: (spaces && spaces.row_marks) || {},
+          colMarks: (spaces && spaces.col_marks) || {},
+        });
+      },
+    };
+  }, [commitBoard, commitMarks, data]);
 
   // --- pointer handling -------------------------------------------------
 
@@ -430,12 +413,12 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     }
     sendStroke('board', cells, EMPTY, false);
 
-    [['row_marks', 'rowMarks'], ['col_marks', 'colMarks']].forEach(([space, field]) => {
+    Object.entries(MARK_FIELD).forEach(([space, field]) => {
       const ticked = Object.keys(marksRef.current[field])
         .filter((key) => marksRef.current[field][key])
         .map((key) => {
-          const [line, index] = key.split('-');
-          return { x: Number(line), y: Number(index) };
+          const [line, index] = parseKey(key);
+          return { x: line, y: index };
         });
       sendStroke(space, ticked, EMPTY, false);
     });

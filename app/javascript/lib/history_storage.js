@@ -1,11 +1,17 @@
 const HISTORY_LIMIT = 5;
 const ROOM_HEX_PATTERN = /^[0-9a-f]{6,8}$/;
 
-const safeSet = (key, value) => {
+export const safeGet = (key) => {
+  try { return localStorage.getItem(key); } catch (e) { return null; }
+};
+
+export const safeSet = (key, value) => {
   try { localStorage.setItem(key, value); } catch (e) { /* unavailable in e.g. Safari Private Browsing */ }
 };
 
-const readList = (key) => JSON.parse(localStorage.getItem(key) || '[]');
+const readList = (key) => {
+  try { return JSON.parse(safeGet(key) || '[]'); } catch (e) { return []; }
+};
 
 const writeList = (key, items) => {
   safeSet(key, JSON.stringify(items.slice(0, HISTORY_LIMIT)));
@@ -40,6 +46,6 @@ export const recordDay = (day) => {
 
 export const previousPuzzles = (series) => readList(`previous-puzzles-${series}`);
 export const previousRooms = () => readList('previous-rooms');
-export const lastSeries = () => localStorage.getItem('last-series');
-export const lastRoom = () => localStorage.getItem('last-room');
-export const lastDay = () => localStorage.getItem('last-day');
+export const lastSeries = () => safeGet('last-series');
+export const lastRoom = () => safeGet('last-room');
+export const lastDay = () => safeGet('last-day');

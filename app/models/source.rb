@@ -21,6 +21,15 @@ class Source
     raise NotImplementedError
   end
 
+  def cached(key)
+    existing = ::REDIS.get(key)
+    return existing if existing.present?
+
+    json = yield or return nil
+    ::REDIS.set(key, json)
+    json
+  end
+
   def publisher_url(series, identifier)
     raise NotImplementedError
   end

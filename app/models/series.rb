@@ -1,4 +1,6 @@
 class Series
+  NONOGRAM_SIZES = [5, 10, 15, 20, 25].freeze
+
   #SERIES = ['quiptic', 'quick', 'weekend', 'cryptic', 'speedy', 'prize', 'everyman']
   SERIES = {
     'cryptic' => { source: 'guardian', first_puzzle: 21620, days: 1..5 },
@@ -6,17 +8,12 @@ class Series
     'quiptic' => { source: 'guardian', first_puzzle: 1 },
     #'quick' => { source: 'guardian', first_puzzle: 9093 },
     'nytimes' => { source: 'nytimes', first_puzzle: '080602', days: 1..7, display_name: 'New York Times' },
-    'nonogram-5' => { source: 'nonograms', first_puzzle: 1, last_puzzle: 999_999,
-                      size: 5, display_name: '5x5 Nonograms' },
-    'nonogram-10' => { source: 'nonograms', first_puzzle: 1, last_puzzle: 999_999,
-                       size: 10, display_name: '10x10 Nonograms' },
-    'nonogram-15' => { source: 'nonograms', first_puzzle: 1, last_puzzle: 999_999,
-                       size: 15, display_name: '15x15 Nonograms' },
-    'nonogram-20' => { source: 'nonograms', first_puzzle: 1, last_puzzle: 999_999,
-                       size: 20, display_name: '20x20 Nonograms' },
-    'nonogram-25' => { source: 'nonograms', first_puzzle: 1, last_puzzle: 999_999,
-                       size: 25, display_name: '25x25 Nonograms' },
-  }
+  }.merge(
+    NONOGRAM_SIZES.to_h do |size|
+      ["nonogram-#{size}", { source: 'nonograms', first_puzzle: 1, last_puzzle: 999_999,
+                             size: size, display_name: "#{size}x#{size} Nonograms" }]
+    end
+  )
 
   # The picker collapses a family of series -- the nonogram sizes -- into one
   # dropdown entry plus a selector for the member, so the dropdown stays short.

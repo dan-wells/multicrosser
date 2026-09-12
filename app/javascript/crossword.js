@@ -6,7 +6,8 @@ import './lib/crossword-overrides.css';
 import { createSubscriptions } from './lib/subscription';
 import { toGrid, overlayPending } from './lib/grid';
 import RemotePresence from './lib/remote_presence';
-import generateId from './lib/generate_id';
+import sessionIdFor from './lib/session_id';
+import createCursorSender from './lib/cursor_sender';
 import { recordSeries, recordPuzzle, recordRoom } from './lib/history_storage';
 
 const crosswordElement = document.getElementsByClassName('js-crossword')[0];
@@ -21,21 +22,7 @@ recordSeries(series);
 recordPuzzle(series, identifier);
 recordRoom(room);
 
-// Per-tab session ID for presence. sessionStorage means a reload reuses the
-// same id; a new tab gets a new one (each tab is an independent cursor).
-function getSessionId() {
-  try {
-    let id = sessionStorage.getItem('crossword-session-id');
-    if (!id) {
-      id = generateId();
-      sessionStorage.setItem('crossword-session-id', id);
-    }
-    return id;
-  } catch (e) {
-    return generateId();
-  }
-}
-const sessionId = getSessionId();
+const sessionId = sessionIdFor();
 
 // Map of entry id -> array of [x, y] cells. Computed once from crosswordData so
 // we can resolve "selected clue -> cells" without inspecting DOM tinting (which
@@ -183,9 +170,6 @@ const { moves: movesSub, presence: presenceSub } = createSubscriptions(
 // Detect our own cursor cell (from focus) and selected clue (from the clue list's
 // aria-selected option) and broadcast the new state.
 
-let lastCursorPayload = null;
-let cursorDebounce = null;
-
 function currentCursorCell() {
   const active = document.activeElement;
   if (!active) return null;
@@ -214,26 +198,23 @@ function applyLocalEntry() {
   remotePresence.setLocalEntry(entry?.id);
 }
 
-function sendCursor() {
+function cursorPayload() {
   const cursor = currentCursorCell();
-  if (!cursor) return;
+  if (!cursor) return null;
   const entry = currentSelectedEntry();
-  const entryId = entry ? entry.id : null;
-  const entryCells = entry ? entry.cells : [];
-  const payload = { x: cursor.x, y: cursor.y, entry_id: entryId, entry_cells: entryCells };
-  const serialized = JSON.stringify(payload);
-  if (serialized === lastCursorPayload) return;
-  lastCursorPayload = serialized;
-  presenceSub.cursor(payload);
+  return {
+    x: cursor.x,
+    y: cursor.y,
+    entry_id: entry ? entry.id : null,
+    entry_cells: entry ? entry.cells : [],
+  };
 }
+
+const sendCursor = createCursorSender((payload) => presenceSub.cursor(payload));
 
 function scheduleCursorUpdate() {
   applyLocalEntry();
-  if (cursorDebounce) clearTimeout(cursorDebounce);
-  cursorDebounce = setTimeout(() => {
-    cursorDebounce = null;
-    sendCursor();
-  }, 50);
+  sendCursor(cursorPayload);
 }
 
 function installCursorTracking() {

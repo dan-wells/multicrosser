@@ -676,6 +676,24 @@ describe('Nonogram', () => {
     expect(handlers.onMoveBatch).not.toHaveBeenCalled();
   });
 
+  it('applies a single move arriving from another player', () => {
+    const controlRef = createRef();
+    const svg = mount({ controlRef });
+
+    act(() => { controlRef.current.applyMove({ space: 'board', x: 2, y: 1, value: '1' }); });
+
+    expect(svg.querySelectorAll('.nonogram-cell-fill')).toHaveLength(1);
+  });
+
+  it('applies a clue tick arriving from another player', () => {
+    const controlRef = createRef();
+    mount({ controlRef });
+
+    act(() => { controlRef.current.applyMove({ space: 'row_marks', x: 0, y: 0, value: '1' }); });
+
+    expect(container.querySelectorAll('.nonogram-clue.is-marked')).toHaveLength(1);
+  });
+
   it('announces the puzzle as solved once the grid matches the solution', () => {
     const controlRef = createRef();
     mount({ controlRef });

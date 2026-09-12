@@ -16,6 +16,12 @@ export const cellKey = (x, y) => `${x}-${y}`;
 // travel over the same `x-y` payload as board cells.
 export const markKey = (line, clueIndex) => `${line}-${clueIndex}`;
 
+export const parseKey = (key) => key.split('-').map(Number);
+
+export const MARK_FIELD = { row_marks: 'rowMarks', col_marks: 'colMarks' };
+
+export const markSpace = (axis) => (axis === ROW ? 'row_marks' : 'col_marks');
+
 export const lineLength = (axis, dimensions) =>
   (axis === ROW ? dimensions.cols : dimensions.rows);
 
@@ -175,7 +181,7 @@ export function dragCells(start, current) {
 // already filled at either end.
 export function strokeRun(board, pending, dimensions) {
   if (!pending || pending.value !== FILLED || pending.keys.size < 2) return null;
-  const cells = Array.from(pending.keys, (key) => key.split('-').map(Number));
+  const cells = Array.from(pending.keys, parseKey);
   const [firstX, firstY] = cells[0];
   const axis = cells.every(([, y]) => y === firstY) ? ROW : COL;
   const line = axis === ROW ? firstY : firstX;

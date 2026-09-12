@@ -10,14 +10,7 @@ class Source::Nonograms < Source
   DIAGNOSTICS = %w[passes solves].freeze
 
   def fetch(series, identifier)
-    key = "#{series}/#{identifier}"
-    cached = ::REDIS.get(key)
-    return cached if cached.present?
-
-    data = generate(series, identifier) or return nil
-    json = data.to_json
-    ::REDIS.set(key, json)
-    json
+    cached("#{series}/#{identifier}") { generate(series, identifier)&.to_json }
   end
 
   def publisher_url(_series, _identifier)
