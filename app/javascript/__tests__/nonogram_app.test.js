@@ -255,6 +255,18 @@ describe('Nonogram', () => {
     expect(handlers.onMoveBatch.mock.calls[0][0].cells).toHaveLength(4);
   });
 
+  it('keeps a drag that is released past the edge of the grid', () => {
+    const svg = mount();
+
+    pointer(svg, 'pointerdown', { x: 0, y: 2 });
+    pointer(svg, 'pointermove', { x: 3, y: 2 });
+    // Off the right-hand edge: the release reports no cell at all.
+    pointer(svg, 'pointerup', { x: 6, y: 2 });
+
+    expect(handlers.onMoveBatch.mock.calls[0][0].cells).toHaveLength(4);
+    expect(outlined()).toEqual(['0-2', '1-2', '2-2', '3-2']);
+  });
+
   it('outlines a whole drag, cells that already held the value included', () => {
     const svg = mount();
 

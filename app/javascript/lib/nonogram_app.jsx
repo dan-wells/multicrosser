@@ -224,7 +224,7 @@ function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor,
     // so a one-cell drag and a click are the same action.
     const mode = event.button === 2 ? 'cross' : settings.cursorMode;
     const value = clickValue(mode, boardRef.current[cell.x][cell.y]);
-    strokeRef.current = { start: cell, value };
+    strokeRef.current = { start: cell, value, last: cell };
     engagedRef.current = true;
     setCursor(cell);
     setPending({ value, keys: new Set([cellKey(cell.x, cell.y)]) });
@@ -235,6 +235,7 @@ function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor,
     if (!strokeRef.current) return;
     const cell = cellFromEvent(event);
     if (!cell) return;
+    strokeRef.current.last = cell;
     const cells = dragCells(strokeRef.current.start, cell);
     setPending({
       value: strokeRef.current.value,
@@ -247,7 +248,7 @@ function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor,
     const stroke = strokeRef.current;
     if (!stroke) return;
     strokeRef.current = null;
-    const cell = cellFromEvent(event) || stroke.start;
+    const cell = cellFromEvent(event) || stroke.last;
     setPending(null);
     sendStroke(dragCells(stroke.start, cell), stroke.value);
   }, [cellFromEvent, sendStroke]);
