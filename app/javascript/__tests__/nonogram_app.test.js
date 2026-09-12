@@ -210,7 +210,7 @@ describe('Nonogram', () => {
 
     expect(panel.hidden).toBe(true);
     expect(Array.from(panel.querySelectorAll('input')).map((box) => box.checked))
-      .toEqual([false, false, false]);
+      .toEqual([false, false, false, false]);
 
     act(() => { cog.click(); });
     expect(panel.hidden).toBe(false);
@@ -286,6 +286,24 @@ describe('Nonogram', () => {
 
     expect(handlers.onMoveBatch).not.toHaveBeenCalled();
     expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);
+  });
+
+  it('lets a finger drag once tap and drag is switched on', () => {
+    const svg = mount();
+    const touchDrag = Array.from(container.querySelectorAll('label'))
+      .find((label) => label.textContent.includes('Enable tap and drag'))
+      .querySelector('input');
+
+    act(() => { touchDrag.click(); });
+    // The browser's own gestures over the grid go with it.
+    expect(svg.getAttribute('class')).toContain('is-touch-drag');
+
+    finger(svg, 'pointerdown', { x: 0, y: 2 });
+    finger(svg, 'pointermove', { x: 3, y: 2 });
+    finger(svg, 'pointerup', { x: 3, y: 2 });
+
+    expect(handlers.onMoveBatch).toHaveBeenCalledTimes(1);
+    expect(handlers.onMoveBatch.mock.calls[0][0].cells).toHaveLength(4);
   });
 
   it('abandons a drag when a second finger lands, so a pinch draws nothing', () => {

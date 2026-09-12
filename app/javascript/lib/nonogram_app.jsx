@@ -50,6 +50,7 @@ const DEFAULT_SETTINGS = {
   showCounter: false,
   highlightLines: false,
   autoMark: false,
+  touchDrag: false,
 };
 
 const safeGet = (key) => {
@@ -251,8 +252,9 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     const mode = event.button === 2 ? 'cross' : settings.cursorMode;
     const value = clickValue(mode, boardRef.current[cell.x][cell.y]);
     // Touch controls differ: we only allow tapping, not dragging, so not to
-    // conflict with mobile browser gestures like pinch-to-zoom.
-    const tap = event.pointerType === 'touch';
+    // conflict with mobile browser gestures like pinch-to-zoom. The setting
+    // trades those gestures back for dragging.
+    const tap = event.pointerType === 'touch' && !settings.touchDrag;
     strokeRef.current = { start: cell, value, last: cell, tap };
     engagedRef.current = true;
     setCursor(cell);
@@ -264,7 +266,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
       wrapperRef.current.focus();
     }
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch (e) { /* no capture in jsdom */ }
-  }, [abandonStroke, cellFromEvent, settings.cursorMode]);
+  }, [abandonStroke, cellFromEvent, settings.cursorMode, settings.touchDrag]);
 
   const handlePointerMove = useCallback((event) => {
     if (!strokeRef.current || strokeRef.current.tap) return;
@@ -602,6 +604,14 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
             onChange={(event) => updateSetting('highlightLines', event.target.checked)}
           />
           Highlight row and column
+        </label>
+        <label title="Tap and drag to fill a run of cells; conflicts with scrolling and zooming from inside the grid.">
+          <input
+            type="checkbox"
+            checked={settings.touchDrag}
+            onChange={(event) => updateSetting('touchDrag', event.target.checked)}
+          />
+          Enable tap and drag
         </label>
       </div>
     </div>

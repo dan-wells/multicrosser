@@ -336,7 +336,7 @@ export default function NonogramGrid({
   return (
     <svg
       ref={svgRef}
-      className="nonogram-grid"
+      className={settings.touchDrag ? 'nonogram-grid is-touch-drag' : 'nonogram-grid'}
       width={width}
       height={height}
       viewBox={`0 0 ${width} ${height}`}

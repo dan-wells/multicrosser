@@ -147,6 +147,10 @@
   touch-action: manipulation;
 }
 
+.nonogram-grid.is-touch-drag {
+  touch-action: none;
+}
+
 .nonogram-cell-bg {
   fill: transparent;
 }
