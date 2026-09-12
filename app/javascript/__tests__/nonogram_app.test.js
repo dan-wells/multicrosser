@@ -182,6 +182,18 @@ describe('Nonogram', () => {
     expect(container.querySelector('.nonogram-solved').textContent).toBe('Puzzle solved in 02:05');
   });
 
+  it('wraps the clock into hours once it passes one', () => {
+    window.localStorage.setItem('nonogram-timer-test-room', String(73 * 60 + 10));
+    mount();
+    expect(container.querySelector('.nonogram-timer').textContent).toBe('1:13:10');
+
+    act(() => root.unmount());
+    container.remove();
+    window.localStorage.setItem('nonogram-timer-test-room', String(59 * 60 + 59));
+    mount();
+    expect(container.querySelector('.nonogram-timer').textContent).toBe('59:59');
+  });
+
   it('zeroes the timer without touching the grid', () => {
     const svg = mount();
     pointer(svg, 'pointerdown', { x: 1, y: 1 });
