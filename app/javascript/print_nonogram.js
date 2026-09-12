@@ -5,7 +5,7 @@ import './lib/nonogram.css';
 import './lib/print-page.css';
 import './lib/nonogram-print.css';
 import NonogramGrid, { gridLayout } from './lib/nonogram_grid';
-import { EMPTY, derive } from './lib/nonogram_logic';
+import { EMPTY, derive, NOTHING_DERIVED } from './lib/nonogram_logic';
 
 // A4 portrait with 10mm margins leaves 190mm of usable width, which is 718px
 // at the 96dpi Chrome prints at. Stay just inside that, and cap the cell so a
@@ -31,7 +31,7 @@ flushSync(() => {
   root.render(<NonogramGrid
     data={data}
     board={board}
-    derived={derive(board, dimensions, data, marks, false)}
+    derived={derive(board, dimensions, data, marks, NOTHING_DERIVED)}
     marks={marks}
     settings={SETTINGS}
     // No cell is the cursor: -1 is off the grid on both axes.

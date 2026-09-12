@@ -97,20 +97,40 @@ function highlightedLines(board, clues, axis, dimensions, derived) {
   return lines;
 }
 
+// Nothing derived at all, which is also what to allow when the aid is off and
+// has never been on.
+export const NOTHING_DERIVED = {
+  crossedRows: new Set(),
+  crossedCols: new Set(),
+  highlightedRows: new Set(),
+  highlightedCols: new Set(),
+};
+
+const only = (lines, permitted) =>
+  (permitted ? new Set([...lines].filter((line) => permitted.has(line))) : lines);
+
 // Auto-crosses read manual marks only and auto-highlights read the board plus
 // the auto-crosses, so the two resolve in one pass with no iteration, and
 // neither is ever stored -- both clients derive the same thing from the same
 // shared state.
-export function derive(board, dimensions, clues, marks, enabled) {
-  const crossedRows = enabled ? markedOutLines(clues.rowClues, marks.rowMarks) : new Set();
-  const crossedCols = enabled ? markedOutLines(clues.colClues, marks.colMarks) : new Set();
+export function derive(board, dimensions, clues, marks, allowed) {
+  const crossedRows = only(
+    markedOutLines(clues.rowClues, marks.rowMarks), allowed && allowed.crossedRows,
+  );
+  const crossedCols = only(
+    markedOutLines(clues.colClues, marks.colMarks), allowed && allowed.crossedCols,
+  );
   const derived = { crossedRows, crossedCols };
   return {
     ...derived,
-    highlightedRows: enabled
-      ? highlightedLines(board, clues.rowClues, ROW, dimensions, derived) : new Set(),
-    highlightedCols: enabled
-      ? highlightedLines(board, clues.colClues, COL, dimensions, derived) : new Set(),
+    highlightedRows: only(
+      highlightedLines(board, clues.rowClues, ROW, dimensions, derived),
+      allowed && allowed.highlightedRows,
+    ),
+    highlightedCols: only(
+      highlightedLines(board, clues.colClues, COL, dimensions, derived),
+      allowed && allowed.highlightedCols,
+    ),
   };
 }
 

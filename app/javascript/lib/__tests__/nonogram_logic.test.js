@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   EMPTY, FILLED, CROSS, ROW, COL,
-  runs, runsMatch, derive, effectiveValue, filledCount, strokeRun,
+  runs, runsMatch, derive, NOTHING_DERIVED, effectiveValue, filledCount, strokeRun,
   clickValue, dragCells,
   serializeSolution, isSolved, invertStroke, UndoStack, markKey,
 } from '../nonogram_logic';
@@ -61,11 +61,11 @@ describe('derive -- auto-cross', () => {
     const clue2 = { rowClues: [[1, 1]], colClues: [[1], [1], []] };
     const dims = { cols: 3, rows: 1 };
     const partial = derive(emptyBoard(3, 1), dims, clue2,
-      { rowMarks: { [markKey(0, 0)]: '1' }, colMarks: {} }, true);
+      { rowMarks: { [markKey(0, 0)]: '1' }, colMarks: {} });
     expect(partial.crossedRows.has(0)).toBe(false);
 
     const full = derive(emptyBoard(3, 1), dims, clue2,
-      { rowMarks: { [markKey(0, 0)]: '1', [markKey(0, 1)]: '1' }, colMarks: {} }, true);
+      { rowMarks: { [markKey(0, 0)]: '1', [markKey(0, 1)]: '1' }, colMarks: {} });
     expect(full.crossedRows.has(0)).toBe(true);
   });
 
@@ -73,27 +73,45 @@ describe('derive -- auto-cross', () => {
     const board = emptyBoard(3, 2);
     board[0][0] = FILLED;
     board[1][0] = FILLED;
-    const result = derive(board, dimensions, clues, noMarks, true);
+    const result = derive(board, dimensions, clues, noMarks);
     expect(result.crossedRows.size).toBe(0);
     expect(result.crossedCols.size).toBe(0);
   });
 
   it('leaves a clueless line alone rather than crossing it for free', () => {
-    const result = derive(emptyBoard(3, 2), dimensions, clues, noMarks, true);
+    const result = derive(emptyBoard(3, 2), dimensions, clues, noMarks);
     expect(result.crossedCols.has(2)).toBe(false);
   });
 
-  it('derives nothing at all when the toggle is off', () => {
+  it('derives nothing at all when nothing is allowed', () => {
     const marks = { rowMarks: { [markKey(0, 0)]: '1' }, colMarks: {} };
-    const result = derive(emptyBoard(3, 2), dimensions, clues, marks, false);
+    const result = derive(emptyBoard(3, 2), dimensions, clues, marks, NOTHING_DERIVED);
     expect(result.crossedRows.size).toBe(0);
     expect(result.highlightedRows.size).toBe(0);
+  });
+
+  it('holds the lines a previous result carried, but adds no new one', () => {
+    const clueList = { rowClues: [[1], [1]], colClues: [[], [], []] };
+    const dims = { cols: 3, rows: 2 };
+    const ticked = (...rows) => ({
+      rowMarks: Object.fromEntries(rows.map((row) => [markKey(row, 0), '1'])),
+      colMarks: {},
+    });
+
+    const first = derive(emptyBoard(3, 2), dims, clueList, ticked(0));
+    // Row 1 is ticked off now too, but only row 0 was crossed before.
+    const held = derive(emptyBoard(3, 2), dims, clueList, ticked(0, 1), first);
+    expect([...held.crossedRows]).toEqual([0]);
+
+    // Untick row 0 and its crosses go, allowed or not.
+    const gone = derive(emptyBoard(3, 2), dims, clueList, ticked(1), held);
+    expect(gone.crossedRows.size).toBe(0);
   });
 
   it('shows a crossed cell as crossed without anything being stored', () => {
     const board = emptyBoard(3, 2);
     const marks = { rowMarks: { [markKey(0, 0)]: '1' }, colMarks: {} };
-    const result = derive(board, dimensions, clues, marks, true);
+    const result = derive(board, dimensions, clues, marks);
 
     expect(effectiveValue(board, 1, 0, result)).toBe(CROSS);
     expect(board[1][0]).toBe(EMPTY);
@@ -109,7 +127,7 @@ describe('derive -- auto-highlight', () => {
     const board = emptyBoard(2, 1);
     board[0][0] = FILLED;
     board[1][0] = CROSS;
-    const result = derive(board, dimensions, clues, noMarks, true);
+    const result = derive(board, dimensions, clues, noMarks);
     expect(result.highlightedRows.has(0)).toBe(true);
   });
 
@@ -117,14 +135,14 @@ describe('derive -- auto-highlight', () => {
     const board = emptyBoard(2, 1);
     board[0][0] = FILLED;
     board[1][0] = FILLED;
-    const result = derive(board, dimensions, clues, noMarks, true);
+    const result = derive(board, dimensions, clues, noMarks);
     expect(result.highlightedRows.has(0)).toBe(false);
   });
 
   it('does not highlight a line that still has an empty cell', () => {
     const board = emptyBoard(2, 1);
     board[0][0] = FILLED;
-    const result = derive(board, dimensions, clues, noMarks, true);
+    const result = derive(board, dimensions, clues, noMarks);
     expect(result.highlightedRows.has(0)).toBe(false);
   });
 
@@ -135,7 +153,7 @@ describe('derive -- auto-highlight', () => {
     const board = emptyBoard(2, 1);
     board[1][0] = FILLED;
     const marks = { rowMarks: {}, colMarks: { [markKey(0, 0)]: '1' } };
-    const result = derive(board, dimensions, twoWide, marks, true);
+    const result = derive(board, dimensions, twoWide, marks);
 
     expect(result.crossedCols.has(0)).toBe(true);
     expect(result.highlightedRows.has(0)).toBe(true);
@@ -146,7 +164,7 @@ describe('derive -- auto-highlight', () => {
     const crossed = SOLVED_5.map((column) =>
       column.map((value) => (value === EMPTY ? CROSS : value)));
 
-    const result = derive(crossed, PUZZLE_5.dimensions, clues, noMarks, true);
+    const result = derive(crossed, PUZZLE_5.dimensions, clues, noMarks);
     expect(result.highlightedRows.size).toBe(5);
     expect(result.highlightedCols.size).toBe(5);
   });
@@ -156,7 +174,7 @@ describe('derive -- auto-highlight', () => {
   it('highlights nothing on a solved grid whose blanks are still empty', () => {
     const clues = { rowClues: PUZZLE_5.rowClues, colClues: PUZZLE_5.colClues };
 
-    const result = derive(SOLVED_5, PUZZLE_5.dimensions, clues, noMarks, true);
+    const result = derive(SOLVED_5, PUZZLE_5.dimensions, clues, noMarks);
     expect(result.highlightedRows.size).toBe(0);
     expect(isSolved(PUZZLE_5, SOLVED_5)).toBe(true);
   });

@@ -4,7 +4,7 @@ import React, {
 import NonogramGrid, { gridLayout } from './nonogram_grid';
 import {
   EMPTY, ROW, CURSOR_MODES, UndoStack,
-  cellKey, markKey, derive, clickValue, dragCells, isSolved, invertStroke,
+  cellKey, markKey, derive, NOTHING_DERIVED, clickValue, dragCells, isSolved, invertStroke,
 } from './nonogram_logic';
 
 const MIN_CELL = 12;
@@ -419,10 +419,14 @@ function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor,
     [data],
   );
 
-  const derived = useMemo(
-    () => derive(board, dimensions, clues, marks, settings.autoMark),
-    [board, clues, dimensions, marks, settings.autoMark],
-  );
+  const derivedRef = useRef(NOTHING_DERIVED);
+  const derived = useMemo(() => {
+    const next = derive(
+      board, dimensions, clues, marks, settings.autoMark ? null : derivedRef.current,
+    );
+    derivedRef.current = next;
+    return next;
+  }, [board, clues, dimensions, marks, settings.autoMark]);
 
   return (
     <div className="nonogram" data-highlight-lines={settings.highlightLines ? 'true' : 'false'}>

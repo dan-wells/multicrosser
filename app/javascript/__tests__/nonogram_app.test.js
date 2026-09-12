@@ -297,6 +297,36 @@ describe('Nonogram', () => {
     expect(outlined()).toEqual([]);
   });
 
+  it('keeps the crosses the aid has already drawn when it is switched off', () => {
+    const svg = mount();
+    const tick = (clue) => act(() => {
+      svg.querySelector(`[data-clue="${clue}"]`).dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      );
+    });
+    const derived = () => container.querySelectorAll('.nonogram-cell.is-derived').length;
+    const autoMark = Array.from(container.querySelectorAll('label'))
+      .find((label) => label.textContent.includes('Auto cross and tick'))
+      .querySelector('input');
+
+    act(() => { autoMark.click(); });
+    // Row 0's clue is [1, 3]: ticking both numbers crosses the whole row off.
+    tick('row-0-0');
+    tick('row-0-1');
+    expect(derived()).toBe(5);
+
+    act(() => { autoMark.click(); });
+    expect(derived()).toBe(5);
+
+    // Row 1 is ticked off only now the aid is off, so it stays uncrossed.
+    tick('row-1-0');
+    expect(derived()).toBe(5);
+
+    // Untick one of row 0's numbers and its crosses go with it.
+    tick('row-0-0');
+    expect(derived()).toBe(0);
+  });
+
   it('sends a clue tick as a move in that line\'s mark space', () => {
     const svg = mount();
 
