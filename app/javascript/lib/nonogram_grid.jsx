@@ -27,6 +27,9 @@ const edgeReach = (boundary, count) =>
 
 const CLUE_SCALE = 0.75;
 
+// Used to clip thick borders at puzzle edges explicitly.
+const CLIP_ID = 'nonogram-edge-clip';
+
 const NO_CHANGE = new Set();
 
 const clueLengths = (clues) => clues.reduce((longest, clue) => Math.max(longest, clue.length), 1);
@@ -371,7 +374,12 @@ export default function NonogramGrid({
       {strips}
       {cells}
       {outlines}
-      {rules}
+      <defs>
+        <clipPath id={CLIP_ID}>
+          <rect x={0} y={0} width={endX} height={endY} />
+        </clipPath>
+      </defs>
+      <g clipPath={`url(#${CLIP_ID})`}>{rules}</g>
       {clues}
       {counters}
     </svg>

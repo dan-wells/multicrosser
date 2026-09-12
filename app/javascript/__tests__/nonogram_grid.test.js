@@ -131,6 +131,17 @@ describe('NonogramGrid', () => {
     expect(markup).toMatch(/data-strip="col-0"/);
   });
 
+  it('clips the boundary rules to the grid, counters or no counters', () => {
+    const plain = render();
+    const counted = render({ settings: { ...SETTINGS, showCounter: true } });
+    const clip = /<clipPath id="nonogram-edge-clip"><rect[^>]*width="(\d+)"/;
+
+    // The counter column widens the drawing but not the box the rules are cut
+    // to, so the outside edge is drawn the same either way.
+    expect(plain.match(clip)[1]).toBe(counted.match(clip)[1]);
+    expect(counted).toContain('clip-path="url(#nonogram-edge-clip)"');
+  });
+
   it('highlights the cursor row and column only when that is switched on', () => {
     const lined = render({ cursor: { x: 2, y: 3 } });
     // Nine cells in the cross through (2,3), the cursor cell counted once, and
