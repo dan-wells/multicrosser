@@ -560,8 +560,6 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
         <span className="nonogram-timer">{formatTime(elapsed)}</span>
       </div>
 
-      {solved && <p className="nonogram-solved" role="status">Puzzle solved in {formatTime(solvedAt)}</p>}
-
       <div
         className="nonogram-wrapper"
         ref={wrapperRef}
@@ -590,6 +588,8 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
           onClueClick={handleClueClick}
         />
       </div>
+
+      {solved && <p className="nonogram-solved" role="status">Puzzle solved in {formatTime(solvedAt)}</p>}
 
       <div className="nonogram-actions">
         <button
