@@ -7,12 +7,17 @@ import {
 // Every five cells, so the eye can count along a long line without losing place.
 const BLOCK = 5;
 
-// Rule weights live here rather than in the stylesheet because the cells are
-// laid out around them: a rule is centred on the boundary, so half of it eats
-// into the cell, and a block rule eats three times as much as a thin one.
 const RULE = 1;
 const BLOCK_RULE = 3;
-const OUTLINE = 2.5;
+
+export const MIN_CELL = 12;
+export const MAX_CELL = 26;
+
+// Cell outlines and cross weights should keep the same ratio when shrinking
+// grids to fit in smaller viewports.
+const strokeFor = (size, ratio) => Math.max(1.25, size * ratio);
+const OUTLINE_RATIO = 2.5 / MAX_CELL;
+const CROSS_RATIO = 2.75 / MAX_CELL;
 
 const isBlockBoundary = (boundary, count) => boundary % BLOCK === 0 || boundary === count;
 
@@ -65,6 +70,7 @@ function Cell({ x, y, value, size, left, top, reach, classes }) {
   const box = innerBox(size, left, top, reach);
   const gap = cellGap(size);
   const arm = Math.min(box.width, box.height) * 0.325;
+  const crossStroke = strokeFor(size, CROSS_RATIO);
   return (
     <g className={classes} data-cell={cellKey(x, y)}>
       <rect className="nonogram-cell-bg" x={left} y={top} width={size} height={size} />
@@ -78,7 +84,7 @@ function Cell({ x, y, value, size, left, top, reach, classes }) {
         />
       )}
       {value === CROSS && (
-        <g className="nonogram-cell-cross">
+        <g className="nonogram-cell-cross" strokeWidth={crossStroke}>
           <line x1={box.x + arm} y1={box.y + arm} x2={box.x + box.width - arm} y2={box.y + box.height - arm} />
           <line x1={box.x + box.width - arm} y1={box.y + arm} x2={box.x + arm} y2={box.y + box.height - arm} />
         </g>
@@ -177,16 +183,17 @@ export default function NonogramGrid({
 
       if (changed.has(key)) {
         const box = innerBox(size, left, top, reach);
+        const outline = strokeFor(size, OUTLINE_RATIO);
         outlines.push(
           <rect
             key={key}
             className="nonogram-cell-outline"
             data-cell={key}
-            x={box.x + OUTLINE / 2}
-            y={box.y + OUTLINE / 2}
-            width={box.width - OUTLINE}
-            height={box.height - OUTLINE}
-            strokeWidth={OUTLINE}
+            x={box.x + outline / 2}
+            y={box.y + outline / 2}
+            width={box.width - outline}
+            height={box.height - outline}
+            strokeWidth={outline}
           />,
         );
       }

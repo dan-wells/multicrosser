@@ -165,7 +165,6 @@
 
 .nonogram-cell-cross line {
   stroke: var(--nonogram-cross-color);
-  stroke-width: 2.75;
   stroke-linecap: round;
 }
 

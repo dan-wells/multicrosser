@@ -1,14 +1,11 @@
 import React, {
   useCallback, useEffect, useImperativeHandle, useLayoutEffect, useMemo, useRef, useState,
 } from 'react';
-import NonogramGrid, { gridLayout } from './nonogram_grid';
+import NonogramGrid, { gridLayout, MIN_CELL, MAX_CELL } from './nonogram_grid';
 import {
   EMPTY, ROW, CURSOR_MODES, UndoStack,
   cellKey, markKey, derive, NOTHING_DERIVED, clickValue, dragCells, isSolved, invertStroke,
 } from './nonogram_logic';
-
-const MIN_CELL = 12;
-const MAX_CELL = 26;
 
 const CONFIRM_MS = 3000;
 
