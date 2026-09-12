@@ -6,7 +6,7 @@ import './lib/nonogram-overrides.css';
 import Nonogram from './lib/nonogram_app';
 import { createSubscriptions } from './lib/subscription';
 import RemotePresence from './lib/remote_presence';
-import { toGrid } from './lib/grid';
+import { toGrid, overlayPending } from './lib/grid';
 import generateId from './lib/generate_id';
 import { recordSeries, recordPuzzle, recordRoom } from './lib/history_storage';
 
@@ -101,17 +101,11 @@ const { moves: movesSub, presence: presenceSub } = createSubscriptions(
   onReceiveMove,
   (initialState, pendingMoves, initialSpaces) => {
     const board = toGrid(initialState, data.dimensions);
-    // Overlay anything still waiting on a server ack, so a stroke the player
-    // has just drawn does not blink out when the server's snapshot lands.
-    pendingMoves.forEach((move) => {
-      if (move.space && move.space !== 'board') return;
-      const cells = move.cells || [{ x: move.x, y: move.y, previousValue: move.previousValue }];
-      cells.forEach((cell) => {
-        if (board[cell.x]?.[cell.y] === undefined) return;
-        if (board[cell.x][cell.y] !== (cell.previousValue || '')) return;
-        board[cell.x][cell.y] = move.value;
-      });
-    });
+    const spaces = {
+      row_marks: { ...(initialSpaces && initialSpaces.row_marks) },
+      col_marks: { ...(initialSpaces && initialSpaces.col_marks) },
+    };
+    overlayPending(board, pendingMoves, spaces);
 
     if (!mounted) {
       mount(
@@ -120,7 +114,7 @@ const { moves: movesSub, presence: presenceSub } = createSubscriptions(
       );
       mounted = true;
     }
-    controlRef.current.replaceState(board, initialSpaces);
+    controlRef.current.replaceState(board, spaces);
     remotePresence.apply();
   },
   (msg) => { remotePresence.handleMessage(msg); },

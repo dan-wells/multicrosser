@@ -380,6 +380,28 @@ describe('createSubscriptions', () => {
     expect(JSON.parse(window.localStorage.getItem(bufferKey()))).toHaveLength(0);
   });
 
+  it('resyncs a rejection that arrives after the batch broadcast', () => {
+    const { moves, onReceiveMove } = makeSubscription();
+    moves.moveBatch({
+      space: 'board',
+      value: '1',
+      cells: [{ x: 1, y: 1, previousValue: '' }, { x: 1, y: 2, previousValue: '' }],
+    });
+    const { id } = performSpy.mock.calls[0][1];
+
+    // The applied half echoes back first, consuming the buffered id.
+    moves.fireReceived({
+      id, batch: true, value: '1', cells: [{ x: 1, y: 1 }],
+    });
+    onReceiveMove.mockClear();
+    moves.fireReceived({ id, rejected: true, batch: true, cells: [{ x: 1, y: 2, value: 'x' }] });
+
+    expect(onReceiveMove).toHaveBeenCalledTimes(1);
+    expect(onReceiveMove).toHaveBeenCalledWith({
+      space: 'board', x: 1, y: 2, value: 'x',
+    });
+  });
+
   it('routes a rejection in a mark space back under that space', () => {
     const { moves, onReceiveMove } = makeSubscription();
     moves.move({

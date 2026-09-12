@@ -4,7 +4,7 @@ import { flushSync } from 'react-dom';
 import { Crossword } from '@guardian/react-crossword';
 import './lib/crossword-overrides.css';
 import { createSubscriptions } from './lib/subscription';
-import { toGrid } from './lib/grid';
+import { toGrid, overlayPending } from './lib/grid';
 import RemotePresence from './lib/remote_presence';
 import generateId from './lib/generate_id';
 import { recordSeries, recordPuzzle, recordRoom } from './lib/history_storage';
@@ -166,13 +166,7 @@ const { moves: movesSub, presence: presenceSub } = createSubscriptions(
   onReceiveMove,
   (initialState, pendingMoves) => {
     const progress = toGrid(initialState, crosswordData.dimensions);
-    // Overlay any moves still waiting on a server ack so the user's pending
-    // letters don't briefly disappear when the server's initialState lands.
-    pendingMoves.forEach((m) => {
-      if (progress[m.x]?.[m.y] === undefined) return;
-      if (progress[m.x][m.y] !== m.previousValue) return;
-      progress[m.x][m.y] = m.value;
-    });
+    overlayPending(progress, pendingMoves);
 
     if (!mounted) {
       mountCrossword(progress, (move) => { movesSub.move(move); });

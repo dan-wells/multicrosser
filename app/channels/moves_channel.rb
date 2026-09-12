@@ -8,22 +8,17 @@ class MovesChannel < ApplicationCable::Channel
   def subscribed
     stream_from(channel_name)
 
-    cols = params[:cols].to_i
-    rows = params[:rows].to_i
-    data = ::REDIS.hgetall(channel_name)
     grid = Array.new(cols) { Array.new(rows) }
-
-    data.each {|k, v|
-      x, y = k.split('-')
-      next if x.nil? or y.nil?
-      next unless x.to_i.in?(0...cols) && y.to_i.in?(0...rows)
-      grid[x.to_i][y.to_i] = v
+    ::REDIS.hgetall(channel_name).each {|k, v|
+      x, y = cell_of(k)
+      next unless in_bounds?('board', x, y)
+      grid[x][y] = v
     }
 
     payload = { 'initialState' => grid }
     requested = Array(params[:spaces]).select { |space| SPACES.key?(space) }
     if requested.any?
-      payload['initialSpaces'] = requested.to_h { |space| [space, ::REDIS.hgetall(key_for(space))] }
+      payload['initialSpaces'] = requested.to_h { |space| [space, marks_in_bounds(space)] }
     end
 
     transmit(payload)
@@ -31,19 +26,23 @@ class MovesChannel < ApplicationCable::Channel
 
   def move(data)
     key = key_for(data['space']) or return
-    cell_key = "#{data['x']}-#{data['y']}"
+    x, y = data['x'].to_i, data['y'].to_i
+    return unless in_bounds?(data['space'], x, y)
+
+    cell_key = "#{x}-#{y}"
     current = ::REDIS.hget(key, cell_key) || ""
+    applied = with_space({ 'id' => data['id'], 'x' => x, 'y' => y, 'value' => data['value'] }, data['space'])
 
     if data['force']
       Rails.logger.info("[MovesChannel#move FORCED] #{key} #{cell_key}=#{data['value'].inspect} (was #{current.inspect}) id=#{data['id']}")
       ::REDIS.hset(key, cell_key, data['value'])
-      ActionCable.server.broadcast(channel_name, data)
+      ActionCable.server.broadcast(channel_name, applied)
     elsif current == (data['previousValue'] || "")
       ::REDIS.hset(key, cell_key, data['value'])
-      ActionCable.server.broadcast(channel_name, data)
+      ActionCable.server.broadcast(channel_name, applied)
     else
       transmit(with_space({ 'id' => data['id'], 'rejected' => true,
-                            'x' => data['x'], 'y' => data['y'], 'value' => current }, data['space']))
+                            'x' => x, 'y' => y, 'value' => current }, data['space']))
     end
   end
 
@@ -52,17 +51,23 @@ class MovesChannel < ApplicationCable::Channel
   # costs the sender that cell and not the whole line.
   def move_batch(data)
     key = key_for(data['space']) or return
+    cells = Array(data['cells'])
+    return if cells.length > cols * rows
+
     applied = []
     rejected = []
 
-    Array(data['cells']).each do |cell|
-      cell_key = "#{cell['x']}-#{cell['y']}"
+    cells.each do |cell|
+      x, y = cell['x'].to_i, cell['y'].to_i
+      next unless in_bounds?(data['space'], x, y)
+
+      cell_key = "#{x}-#{y}"
       current = ::REDIS.hget(key, cell_key) || ""
       if current == (cell['previousValue'] || "")
         ::REDIS.hset(key, cell_key, data['value'])
-        applied << { 'x' => cell['x'], 'y' => cell['y'] }
+        applied << { 'x' => x, 'y' => y }
       else
-        rejected << { 'x' => cell['x'], 'y' => cell['y'], 'value' => current }
+        rejected << { 'x' => x, 'y' => y, 'value' => current }
       end
     end
 
@@ -82,8 +87,38 @@ class MovesChannel < ApplicationCable::Channel
 
   private
 
+  def cols
+    params[:cols].to_i
+  end
+
+  def rows
+    params[:rows].to_i
+  end
+
   def channel_name
     key_for('board')
+  end
+
+  def cell_of(key)
+    x, y = key.split('-')
+    return [nil, nil] if x.nil? || y.nil?
+    [x.to_i, y.to_i]
+  end
+
+  def in_bounds?(space, x, y)
+    return false if x.nil? || y.nil?
+
+    lines, clues = case space.presence || 'board'
+                   when 'board' then [cols, rows]
+                   when 'row_marks' then [rows, cols]
+                   when 'col_marks' then [cols, rows]
+                   else return false
+                   end
+    x.in?(0...lines) && y.in?(0...clues)
+  end
+
+  def marks_in_bounds(space)
+    ::REDIS.hgetall(key_for(space)).select { |key, _| in_bounds?(space, *cell_of(key)) }
   end
 
   # Nil for an unrecognised space, so a bad payload cannot name arbitrary keys.

@@ -299,4 +299,77 @@ class MovesChannelTest < ActionCable::Channel::TestCase
     assert_equal "col_marks", broadcast["space"]
     assert_equal "1", @fake_redis.hgetall("col_marks-nonogram-15/2401181-alpha")["2-0"]
   end
+  # --- bounds and payload hygiene ---
+
+  test "a move outside the grid is ignored entirely" do
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
+    channel_name = "moves_channel-cryptic/123-alpha"
+
+    assert_broadcasts(channel_name, 0) do
+      perform :move, { "id" => "abc", "x" => 15, "y" => 2, "value" => "A" }
+      perform :move, { "id" => "abc", "x" => -1, "y" => 2, "value" => "A" }
+    end
+
+    assert_empty @fake_redis.hgetall(channel_name)
+  end
+
+  test "a mark outside its axis is ignored entirely" do
+    subscribe(crossword: "nonogram-15/2401181", room: "alpha", cols: 15, rows: 15)
+
+    perform :move, { "id" => "abc", "space" => "row_marks", "x" => 15, "y" => 0, "value" => "1" }
+    perform :move, { "id" => "abc", "space" => "row_marks", "x" => 0, "y" => 15, "value" => "1" }
+
+    assert_empty @fake_redis.hgetall("row_marks-nonogram-15/2401181-alpha")
+  end
+
+  test "move_batch drops the cells that fall outside the grid" do
+    subscribe(crossword: "nonogram-15/2401181", room: "alpha", cols: 15, rows: 15)
+    channel_name = "moves_channel-nonogram-15/2401181-alpha"
+
+    broadcasts = capture_broadcasts(channel_name) do
+      perform :move_batch, { "id" => "abc", "value" => "1",
+                             "cells" => [{ "x" => 1, "y" => 1 }, { "x" => 99, "y" => 99 }] }
+    end
+
+    broadcast = broadcasts.first
+    broadcast = ActiveSupport::JSON.decode(broadcast) if broadcast.is_a?(String)
+    assert_equal [{ "x" => 1, "y" => 1 }], broadcast["cells"]
+    assert_equal ["1-1"], @fake_redis.hgetall(channel_name).keys
+  end
+
+  test "move_batch carrying more cells than the grid holds is ignored entirely" do
+    subscribe(crossword: "nonogram-5/12345", room: "alpha", cols: 5, rows: 5)
+    channel_name = "moves_channel-nonogram-5/12345-alpha"
+    cells = (0...26).map { |n| { "x" => n % 5, "y" => n / 5, "previousValue" => "" } }
+
+    assert_broadcasts(channel_name, 0) do
+      perform :move_batch, { "id" => "abc", "value" => "1", "cells" => cells }
+    end
+
+    assert_empty @fake_redis.hgetall(channel_name)
+  end
+
+  test "subscribed drops out-of-range keys from a requested space" do
+    key = "row_marks-nonogram-15/2401181-alpha"
+    @fake_redis.hset(key, "2-0", "1")
+    @fake_redis.hset(key, "99-0", "1")
+
+    subscribe(crossword: "nonogram-15/2401181", room: "alpha", cols: 15, rows: 15, spaces: ["row_marks"])
+
+    assert_equal({ "2-0" => "1" }, transmissions.last["initialSpaces"]["row_marks"])
+  end
+
+  test "move broadcast does not echo the sender's own bookkeeping fields" do
+    subscribe(crossword: "cryptic/123", room: "alpha", cols: 15, rows: 15)
+    channel_name = "moves_channel-cryptic/123-alpha"
+
+    broadcasts = capture_broadcasts(channel_name) do
+      perform :move, { "id" => "abc", "x" => 1, "y" => 2, "value" => "A",
+                       "previousValue" => "", "force" => true }
+    end
+
+    broadcast = broadcasts.first
+    broadcast = ActiveSupport::JSON.decode(broadcast) if broadcast.is_a?(String)
+    assert_equal %w[id x y value].sort, broadcast.keys.sort
+  end
 end

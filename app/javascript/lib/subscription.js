@@ -22,6 +22,12 @@ const createSubscriptions = function createSubscriptions(crossword, room, dimens
     }
   };
 
+  const queueAndSend = function queueAndSend(ctx, data) {
+    const withId = { ...data, id: generateId() };
+    moveBuffer.queue(withId);
+    sendMove(ctx, withId);
+  };
+
   // Server refused a move because the cell had moved on. Purge any follow-on
   // moves to the same cell -- they'd all be rejected too -- then resync to the
   // server's current value.
@@ -38,26 +44,27 @@ const createSubscriptions = function createSubscriptions(crossword, room, dimens
       received: function received(data) {
         if (data.initialState) {
           onInitialState(data.initialState, moveBuffer.getAll(), data.initialSpaces);
-        } else if (data.id && moveBuffer.getAll().some((m) => m.id === data.id)) {
-          moveBuffer.remove(data.id);
-          if (data.rejected && data.cells) {
-            data.cells.forEach((cell) => resync(spaceOf(data), cell.x, cell.y, cell.value));
-          } else if (data.rejected) {
-            resync(spaceOf(data), data.x, data.y, data.value);
-          }
-        } else {
-          onReceiveMove(data);
+          return;
         }
+        // A partly-applied batch answers with a broadcast and a rejection under
+        // one id, in no guaranteed order, so rejections are matched by flag.
+        if (data.rejected) {
+          moveBuffer.remove(data.id);
+          const cells = data.cells || [{ x: data.x, y: data.y, value: data.value }];
+          cells.forEach((cell) => resync(spaceOf(data), cell.x, cell.y, cell.value));
+          return;
+        }
+        if (data.id && moveBuffer.getAll().some((m) => m.id === data.id)) {
+          moveBuffer.remove(data.id);
+          return;
+        }
+        onReceiveMove(data);
       },
       move: function move(data) {
-        const moveWithId = { ...data, id: generateId() };
-        moveBuffer.queue(moveWithId);
-        sendMove(this, moveWithId);
+        queueAndSend(this, data);
       },
       moveBatch: function moveBatch(data) {
-        const batchWithId = { ...data, id: generateId() };
-        moveBuffer.queue(batchWithId);
-        sendMove(this, batchWithId);
+        queueAndSend(this, data);
       },
       connected: function connected() {
         moveBuffer.getAll().forEach((m) => sendMove(this, m));
