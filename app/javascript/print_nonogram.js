@@ -7,11 +7,16 @@ import './lib/nonogram-print.css';
 import NonogramGrid, { gridLayout } from './lib/nonogram_grid';
 import { EMPTY, derive, NOTHING_DERIVED } from './lib/nonogram_logic';
 
-// A4 portrait with 10mm margins leaves 190mm of usable width, which is 718px
-// at the 96dpi Chrome prints at. Stay just inside that, and cap the cell so a
-// 5x5 does not fill the sheet.
-const MAX_GRID_WIDTH = 700;
-const MAX_CELL = 34;
+// A CSS pixel is 1/96 of an inch (25.4 mm) by definition; with this we can
+// specify lengths in millimetres and have that be what we get on paper.
+const PX_PER_MM = 96 / 25.4;
+
+const PAGE_WIDTH_MM = 210;
+const PAGE_MARGIN_MM = 10;
+const MAX_GRID_WIDTH = (PAGE_WIDTH_MM - PAGE_MARGIN_MM * 2) * PX_PER_MM;
+
+const CELL_MM = 5;
+const MAX_CELL = CELL_MM * PX_PER_MM;
 
 const SETTINGS = { showCounter: false, highlightLines: false };
 
