@@ -42,22 +42,20 @@ const at = (x, y) => ({
 
 const pointer = (svg, type, cell, init = {}) => {
   act(() => {
-    svg.dispatchEvent(new MouseEvent(type, {
-      bubbles: true, cancelable: true, ...at(cell.x, cell.y), ...init,
-    }));
-  });
-};
-
-// A finger, which the grid treats as a tap rather than the start of a drag.
-const finger = (svg, type, cell) => {
-  act(() => {
     const event = new MouseEvent(type, {
-      bubbles: true, cancelable: true, ...at(cell.x, cell.y),
+      bubbles: true, cancelable: true, ...at(cell.x, cell.y), ...init,
     });
-    Object.defineProperty(event, 'pointerType', { value: 'touch' });
+    // jsdom has no PointerEvent, so the pointer fields go on by hand.
+    Object.defineProperty(event, 'pointerId', { value: init.pointerId || 1 });
+    Object.defineProperty(event, 'pointerType', { value: init.pointerType || 'mouse' });
     svg.dispatchEvent(event);
   });
 };
+
+// A second finger, for the gestures that take two.
+const second = (svg, type, cell) => pointer(svg, type, cell, { pointerId: 2, pointerType: 'touch' });
+
+const finger = (svg, type, cell) => pointer(svg, type, cell, { pointerType: 'touch' });
 
 const outlined = () => Array.from(
   container.querySelectorAll('.nonogram-cell-outline'),
@@ -264,28 +262,69 @@ describe('Nonogram', () => {
     expect(handlers.onMoveBatch.mock.calls[0][0].cells).toHaveLength(4);
   });
 
-  it('paints one cell when a finger taps it', () => {
-    const svg = mount();
-
-    finger(svg, 'pointerdown', { x: 1, y: 1 });
-    finger(svg, 'pointerup', { x: 1, y: 1 });
-
-    expect(handlers.onMoveBatch).toHaveBeenCalledWith({
-      space: 'board',
-      value: '1',
-      cells: [{ x: 1, y: 1, previousValue: '' }],
-    });
-  });
-
-  it('paints nothing when a finger travels, so a scroll over the grid is free', () => {
+  it('paints a drag from a finger as it does from a mouse', () => {
     const svg = mount();
 
     finger(svg, 'pointerdown', { x: 0, y: 2 });
     finger(svg, 'pointermove', { x: 3, y: 2 });
     finger(svg, 'pointerup', { x: 3, y: 2 });
 
+    expect(handlers.onMoveBatch.mock.calls[0][0].cells).toHaveLength(4);
+  });
+
+  it('paints again after a finger whose release went missing', () => {
+    const svg = mount();
+
+    // Down, then nothing: the pointer is simply gone.
+    finger(svg, 'pointerdown', { x: 0, y: 0 });
+    finger(svg, 'pointercancel', { x: 0, y: 0 });
+
+    finger(svg, 'pointerdown', { x: 2, y: 2 });
+    finger(svg, 'pointerup', { x: 2, y: 2 });
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(1);
+  });
+
+  it('magnifies the puzzle as two fingers spread, and returns it as they close', () => {
+    const svg = mount();
+    const scale = () => {
+      const match = /scale\(([\d.]+)\)/.exec(container.querySelector('.nonogram-zoom').style.transform);
+      return match ? Number(match[1]) : 1;
+    };
+
+    finger(svg, 'pointerdown', { x: 0, y: 0 });
+    second(svg, 'pointerdown', { x: 2, y: 0 });
+
+    // Just past the dead zone: the pinch begins here rather than from the
+    // separation the fingers happened to land at.
+    second(svg, 'pointermove', { x: 4, y: 0 });
+    expect(scale()).toBe(1);
+
+    second(svg, 'pointermove', { x: 8, y: 0 });
+    expect(scale()).toBe(2);
+
+    second(svg, 'pointermove', { x: 4, y: 0 });
+    expect(scale()).toBe(1);
+
+    // Never smaller than the size the grid fits itself to.
+    second(svg, 'pointermove', { x: 3, y: 0 });
+    expect(scale()).toBe(1);
+
+    second(svg, 'pointerup', { x: 3, y: 0 });
+    finger(svg, 'pointerup', { x: 0, y: 0 });
     expect(handlers.onMoveBatch).not.toHaveBeenCalled();
-    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);
+  });
+
+  it('pans instead of zooming when two fingers hold their distance', () => {
+    const svg = mount();
+    const scale = () => container.querySelector('.nonogram-zoom').style.transform;
+
+    finger(svg, 'pointerdown', { x: 0, y: 0 });
+    second(svg, 'pointerdown', { x: 4, y: 0 });
+    // Both fingers travel a cell down the grid, a tenth apart at most.
+    finger(svg, 'pointermove', { x: 0, y: 1 });
+    second(svg, 'pointermove', { x: 4, y: 1 });
+
+    expect(scale()).toBe('scale(1)');
   });
 
   it('abandons a drag when a second finger lands, so a pinch draws nothing', () => {
@@ -294,8 +333,8 @@ describe('Nonogram', () => {
     pointer(svg, 'pointerdown', { x: 0, y: 2 });
     pointer(svg, 'pointermove', { x: 3, y: 2 });
     // The second finger: a pinch starting over the grid, not a stroke.
-    pointer(svg, 'pointerdown', { x: 1, y: 4 });
-    pointer(svg, 'pointerup', { x: 1, y: 4 });
+    second(svg, 'pointerdown', { x: 1, y: 4 });
+    second(svg, 'pointerup', { x: 1, y: 4 });
 
     expect(handlers.onMoveBatch).not.toHaveBeenCalled();
     expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);

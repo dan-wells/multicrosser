@@ -10,6 +10,11 @@ import {
 const MIN_CELL = 12;
 const MAX_CELL = 26;
 
+// How far a pinch can magnify the grid, and how much the fingers must change
+// their separation before it counts as one rather than as a two-finger pan.
+const MAX_ZOOM = 4;
+const ZOOM_DEAD_ZONE = 0.15;
+
 const CONFIRM_MS = 3000;
 
 const CROSS_COLOR = '#cc0000';
@@ -107,6 +112,10 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   const engagedRef = useRef(false);
   const confirmRef = useRef(null);
   const pointerFocusRef = useRef(false);
+  const pointersRef = useRef(new Map());
+  const pinchRef = useRef(null);
+  const zoomRef = useRef(null);
+  const zoomValueRef = useRef(1);
   const elapsedRef = useRef(elapsed);
 
   const commitBoard = useCallback((next, changedKeys) => {
@@ -241,9 +250,81 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     setPending(null);
   }, []);
 
+  const pointerSpan = () => {
+    const [first, second] = Array.from(pointersRef.current.values());
+    return {
+      distance: Math.hypot(second.x - first.x, second.y - first.y),
+      mid: { x: (first.x + second.x) / 2, y: (first.y + second.y) / 2 },
+    };
+  };
+
+  // The zoom is written straight to the DOM rather than held in state: a pinch
+  // has to follow the fingers within the event, and a React render per frame
+  // would put it a frame behind. The scroll box is sized to match, so the grid
+  // can be pushed around inside a viewport that never changes size.
+  const applyZoom = useCallback((zoom) => {
+    const box = zoomRef.current;
+    if (!box) return;
+    box.style.transform = `scale(${zoom})`;
+    box.style.width = `${layout.totalCols * cellSize * zoom}px`;
+    box.style.height = `${layout.totalRows * cellSize * zoom}px`;
+    zoomValueRef.current = zoom;
+  }, [cellSize, layout.totalCols, layout.totalRows]);
+
+  const startPinch = useCallback(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper) return;
+    const rect = wrapper.getBoundingClientRect();
+    const { distance, mid } = pointerSpan();
+    const zoom = zoomValueRef.current;
+    pinchRef.current = {
+      distance,
+      zoom,
+      // Where the fingers are on the puzzle itself, so the same point can be
+      // put back under them however far the pinch travels.
+      anchor: {
+        x: (mid.x - rect.left + wrapper.scrollLeft) / zoom,
+        y: (mid.y - rect.top + wrapper.scrollTop) / zoom,
+      },
+      scaling: false,
+    };
+  }, []);
+
+  const movePinch = useCallback(() => {
+    const pinch = pinchRef.current;
+    const wrapper = wrapperRef.current;
+    if (!pinch || !pinch.distance || !wrapper) return;
+    const { distance, mid } = pointerSpan();
+
+    // Fingers held roughly the same distance apart are panning, not pinching:
+    // without this a two-finger push drifts the zoom the whole way across.
+    const ratio = distance / pinch.distance;
+    if (!pinch.scaling) {
+      if (Math.abs(ratio - 1) < ZOOM_DEAD_ZONE) {
+        applyZoom(pinch.zoom);
+      } else {
+        pinch.scaling = true;
+        pinch.distance = distance;
+      }
+    }
+    if (pinch.scaling) {
+      applyZoom(Math.min(Math.max(pinch.zoom * (distance / pinch.distance), 1), MAX_ZOOM));
+    }
+
+    const rect = wrapper.getBoundingClientRect();
+    const zoom = zoomValueRef.current;
+    wrapper.scrollLeft = pinch.anchor.x * zoom - (mid.x - rect.left);
+    wrapper.scrollTop = pinch.anchor.y * zoom - (mid.y - rect.top);
+  }, [applyZoom]);
+
   const handlePointerDown = useCallback((event) => {
-    if (strokeRef.current) {
+    // A pointer whose release never arrived would otherwise make every later
+    // touch look like the second finger of a pinch.
+    if (!pinchRef.current && !strokeRef.current) pointersRef.current.clear();
+    pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    if (pointersRef.current.size > 1) {
       abandonStroke();
+      if (pointersRef.current.size === 2) startPinch();
       return;
     }
     const cell = cellFromEvent(event);
@@ -252,13 +333,9 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     // so a one-cell drag and a click are the same action.
     const mode = event.button === 2 ? 'cross' : settings.cursorMode;
     const value = clickValue(mode, boardRef.current[cell.x][cell.y]);
-    // Touch controls differ: we only allow tapping, not dragging, so not to
-    // conflict with mobile browser gestures like pinch-to-zoom.
-    const tap = event.pointerType === 'touch';
-    strokeRef.current = { start: cell, value, last: cell, tap };
+    strokeRef.current = { start: cell, value, last: cell };
     engagedRef.current = true;
     setCursor(cell);
-    if (tap) return;
     event.preventDefault();
     setPending({ value, keys: new Set([cellKey(cell.x, cell.y)]) });
     setKeyboardCursor(false);
@@ -267,10 +344,17 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
       wrapperRef.current.focus();
     }
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch (e) { /* no capture in jsdom */ }
-  }, [abandonStroke, cellFromEvent, settings.cursorMode]);
+  }, [abandonStroke, cellFromEvent, settings.cursorMode, startPinch]);
 
   const handlePointerMove = useCallback((event) => {
-    if (!strokeRef.current || strokeRef.current.tap) return;
+    if (pointersRef.current.has(event.pointerId)) {
+      pointersRef.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+    if (pinchRef.current) {
+      movePinch();
+      return;
+    }
+    if (!strokeRef.current) return;
     const cell = cellFromEvent(event);
     if (!cell) return;
     strokeRef.current.last = cell;
@@ -280,18 +364,29 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
       keys: new Set(cells.map(({ x, y }) => cellKey(x, y))),
     });
     setCursor(cell);
-  }, [cellFromEvent]);
+  }, [cellFromEvent, movePinch]);
 
   const handlePointerUp = useCallback((event) => {
+    pointersRef.current.delete(event.pointerId);
+    // The pinch ends with the finger that made it; whatever is still down is
+    // left alone rather than becoming a stroke of its own.
+    if (pinchRef.current) {
+      if (pointersRef.current.size < 2) pinchRef.current = null;
+      return;
+    }
     const stroke = strokeRef.current;
     if (!stroke) return;
     strokeRef.current = null;
     const cell = cellFromEvent(event) || stroke.last;
     setPending(null);
-    // A finger that came up somewhere else was on its way through, not tapping.
-    if (stroke.tap && (cell.x !== stroke.start.x || cell.y !== stroke.start.y)) return;
     sendStroke('board', dragCells(stroke.start, cell), stroke.value);
   }, [cellFromEvent, sendStroke]);
+
+  const handlePointerCancel = useCallback((event) => {
+    pointersRef.current.delete(event.pointerId);
+    if (pointersRef.current.size < 2) pinchRef.current = null;
+    abandonStroke();
+  }, [abandonStroke]);
 
   const handleClueClick = useCallback((axis, line, index) => {
     setMark(axis, line, index);
@@ -421,16 +516,23 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     const wrapper = wrapperRef.current;
     if (!wrapper || typeof ResizeObserver === 'undefined') return undefined;
     const update = () => {
+      // A zoomed grid is the player's business, not the container's.
+      if (zoomValueRef.current !== 1) return;
       const available = wrapper.clientWidth;
       if (!available) return;
-      const fitted = Math.floor(available / layout.totalCols);
-      setCellSize(Math.min(Math.max(fitted, MIN_CELL), MAX_CELL));
+      setCellSize(Math.min(Math.max(
+        Math.floor(available / layout.totalCols), MIN_CELL,
+      ), MAX_CELL));
     };
     const observer = new ResizeObserver(update);
     observer.observe(wrapper);
     update();
     return () => observer.disconnect();
   }, [layout.totalCols]);
+
+  // The scroll box follows the grid's own size, so a resize or a rotation does
+  // not leave the zoom scrolled to somewhere that no longer exists.
+  useLayoutEffect(() => { applyZoom(zoomValueRef.current); }, [applyZoom]);
 
   // --- timer ------------------------------------------------------------
 
@@ -533,24 +635,26 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
         role="application"
         tabIndex={0}
       >
-        <NonogramGrid
-          data={data}
-          board={board}
-          derived={derived}
-          marks={marks}
-          settings={settings}
-          cursor={cursor}
-          showCursor={settings.highlightLines || keyboardCursor}
-          lastChange={lastChange}
-          pending={pending}
-          cellSize={cellSize}
-          svgRef={svgRef}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={handlePointerUp}
-          onPointerCancel={abandonStroke}
-          onClueClick={handleClueClick}
-        />
+        <div className="nonogram-zoom" ref={zoomRef}>
+          <NonogramGrid
+            data={data}
+            board={board}
+            derived={derived}
+            marks={marks}
+            settings={settings}
+            cursor={cursor}
+            showCursor={settings.highlightLines || keyboardCursor}
+            lastChange={lastChange}
+            pending={pending}
+            cellSize={cellSize}
+            svgRef={svgRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerCancel}
+            onClueClick={handleClueClick}
+          />
+        </div>
       </div>
 
       <div className="nonogram-actions">

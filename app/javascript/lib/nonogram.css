@@ -133,10 +133,20 @@
   font-weight: bold;
 }
 
+/* A window on the puzzle rather than the puzzle itself: it keeps its size while
+   the grid is zoomed and scrolled about inside it, so the controls above and
+   below stay where they are and stay on screen. */
 .nonogram-wrapper {
-  overflow-x: auto;
-  width: fit-content;
-  max-width: 100%;
+  overflow: auto;
+  overscroll-behavior: contain;
+  max-height: 70vh;
+  /* The scrollbar's width is held whether or not one is showing, so the grid
+     fits itself to a figure that does not change as it is zoomed. */
+  scrollbar-gutter: stable;
+}
+
+.nonogram-zoom {
+  transform-origin: 0 0;
 }
 
 .nonogram-wrapper:focus {
@@ -144,8 +154,12 @@
 }
 
 .nonogram-grid {
+  /* Inline by default, which leaves a line-box gap beneath it and a stray few
+     pixels for the scroll box to scroll. */
+  display: block;
   user-select: none;
-  touch-action: manipulation;
+  /* One finger draws, two pinch the puzzle; the browser gets neither. */
+  touch-action: none;
 }
 
 .nonogram-cell-bg {
