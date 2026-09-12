@@ -366,18 +366,26 @@ describe('Nonogram', () => {
       .find((label) => label.textContent.includes('Auto cross and tick'))
       .querySelector('input');
 
+    const fill = (x, y) => {
+      pointer(svg, 'pointerdown', { x, y });
+      pointer(svg, 'pointerup', { x, y });
+    };
+
     act(() => { autoMark.click(); });
-    // Row 0's clue is [1, 3]: ticking both numbers crosses the whole row off.
+    // Row 0's clue of [1, 3], laid out, leaves one cell for the aid to cross.
+    [0, 2, 3, 4].forEach((x) => fill(x, 0));
     tick('row-0-0');
     tick('row-0-1');
-    expect(derived()).toBe(5);
+    expect(derived()).toBe(1);
 
     act(() => { autoMark.click(); });
-    expect(derived()).toBe(5);
+    expect(derived()).toBe(1);
 
     // Row 1 is ticked off only now the aid is off, so it stays uncrossed.
+    fill(3, 1);
+    fill(4, 1);
     tick('row-1-0');
-    expect(derived()).toBe(5);
+    expect(derived()).toBe(1);
 
     // Untick one of row 0's numbers and its crosses go with it.
     tick('row-0-0');

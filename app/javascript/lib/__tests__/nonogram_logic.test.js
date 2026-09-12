@@ -60,13 +60,40 @@ describe('derive -- auto-cross', () => {
   it('crosses a row only once every one of its clue numbers is ticked', () => {
     const clue2 = { rowClues: [[1, 1]], colClues: [[1], [1], []] };
     const dims = { cols: 3, rows: 1 };
-    const partial = derive(emptyBoard(3, 1), dims, clue2,
+    // Runs of [1, 1], so the ticks are the only thing left to wait for.
+    const placed = emptyBoard(3, 1);
+    placed[0][0] = FILLED;
+    placed[2][0] = FILLED;
+
+    const partial = derive(placed, dims, clue2,
       { rowMarks: { [markKey(0, 0)]: '1' }, colMarks: {} });
     expect(partial.crossedRows.has(0)).toBe(false);
 
-    const full = derive(emptyBoard(3, 1), dims, clue2,
+    const full = derive(placed, dims, clue2,
       { rowMarks: { [markKey(0, 0)]: '1', [markKey(0, 1)]: '1' }, colMarks: {} });
     expect(full.crossedRows.has(0)).toBe(true);
+  });
+
+  it('ignores the ticks on a line whose fills do not read as its clue', () => {
+    const clue5 = { rowClues: [[5]], colClues: [[], [], [], [], []] };
+    const dims = { cols: 5, rows: 1 };
+    const marks = { rowMarks: { [markKey(0, 0)]: '1' }, colMarks: {} };
+
+    expect(derive(emptyBoard(5, 1), dims, clue5, marks).crossedRows.size).toBe(0);
+
+    // One cell of the five, so the run is not there yet.
+    const started = emptyBoard(5, 1);
+    started[0][0] = FILLED;
+    expect(derive(started, dims, clue5, marks).crossedRows.size).toBe(0);
+
+    // The same five cells, but broken into two runs rather than one.
+    const split = emptyBoard(5, 1);
+    [0, 1, 3, 4].forEach((x) => { split[x][0] = FILLED; });
+    expect(derive(split, dims, clue5, marks).crossedRows.size).toBe(0);
+
+    const done = emptyBoard(5, 1);
+    [0, 1, 2, 3, 4].forEach((x) => { done[x][0] = FILLED; });
+    expect(derive(done, dims, clue5, marks).crossedRows.has(0)).toBe(true);
   });
 
   it('never crosses from filled cells alone', () => {
@@ -98,24 +125,32 @@ describe('derive -- auto-cross', () => {
       colMarks: {},
     });
 
-    const first = derive(emptyBoard(3, 2), dims, clueList, ticked(0));
+    // Both rows hold the single filled cell their clue of [1] asks for.
+    const board = emptyBoard(3, 2);
+    board[0][0] = FILLED;
+    board[0][1] = FILLED;
+
+    const first = derive(board, dims, clueList, ticked(0));
     // Row 1 is ticked off now too, but only row 0 was crossed before.
-    const held = derive(emptyBoard(3, 2), dims, clueList, ticked(0, 1), first);
+    const held = derive(board, dims, clueList, ticked(0, 1), first);
     expect([...held.crossedRows]).toEqual([0]);
 
     // Untick row 0 and its crosses go, allowed or not.
-    const gone = derive(emptyBoard(3, 2), dims, clueList, ticked(1), held);
+    const gone = derive(board, dims, clueList, ticked(1), held);
     expect(gone.crossedRows.size).toBe(0);
   });
 
   it('shows a crossed cell as crossed without anything being stored', () => {
+    // Row 0's clue of [2], placed, so ticking it off crosses the cell left over.
     const board = emptyBoard(3, 2);
+    board[0][0] = FILLED;
+    board[1][0] = FILLED;
     const marks = { rowMarks: { [markKey(0, 0)]: '1' }, colMarks: {} };
     const result = derive(board, dimensions, clues, marks);
 
-    expect(effectiveValue(board, 1, 0, result)).toBe(CROSS);
-    expect(board[1][0]).toBe(EMPTY);
-    expect(effectiveValue(board, 1, 1, result)).toBe(EMPTY);
+    expect(effectiveValue(board, 2, 0, result)).toBe(CROSS);
+    expect(board[2][0]).toBe(EMPTY);
+    expect(effectiveValue(board, 2, 1, result)).toBe(EMPTY);
   });
 });
 
@@ -147,13 +182,16 @@ describe('derive -- auto-highlight', () => {
   });
 
   it('counts an auto-crossed cell as filling the line', () => {
-    // Column 0 is marked out, so cell (0,0) reads as a cross and completes the
-    // row, whose remaining clue of [1] is satisfied by the filled cell (1,0).
-    const twoWide = { rowClues: [[1]], colClues: [[1], [1]] };
-    const board = emptyBoard(2, 1);
+    // Column 0 holds its clue of [1] at the bottom and is marked out, so cell
+    // (0,0) reads as a cross and completes row 0, whose own clue of [1] is
+    // satisfied by the filled cell (1,0).
+    const square = { rowClues: [[1], [1]], colClues: [[1], [1]] };
+    const dims = { cols: 2, rows: 2 };
+    const board = emptyBoard(2, 2);
+    board[0][1] = FILLED;
     board[1][0] = FILLED;
     const marks = { rowMarks: {}, colMarks: { [markKey(0, 0)]: '1' } };
-    const result = derive(board, dimensions, twoWide, marks);
+    const result = derive(board, dims, square, marks);
 
     expect(result.crossedCols.has(0)).toBe(true);
     expect(result.highlightedRows.has(0)).toBe(true);

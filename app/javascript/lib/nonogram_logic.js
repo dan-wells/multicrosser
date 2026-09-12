@@ -57,12 +57,13 @@ export function runsMatch(values, clue) {
 }
 
 // A line is auto-crossed once the player has ticked off every one of its clue
-// numbers by hand; lines with no clue numbers are excluded.
-function markedOutLines(clues, marks) {
+// numbers by hand and its filled cells already read as exactly that clue.
+function markedOutLines(board, clues, marks, axis, dimensions) {
   const lines = new Set();
   clues.forEach((clue, line) => {
     if (clue.length === 0) return;
-    if (clue.every((_, i) => marks[markKey(line, i)])) lines.add(line);
+    if (!clue.every((_, i) => marks[markKey(line, i)])) return;
+    if (runsMatch(lineValues(board, axis, line, dimensions), clue)) lines.add(line);
   });
   return lines;
 }
@@ -115,10 +116,12 @@ const only = (lines, permitted) =>
 // shared state.
 export function derive(board, dimensions, clues, marks, allowed) {
   const crossedRows = only(
-    markedOutLines(clues.rowClues, marks.rowMarks), allowed && allowed.crossedRows,
+    markedOutLines(board, clues.rowClues, marks.rowMarks, ROW, dimensions),
+    allowed && allowed.crossedRows,
   );
   const crossedCols = only(
-    markedOutLines(clues.colClues, marks.colMarks), allowed && allowed.crossedCols,
+    markedOutLines(board, clues.colClues, marks.colMarks, COL, dimensions),
+    allowed && allowed.crossedCols,
   );
   const derived = { crossedRows, crossedCols };
   return {
