@@ -5,7 +5,7 @@ import './lib/nonogram.css';
 import './lib/print-page.css';
 import './lib/nonogram-print.css';
 import NonogramGrid, { gridLayout } from './lib/nonogram_grid';
-import { EMPTY, derive, NOTHING_DERIVED } from './lib/nonogram_logic';
+import { EMPTY, NOTHING_DERIVED } from './lib/nonogram_logic';
 
 // A CSS pixel is 1/96 of an inch (25.4 mm) by definition; with this we can
 // specify lengths in millimetres and have that be what we get on paper.
@@ -36,7 +36,7 @@ flushSync(() => {
   root.render(<NonogramGrid
     data={data}
     board={board}
-    derived={derive(board, dimensions, data, marks, NOTHING_DERIVED)}
+    derived={NOTHING_DERIVED}
     marks={marks}
     settings={SETTINGS}
     // No cell is the cursor: -1 is off the grid on both axes.

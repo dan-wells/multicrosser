@@ -155,14 +155,6 @@
   fill: transparent;
 }
 
-.nonogram-cell.is-lined .nonogram-cell-bg {
-  fill: var(--nonogram-line-color);
-}
-
-.nonogram-cell.is-cursor .nonogram-cell-bg {
-  fill: var(--nonogram-cursor-tint);
-}
-
 .nonogram-cell-fill {
   fill: #222;
 }
@@ -202,10 +194,6 @@
 
 .nonogram-strip {
   fill: transparent;
-}
-
-.nonogram-strip.is-lined {
-  fill: var(--nonogram-line-color);
 }
 
 .nonogram-clue text {

@@ -46,8 +46,9 @@ class Source::Nonograms < Source
     rand(1..last).to_s
   end
 
-  def feed_load
-    # Nonograms have no feed; puzzles are reached by ID or at random.
+  # Nonograms have no feed; puzzles are reached by ID or at random.
+  def has_feed?
+    false
   end
 
   private

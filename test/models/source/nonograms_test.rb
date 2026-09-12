@@ -170,6 +170,13 @@ class Source::NonogramsTest < ActiveSupport::TestCase
     assert_equal '5x5 Nonogram No nonsense', source.puzzle_name('nonogram-5', 'nonsense')
   end
 
+  # --- feed ---
+
+  test "the source reports no feed, which is what sends latest to a random puzzle" do
+    refute source.has_feed?
+    assert Source.for('cryptic').has_feed?
+  end
+
   # --- picker ---
 
   test "picker_group puts every size in one family" do

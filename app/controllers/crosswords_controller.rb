@@ -1,5 +1,3 @@
-require 'net/http'
-
 class CrosswordsController < ApplicationController
   def show
     redirect_to room_path(
@@ -13,7 +11,7 @@ class CrosswordsController < ApplicationController
     require_known_series!
     @crossword = fetch_crossword!
     @parsed_crossword = JSON.parse(@crossword)
-    @source_type = Series::SERIES[params[:series]][:source]
+    @source_type = Source.for(params[:series]).name
     render layout: 'print'
   end
 
@@ -65,10 +63,10 @@ class CrosswordsController < ApplicationController
     identifier = Series.latest_puzzle(series)
     return identifier if identifier
 
-    if Series::SERIES[series][:last_puzzle]
-      yield
-    else
+    if Source.for(series).has_feed?
       redirect_to root_path(error: 'latest_failed')
+    else
+      yield
     end
     nil
   end

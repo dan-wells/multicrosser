@@ -1,3 +1,5 @@
+require 'net/http'
+
 class Source::Guardian < Source
   def fetch(series, identifier)
     cached("#{series}/#{identifier}") do

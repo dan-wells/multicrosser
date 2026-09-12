@@ -59,6 +59,12 @@ class SeriesTest < ActiveSupport::TestCase
     end
   end
 
+  test "every series' source names itself as the registry does" do
+    Series::SERIES.each do |name, meta|
+      assert_equal meta[:source], Source.for(name).name, "#{name} resolves to a differently-named source"
+    end
+  end
+
   test "picker_groups collapses the nonogram sizes into one entry" do
     groups = Series.picker_groups.to_h
 

@@ -17,6 +17,14 @@ class Source
     @instances.fetch(source_name)
   end
 
+  def name
+    self.class.name.demodulize.underscore
+  end
+
+  def has_feed?
+    true
+  end
+
   def fetch(series, identifier)
     raise NotImplementedError
   end
