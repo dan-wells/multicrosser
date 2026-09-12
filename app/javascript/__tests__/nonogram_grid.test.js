@@ -128,12 +128,16 @@ describe('NonogramGrid', () => {
     const lined = render({ cursor: { x: 2, y: 3 } });
     // Nine cells in the cross through (2,3), the cursor cell counted once.
     expect(lined.match(/is-lined/g)).toHaveLength(9);
+    // Plus a band over each clue strip, whatever that line's clue is.
+    expect(lined).toMatch(/class="nonogram-line-band"[^>]*data-band="row-3"/);
+    expect(lined).toMatch(/class="nonogram-line-band"[^>]*data-band="col-2"/);
 
     const plain = render({
       cursor: { x: 2, y: 3 },
       settings: { ...SETTINGS, highlightLines: false },
     });
     expect(plain).not.toContain('is-lined');
+    expect(plain).not.toContain('nonogram-line-band');
   });
 
   it('outlines every cell the last stroke touched', () => {

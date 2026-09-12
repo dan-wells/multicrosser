@@ -264,6 +264,73 @@ describe('Nonogram', () => {
     expect(handlers.onMoveBatch.mock.calls[0][0].cells).toHaveLength(4);
   });
 
+  it('follows the mouse across the grid with the highlight, quietly', () => {
+    const svg = mount();
+    const highlight = Array.from(container.querySelectorAll('label'))
+      .find((label) => label.textContent.includes('Highlight row and column'))
+      .querySelector('input');
+    const lined = () => Array.from(
+      container.querySelectorAll('.nonogram-cell.is-lined'),
+    ).map((cell) => cell.dataset.cell);
+
+    act(() => { highlight.click(); });
+    // Engage first, so the broadcast below is skipped for being a hover rather
+    // than for the player never having touched the grid.
+    pointer(svg, 'pointerdown', { x: 0, y: 0 });
+    pointer(svg, 'pointerup', { x: 0, y: 0 });
+    expect(handlers.onCursor).toHaveBeenCalledTimes(1);
+    handlers.onMoveBatch.mockClear();
+    handlers.onCursor.mockClear();
+
+    pointer(svg, 'pointermove', { x: 2, y: 3 });
+    expect(lined()).toContain('2-0');
+    expect(lined()).toContain('0-3');
+    expect(lined()).not.toContain('4-0');
+
+    pointer(svg, 'pointermove', { x: 4, y: 1 });
+    expect(lined()).toContain('4-0');
+    expect(lined()).not.toContain('2-0');
+
+    // Nothing was drawn and nobody else needs to know where the mouse went.
+    expect(handlers.onMoveBatch).not.toHaveBeenCalled();
+    expect(handlers.onCursor).not.toHaveBeenCalled();
+  });
+
+  it('follows a clue strip, keeping the other axis where it was', () => {
+    const svg = mount();
+    const highlight = Array.from(container.querySelectorAll('label'))
+      .find((label) => label.textContent.includes('Highlight row and column'))
+      .querySelector('input');
+    const bands = () => Array.from(
+      container.querySelectorAll('.nonogram-line-band'),
+    ).map((rect) => rect.dataset.band);
+
+    act(() => { highlight.click(); });
+    pointer(svg, 'pointermove', { x: 1, y: 1 });
+    expect(bands()).toEqual(['row-1', 'col-1']);
+
+    // Up the row clues, off the left of the grid: the row follows, the column
+    // stays put rather than snapping to the edge.
+    pointer(svg, 'pointermove', { x: -1, y: 3 });
+    expect(bands()).toEqual(['row-3', 'col-1']);
+
+    // And along the column clues above the grid.
+    pointer(svg, 'pointermove', { x: 4, y: -1 });
+    expect(bands()).toEqual(['row-3', 'col-4']);
+  });
+
+  it('leaves the cursor alone on a bare move with the highlight off', () => {
+    const svg = mount();
+
+    pointer(svg, 'pointerdown', { x: 0, y: 0 });
+    pointer(svg, 'pointerup', { x: 0, y: 0 });
+    handlers.onCursor.mockClear();
+    pointer(svg, 'pointermove', { x: 3, y: 3 });
+
+    expect(handlers.onCursor).not.toHaveBeenCalled();
+    expect(container.querySelectorAll('.nonogram-cell.is-lined')).toHaveLength(0);
+  });
+
   it('paints one cell when a finger taps it', () => {
     const svg = mount();
 

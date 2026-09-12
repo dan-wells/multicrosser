@@ -103,6 +103,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   const strokeRef = useRef(null);
   const undoRef = useRef(new UndoStack());
   const engagedRef = useRef(false);
+  const quietMoveRef = useRef(false);
   const confirmRef = useRef(null);
   const pointerFocusRef = useRef(false);
   const elapsedRef = useRef(elapsed);
@@ -221,16 +222,36 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
 
   const layout = useMemo(() => gridLayout(data, settings), [data, settings]);
 
-  const cellFromEvent = useCallback((event) => {
+  const pointFromEvent = useCallback((event) => {
     const svg = svgRef.current;
     if (!svg) return null;
     const rect = svg.getBoundingClientRect();
     const scale = rect.width / (layout.totalCols * cellSize);
-    const x = Math.floor((event.clientX - rect.left) / (cellSize * scale) - layout.gutterWidth);
-    const y = Math.floor((event.clientY - rect.top) / (cellSize * scale) - layout.gutterHeight);
+    return {
+      x: Math.floor((event.clientX - rect.left) / (cellSize * scale) - layout.gutterWidth),
+      y: Math.floor((event.clientY - rect.top) / (cellSize * scale) - layout.gutterHeight),
+    };
+  }, [cellSize, layout]);
+
+  const cellFromEvent = useCallback((event) => {
+    const point = pointFromEvent(event);
+    if (!point) return null;
+    const { x, y } = point;
     if (x < 0 || y < 0 || x >= layout.cols || y >= layout.rows) return null;
     return { x, y };
-  }, [cellSize, layout]);
+  }, [layout, pointFromEvent]);
+
+  const linesFromEvent = useCallback((event) => {
+    const point = pointFromEvent(event);
+    if (!point) return null;
+    const { x, y } = point;
+    const onRow = y >= 0 && y < layout.rows;
+    const onCol = x >= 0 && x < layout.cols;
+    if (onRow && onCol) return { x, y };
+    if (onRow) return { y };
+    if (onCol) return { x };
+    return null;
+  }, [layout, pointFromEvent]);
 
   // A stroke in progress is abandoned rather than committed: a second finger landing
   // means a pinch to zoom, so we should not leave a half-drawn run on the grid.
@@ -257,6 +278,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     const tap = event.pointerType === 'touch' && !settings.touchDrag;
     strokeRef.current = { start: cell, value, last: cell, tap };
     engagedRef.current = true;
+    quietMoveRef.current = false;
     setCursor(cell);
     if (tap) return;
     event.preventDefault();
@@ -269,7 +291,18 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   }, [abandonStroke, cellFromEvent, settings.cursorMode, settings.touchDrag]);
 
   const handlePointerMove = useCallback((event) => {
-    if (!strokeRef.current || strokeRef.current.tap) return;
+    if (!strokeRef.current) {
+      if (!settings.highlightLines || event.pointerType === 'touch') return;
+      const hovered = linesFromEvent(event);
+      if (!hovered) return;
+      quietMoveRef.current = true;
+      setCursor((current) => {
+        const next = { ...current, ...hovered };
+        return current.x === next.x && current.y === next.y ? current : next;
+      });
+      return;
+    }
+    if (strokeRef.current.tap) return;
     const cell = cellFromEvent(event);
     if (!cell) return;
     strokeRef.current.last = cell;
@@ -278,8 +311,9 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
       value: strokeRef.current.value,
       keys: new Set(cells.map(({ x, y }) => cellKey(x, y))),
     });
+    quietMoveRef.current = false;
     setCursor(cell);
-  }, [cellFromEvent]);
+  }, [cellFromEvent, linesFromEvent, settings.highlightLines]);
 
   const handlePointerUp = useCallback((event) => {
     const stroke = strokeRef.current;
@@ -347,6 +381,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     if (step) {
       event.preventDefault();
       engagedRef.current = true;
+      quietMoveRef.current = false;
       setKeyboardCursor(true);
       setCursor((current) => ({
         x: Math.min(Math.max(current.x + step[0], 0), dimensions.cols - 1),
@@ -457,7 +492,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   }, []);
 
   useEffect(() => {
-    if (!onCursor || !engagedRef.current) return;
+    if (!onCursor || !engagedRef.current || quietMoveRef.current) return;
     const cells = [];
     for (let offset = 0; offset < dimensions.cols; offset += 1) cells.push([offset, cursor.y]);
     for (let offset = 0; offset < dimensions.rows; offset += 1) {

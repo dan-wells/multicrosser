@@ -246,6 +246,33 @@ export default function NonogramGrid({
     });
   });
 
+  // The highlight carried across the clue strips. Drawn as one band per axis
+  // rather than behind the numbers themselves, so it reaches the edge of the
+  // drawing whether or not the line's clue is as long as the longest one.
+  const bands = [];
+  if (settings.highlightLines) {
+    bands.push(
+      <rect
+        key="band-row"
+        className="nonogram-line-band"
+        data-band={`row-${cursor.y}`}
+        x={0}
+        y={originY + cursor.y * size}
+        width={originX}
+        height={size}
+      />,
+      <rect
+        key="band-col"
+        className="nonogram-line-band"
+        data-band={`col-${cursor.x}`}
+        x={originX + cursor.x * size}
+        y={0}
+        width={size}
+        height={originY}
+      />,
+    );
+  }
+
   const rules = [];
   for (let x = 0; x <= cols; x += 1) {
     const block = isBlockBoundary(x, cols);
@@ -348,6 +375,7 @@ export default function NonogramGrid({
       onPointerCancel={onPointerCancel}
       onContextMenu={(event) => event.preventDefault()}
     >
+      {bands}
       {cells}
       {outlines}
       {rules}

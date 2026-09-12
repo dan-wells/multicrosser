@@ -200,6 +200,10 @@
   fill: transparent;
 }
 
+.nonogram-line-band {
+  fill: var(--nonogram-line-color);
+}
+
 .nonogram-clue text {
   font-family: 'Catamaran', sans-serif;
   fill: #222;
