@@ -231,14 +231,14 @@ describe('Nonogram', () => {
   it('exposes the line-highlight setting so remote lines follow it too', () => {
     mount();
     const wrapper = container.querySelector('.nonogram');
-    expect(wrapper.dataset.highlightLines).toBe('false');
+    expect(wrapper.classList.contains('nonogram-highlighting')).toBe(false);
 
     const toggle = Array.from(container.querySelectorAll('label'))
       .find((label) => label.textContent.includes('Highlight row and column'))
       .querySelector('input');
     act(() => { toggle.click(); });
 
-    expect(wrapper.dataset.highlightLines).toBe('true');
+    expect(wrapper.classList.contains('nonogram-highlighting')).toBe(true);
   });
 
   it('remembers a setting the player changed', () => {
@@ -314,8 +314,8 @@ describe('Nonogram', () => {
       .find((label) => label.textContent.includes('Highlight row and column'))
       .querySelector('input');
     const bands = () => Array.from(
-      container.querySelectorAll('.nonogram-line-band'),
-    ).map((rect) => rect.dataset.band);
+      container.querySelectorAll('.nonogram-strip.is-lined'),
+    ).map((rect) => rect.dataset.strip);
 
     act(() => { highlight.click(); });
     pointer(svg, 'pointermove', { x: 1, y: 1 });

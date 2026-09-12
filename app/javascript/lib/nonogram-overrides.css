@@ -1,12 +1,32 @@
-/* Other players' cursors and lines. */
+/* Other players' cursors and lines, and how they stack with the local player's.
+   The rules paint in the order written here: a remote line, local player's
+   line over it, a remote cursor which stays visible on either, and the local
+   player's own cursor over everything. */
 .nonogram {
   --crossword-remote-color: #5fb3e0;
 }
 
-.nonogram[data-highlight-lines="true"] .nonogram-cell[data-remote-clue] .nonogram-cell-bg {
+.nonogram-highlighting .nonogram-cell[data-remote-clue] .nonogram-cell-bg {
   fill: color-mix(in srgb, var(--crossword-remote-color) 18%, transparent);
+}
+
+.nonogram-highlighting .nonogram-cell.is-lined .nonogram-cell-bg {
+  fill: var(--nonogram-line-color);
 }
 
 .nonogram .nonogram-cell[data-remote-cursor] .nonogram-cell-bg {
   fill: color-mix(in srgb, var(--crossword-remote-color) 45%, transparent);
+}
+
+.nonogram .nonogram-cell.is-cursor .nonogram-cell-bg {
+  fill: var(--nonogram-cursor-tint);
+}
+
+/* The same order out in the clue gutters, which no cursor reaches. */
+.nonogram-highlighting .nonogram-strip[data-remote-clue] {
+  fill: color-mix(in srgb, var(--crossword-remote-color) 18%, transparent);
+}
+
+.nonogram-highlighting .nonogram-strip.is-lined {
+  fill: var(--nonogram-line-color);
 }

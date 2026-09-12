@@ -520,7 +520,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   }, [board, clues, dimensions, marks, settings.autoMark]);
 
   return (
-    <div className="nonogram" data-highlight-lines={settings.highlightLines ? 'true' : 'false'}>
+    <div className={settings.highlightLines ? 'nonogram nonogram-highlighting' : 'nonogram'}>
       <div className="nonogram-controls">
         <div className="nonogram-modes" role="group" aria-label="Click behaviour">
           {CURSOR_MODES.map((mode) => (

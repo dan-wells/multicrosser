@@ -7,12 +7,17 @@ class RemotePresence {
   constructor() {
     this.sessions = new Map(); // sessionId -> { x, y, entry_id, entry_cells }
     this.cellMap = null; // Map<"x-y", Element>
+    this.stripMap = null; // Map<"row-n"|"col-n", Element>, the nonogram's clue gutters
     this.crosswordElement = null;
     this.localEntryId = null; // local user's selected entry id, e.g. "12-across"
   }
 
   setCellMap(cellMap) {
     this.cellMap = cellMap;
+  }
+
+  setStripMap(stripMap) {
+    this.stripMap = stripMap;
   }
 
   setCrosswordElement(el) {
@@ -47,7 +52,28 @@ class RemotePresence {
 
   apply() {
     this.applyGrid();
+    this.applyStrips();
     this.applyClueList();
+  }
+
+  // The clue gutters either side of a nonogram's grid, which continue the lines
+  // through a remote cursor out to the edge of the drawing.
+  applyStrips() {
+    if (!this.stripMap) return;
+
+    const lines = new Set();
+    this.sessions.forEach(({ x, y }) => {
+      if (Number.isInteger(y)) lines.add(`row-${y}`);
+      if (Number.isInteger(x)) lines.add(`col-${x}`);
+    });
+
+    this.stripMap.forEach((el, key) => {
+      if (lines.has(key)) {
+        el.setAttribute('data-remote-clue', 'true');
+      } else if (el.hasAttribute('data-remote-clue')) {
+        el.removeAttribute('data-remote-clue');
+      }
+    });
   }
 
   applyGrid() {

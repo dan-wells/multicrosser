@@ -28,6 +28,22 @@ function buildGrid(width, height) {
   return { container, cellMap };
 }
 
+// The nonogram's clue gutters, one strip per row and per column.
+function buildStrips(width, height) {
+  const container = document.createElement('div');
+  const stripMap = new Map();
+  const add = (key) => {
+    const el = document.createElement('div');
+    el.setAttribute('data-strip', key);
+    container.appendChild(el);
+    stripMap.set(key, el);
+  };
+  for (let y = 0; y < height; y += 1) add(`row-${y}`);
+  for (let x = 0; x < width; x += 1) add(`col-${x}`);
+  document.body.appendChild(container);
+  return stripMap;
+}
+
 function makeClueOption(entryId) {
   const el = document.createElement('li');
   el.setAttribute('data-entry-id', entryId);
@@ -241,5 +257,35 @@ describe('RemotePresence.applyClueList', () => {
     expect(() => rp.handleMessage({
       type: 'presence', session_id: 's1', x: 0, y: 0, entry_id: '1-across', entry_cells: [],
     })).not.toThrow();
+  });
+});
+
+describe('RemotePresence strips', () => {
+  it('carries a remote cursor out into the clue gutters of its two lines', () => {
+    const rp = new RemotePresence();
+    const stripMap = buildStrips(4, 4);
+    rp.setStripMap(stripMap);
+
+    rp.handleMessage({ type: 'presence', session_id: 'a', x: 1, y: 2 });
+    expect(stripMap.get('row-2').hasAttribute('data-remote-clue')).toBe(true);
+    expect(stripMap.get('col-1').hasAttribute('data-remote-clue')).toBe(true);
+    expect(stripMap.get('row-0').hasAttribute('data-remote-clue')).toBe(false);
+
+    // Moving on clears the strips behind it.
+    rp.handleMessage({ type: 'presence', session_id: 'a', x: 3, y: 3 });
+    expect(stripMap.get('row-2').hasAttribute('data-remote-clue')).toBe(false);
+    expect(stripMap.get('col-3').hasAttribute('data-remote-clue')).toBe(true);
+
+    rp.handleMessage({ type: 'presence', session_id: 'a', leave: true });
+    expect(stripMap.get('row-3').hasAttribute('data-remote-clue')).toBe(false);
+  });
+
+  it('does nothing without a strip map, as the crossword has none', () => {
+    const rp = new RemotePresence();
+    const { cellMap } = buildGrid(2, 2);
+    rp.setCellMap(cellMap);
+
+    expect(() => rp.handleMessage({ type: 'presence', session_id: 'a', x: 0, y: 1 })).not.toThrow();
+    expect(cellMap.get('0-1').hasAttribute('data-remote-cursor')).toBe(true);
   });
 });

@@ -124,20 +124,27 @@ describe('NonogramGrid', () => {
     expect(markup.match(/nonogram-cell-fill/g)).toHaveLength(2);
   });
 
+  it('lays a strip over every line\'s clue gutter for remote highlights', () => {
+    const markup = render({ settings: { ...SETTINGS, highlightLines: false } });
+    expect(markup.match(/class="nonogram-strip"/g)).toHaveLength(10);
+    expect(markup).toMatch(/data-strip="row-4"/);
+    expect(markup).toMatch(/data-strip="col-0"/);
+  });
+
   it('highlights the cursor row and column only when that is switched on', () => {
     const lined = render({ cursor: { x: 2, y: 3 } });
-    // Nine cells in the cross through (2,3), the cursor cell counted once.
-    expect(lined.match(/is-lined/g)).toHaveLength(9);
-    // Plus a band over each clue strip, whatever that line's clue is.
-    expect(lined).toMatch(/class="nonogram-line-band"[^>]*data-band="row-3"/);
-    expect(lined).toMatch(/class="nonogram-line-band"[^>]*data-band="col-2"/);
+    // Nine cells in the cross through (2,3), the cursor cell counted once, and
+    // the two clue strips those lines run out into.
+    expect(lined.match(/is-lined/g)).toHaveLength(11);
+    // Plus the strip over each clue gutter, whatever that line's clue is.
+    expect(lined).toMatch(/class="nonogram-strip is-lined"[^>]*data-strip="row-3"/);
+    expect(lined).toMatch(/class="nonogram-strip is-lined"[^>]*data-strip="col-2"/);
 
     const plain = render({
       cursor: { x: 2, y: 3 },
       settings: { ...SETTINGS, highlightLines: false },
     });
     expect(plain).not.toContain('is-lined');
-    expect(plain).not.toContain('nonogram-line-band');
   });
 
   it('outlines every cell the last stroke touched', () => {

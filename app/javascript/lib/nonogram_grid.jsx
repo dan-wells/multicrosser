@@ -246,32 +246,25 @@ export default function NonogramGrid({
     });
   });
 
-  // The highlight carried across the clue strips. Drawn as one band per axis
-  // rather than behind the numbers themselves, so it reaches the edge of the
-  // drawing whether or not the line's clue is as long as the longest one.
-  const bands = [];
-  if (settings.highlightLines) {
-    bands.push(
-      <rect
-        key="band-row"
-        className="nonogram-line-band"
-        data-band={`row-${cursor.y}`}
-        x={0}
-        y={originY + cursor.y * size}
-        width={originX}
-        height={size}
-      />,
-      <rect
-        key="band-col"
-        className="nonogram-line-band"
-        data-band={`col-${cursor.x}`}
-        x={originX + cursor.x * size}
-        y={0}
-        width={size}
-        height={originY}
-      />,
-    );
-  }
+  // Highlights on clue strips for the current row and column (both local and remote).
+  const strips = [];
+  const stripRect = (axis, line) => (axis === ROW
+    ? { x: 0, y: originY + line * size, width: originX, height: size }
+    : { x: originX + line * size, y: 0, width: size, height: originY });
+  [[ROW, rows, cursor.y], [COL, cols, cursor.x]].forEach(([axis, count, lit]) => {
+    for (let line = 0; line < count; line += 1) {
+      const key = `${axis}-${line}`;
+      strips.push(
+        <rect
+          key={`strip-${key}`}
+          className={settings.highlightLines && line === lit
+            ? 'nonogram-strip is-lined' : 'nonogram-strip'}
+          data-strip={key}
+          {...stripRect(axis, line)}
+        />,
+      );
+    }
+  });
 
   const rules = [];
   for (let x = 0; x <= cols; x += 1) {
@@ -375,7 +368,7 @@ export default function NonogramGrid({
       onPointerCancel={onPointerCancel}
       onContextMenu={(event) => event.preventDefault()}
     >
-      {bands}
+      {strips}
       {cells}
       {outlines}
       {rules}

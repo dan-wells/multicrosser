@@ -57,6 +57,12 @@ const buildCellMap = () => {
     cellMap.set(group.dataset.cell, group);
   });
   remotePresence.setCellMap(cellMap);
+
+  const stripMap = new Map();
+  nonogramElement.querySelectorAll('[data-strip]').forEach((strip) => {
+    stripMap.set(strip.dataset.strip, strip);
+  });
+  remotePresence.setStripMap(stripMap);
 };
 
 const mount = (onMoveBatch, onCursor) => {

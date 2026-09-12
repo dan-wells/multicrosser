@@ -200,7 +200,11 @@
   fill: transparent;
 }
 
-.nonogram-line-band {
+.nonogram-strip {
+  fill: transparent;
+}
+
+.nonogram-strip.is-lined {
   fill: var(--nonogram-line-color);
 }
 
