@@ -208,6 +208,11 @@
   fill: #888;
 }
 
+.nonogram-counter.is-drawing {
+  fill: var(--nonogram-cursor-color);
+  font-weight: bold;
+}
+
 .nonogram-counter.is-complete {
   fill: var(--nonogram-done-color);
 }

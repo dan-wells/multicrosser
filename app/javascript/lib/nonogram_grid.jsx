@@ -1,7 +1,7 @@
 import React from 'react';
 import {
   EMPTY, FILLED, CROSS, ROW, COL,
-  cellKey, markKey, effectiveValue, filledCount, lineCount,
+  cellKey, markKey, effectiveValue, filledCount, lineCount, strokeRun,
 } from './nonogram_logic';
 
 // Every five cells, so the eye can count along a long line without losing place.
@@ -280,10 +280,11 @@ export default function NonogramGrid({
     />,
   );
 
-  // Running count of filled cells per line, which is the quickest check on a
-  // big grid that a line holds as many squares as its clue asks for.
+  // Running count of filled cells per line, along with the length of the
+  // current run being drawn.
   const counters = [];
   if (settings.showCounter) {
+    const stroke = strokeRun(board, pending, data.dimensions);
     [ROW, COL].forEach((axis) => {
       const clueList = axis === ROW ? data.rowClues : data.colClues;
       for (let line = 0; line < lineCount(axis, data.dimensions); line += 1) {
@@ -291,19 +292,36 @@ export default function NonogramGrid({
         const wanted = clueList[line].reduce((sum, run) => sum + run, 0);
         const left = axis === ROW ? endX : originX + line * size;
         const top = axis === ROW ? originY + line * size : endY;
+        const drawn = stroke && stroke.axis === axis && stroke.line === line
+          ? stroke.span : null;
         counters.push(
           <text
             key={`count-${axis}-${line}`}
             className={`nonogram-counter${filled === wanted ? ' is-complete' : ''}`}
             x={left + size / 2}
-            y={top + size / 2}
+            y={top + size * (drawn === null ? 0.5 : 0.3)}
             textAnchor="middle"
             dominantBaseline="central"
-            fontSize={size * 0.5}
+            fontSize={size * (drawn === null ? 0.5 : 0.42)}
           >
             {filled}
           </text>,
         );
+        if (drawn !== null) {
+          counters.push(
+            <text
+              key={`drawn-${axis}-${line}`}
+              className="nonogram-counter is-drawing"
+              x={left + size / 2}
+              y={top + size * 0.72}
+              textAnchor="middle"
+              dominantBaseline="central"
+              fontSize={size * 0.42}
+            >
+              {drawn}
+            </text>,
+          );
+        }
       }
     });
   }

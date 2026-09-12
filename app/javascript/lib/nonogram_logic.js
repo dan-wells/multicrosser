@@ -148,6 +148,28 @@ export function dragCells(start, current) {
   return cells;
 }
 
+// The filled run a stroke is laying down, measured through any cells that were
+// already filled at either end.
+export function strokeRun(board, pending, dimensions) {
+  if (!pending || pending.value !== FILLED || pending.keys.size < 2) return null;
+  const cells = Array.from(pending.keys, (key) => key.split('-').map(Number));
+  const [firstX, firstY] = cells[0];
+  const axis = cells.every(([, y]) => y === firstY) ? ROW : COL;
+  const line = axis === ROW ? firstY : firstX;
+  const offsets = cells.map(([x, y]) => (axis === ROW ? x : y));
+
+  const isFilled = (offset) => {
+    const { x, y } = lineCell(axis, line, offset);
+    return ((board[x] && board[x][y]) || EMPTY) === FILLED;
+  };
+  let from = Math.min(...offsets);
+  let to = Math.max(...offsets);
+  while (from > 0 && isFilled(from - 1)) from -= 1;
+  while (to < lineLength(axis, dimensions) - 1 && isFilled(to + 1)) to += 1;
+
+  return { axis, line, span: to - from + 1 };
+}
+
 // --- completion ---
 
 // Row-major, 'y' for filled and 'n' for anything else -- crosses never count.

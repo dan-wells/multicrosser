@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   EMPTY, FILLED, CROSS, ROW, COL,
-  runs, runsMatch, derive, effectiveValue, filledCount,
+  runs, runsMatch, derive, effectiveValue, filledCount, strokeRun,
   clickValue, dragCells,
   serializeSolution, isSolved, invertStroke, UndoStack, markKey,
 } from '../nonogram_logic';
@@ -308,5 +308,45 @@ describe('UndoStack', () => {
     expect(stack.undo().cells[0].x).toBe(3);
     expect(stack.undo().cells[0].x).toBe(2);
     expect(stack.undo()).toBeNull();
+  });
+});
+
+describe('strokeRun', () => {
+  const DIMS = { cols: 5, rows: 5 };
+  const board = () => Array.from({ length: 5 }, () => Array(5).fill(EMPTY));
+  const pending = (value, keys) => ({ value, keys: new Set(keys) });
+
+  it('measures the drag itself when nothing adjoins it', () => {
+    expect(strokeRun(board(), pending(FILLED, ['1-2', '2-2']), DIMS))
+      .toEqual({ axis: ROW, line: 2, span: 2 });
+  });
+
+  it('runs on through cells that were already filled at either end', () => {
+    const grid = board();
+    grid[0][2] = FILLED;
+    grid[3][2] = FILLED;
+    grid[4][2] = FILLED;
+    // The drag covers 1 and 2, but the run it completes is the whole line.
+    expect(strokeRun(grid, pending(FILLED, ['1-2', '2-2']), DIMS).span).toBe(5);
+  });
+
+  it('stops at a gap rather than counting a separate run', () => {
+    const grid = board();
+    grid[4][2] = FILLED;
+    expect(strokeRun(grid, pending(FILLED, ['1-2', '2-2']), DIMS).span).toBe(2);
+  });
+
+  it('measures down a column when the drag goes that way', () => {
+    const grid = board();
+    grid[1][3] = FILLED;
+    expect(strokeRun(grid, pending(FILLED, ['1-1', '1-2']), DIMS))
+      .toEqual({ axis: COL, line: 1, span: 3 });
+  });
+
+  it('has nothing to show for crosses, blanks or a stroke of one cell', () => {
+    expect(strokeRun(board(), pending(CROSS, ['1-2', '2-2']), DIMS)).toBe(null);
+    expect(strokeRun(board(), pending(EMPTY, ['1-2', '2-2']), DIMS)).toBe(null);
+    expect(strokeRun(board(), pending(FILLED, ['1-2']), DIMS)).toBe(null);
+    expect(strokeRun(board(), null, DIMS)).toBe(null);
   });
 });

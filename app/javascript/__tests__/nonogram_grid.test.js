@@ -171,6 +171,16 @@ describe('NonogramGrid', () => {
     expect(markup).toContain('is-complete');
   });
 
+  it('shows the run a drag is drawing beside that line\'s count', () => {
+    const board = emptyBoard();
+    board[3][0] = FILLED;
+    const pending = { value: FILLED, keys: new Set(['1-0', '2-0']) };
+    const markup = render({ board, pending, settings: { ...SETTINGS, showCounter: true } });
+
+    // Row 0 holds one filled cell so far; the drag joins it into a run of three.
+    expect(markup).toMatch(/is-drawing[^>]*>3<\/text>/);
+  });
+
   it('draws a heavier rule every five cells', () => {
     const markup = render();
     // 6 verticals and 6 horizontals, of which 0 and 5 are block rules on each axis.
