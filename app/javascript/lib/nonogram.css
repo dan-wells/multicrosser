@@ -135,7 +135,8 @@
 
 .nonogram-wrapper {
   overflow-x: auto;
-  touch-action: none;
+  width: fit-content;
+  max-width: 100%;
 }
 
 .nonogram-wrapper:focus {
@@ -144,6 +145,7 @@
 
 .nonogram-grid {
   user-select: none;
+  touch-action: manipulation;
 }
 
 .nonogram-cell-bg {

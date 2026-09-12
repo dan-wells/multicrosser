@@ -121,7 +121,7 @@ function ClueNumber({
 
 export default function NonogramGrid({
   data, board, derived, marks, settings, cursor, showCursor, lastChange, pending,
-  cellSize, onPointerDown, onPointerMove, onPointerUp, onClueClick, svgRef,
+  cellSize, onPointerDown, onPointerMove, onPointerUp, onPointerCancel, onClueClick, svgRef,
 }) {
   const layout = gridLayout(data, settings);
   const { cols, rows, gutterCols, gutterRows } = layout;
@@ -338,7 +338,7 @@ export default function NonogramGrid({
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={onPointerUp}
-      onPointerCancel={onPointerUp}
+      onPointerCancel={onPointerCancel}
       onContextMenu={(event) => event.preventDefault()}
     >
       {cells}

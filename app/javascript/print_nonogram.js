@@ -42,6 +42,7 @@ flushSync(() => {
     onPointerDown={noop}
     onPointerMove={noop}
     onPointerUp={noop}
+    onPointerCancel={noop}
     onClueClick={noop}
   />);
 });

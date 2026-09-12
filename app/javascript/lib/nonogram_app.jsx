@@ -234,17 +234,32 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     return { x, y };
   }, [cellSize, layout]);
 
+  // A stroke in progress is abandoned rather than committed: a second finger landing
+  // means a pinch to zoom, so we should not leave a half-drawn run on the grid.
+  const abandonStroke = useCallback(() => {
+    strokeRef.current = null;
+    setPending(null);
+  }, []);
+
   const handlePointerDown = useCallback((event) => {
+    if (strokeRef.current) {
+      abandonStroke();
+      return;
+    }
     const cell = cellFromEvent(event);
     if (!cell) return;
-    event.preventDefault();
     // A drag paints the value the starting cell would have taken on a click,
     // so a one-cell drag and a click are the same action.
     const mode = event.button === 2 ? 'cross' : settings.cursorMode;
     const value = clickValue(mode, boardRef.current[cell.x][cell.y]);
-    strokeRef.current = { start: cell, value, last: cell };
+    // Touch controls differ: we only allow tapping, not dragging, so not to
+    // conflict with mobile browser gestures like pinch-to-zoom.
+    const tap = event.pointerType === 'touch';
+    strokeRef.current = { start: cell, value, last: cell, tap };
     engagedRef.current = true;
     setCursor(cell);
+    if (tap) return;
+    event.preventDefault();
     setPending({ value, keys: new Set([cellKey(cell.x, cell.y)]) });
     setKeyboardCursor(false);
     if (wrapperRef.current && document.activeElement !== wrapperRef.current) {
@@ -252,10 +267,10 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
       wrapperRef.current.focus();
     }
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch (e) { /* no capture in jsdom */ }
-  }, [cellFromEvent, settings.cursorMode]);
+  }, [abandonStroke, cellFromEvent, settings.cursorMode]);
 
   const handlePointerMove = useCallback((event) => {
-    if (!strokeRef.current) return;
+    if (!strokeRef.current || strokeRef.current.tap) return;
     const cell = cellFromEvent(event);
     if (!cell) return;
     strokeRef.current.last = cell;
@@ -273,6 +288,8 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     strokeRef.current = null;
     const cell = cellFromEvent(event) || stroke.last;
     setPending(null);
+    // A finger that came up somewhere else was on its way through, not tapping.
+    if (stroke.tap && (cell.x !== stroke.start.x || cell.y !== stroke.start.y)) return;
     sendStroke('board', dragCells(stroke.start, cell), stroke.value);
   }, [cellFromEvent, sendStroke]);
 
@@ -531,6 +548,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerUp}
+          onPointerCancel={abandonStroke}
           onClueClick={handleClueClick}
         />
       </div>

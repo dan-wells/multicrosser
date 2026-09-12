@@ -48,6 +48,17 @@ const pointer = (svg, type, cell, init = {}) => {
   });
 };
 
+// A finger, which the grid treats as a tap rather than the start of a drag.
+const finger = (svg, type, cell) => {
+  act(() => {
+    const event = new MouseEvent(type, {
+      bubbles: true, cancelable: true, ...at(cell.x, cell.y),
+    });
+    Object.defineProperty(event, 'pointerType', { value: 'touch' });
+    svg.dispatchEvent(event);
+  });
+};
+
 const outlined = () => Array.from(
   container.querySelectorAll('.nonogram-cell-outline'),
 ).map((rect) => rect.dataset.cell);
@@ -251,6 +262,54 @@ describe('Nonogram', () => {
 
     expect(handlers.onMoveBatch).toHaveBeenCalledTimes(1);
     expect(handlers.onMoveBatch.mock.calls[0][0].cells).toHaveLength(4);
+  });
+
+  it('paints one cell when a finger taps it', () => {
+    const svg = mount();
+
+    finger(svg, 'pointerdown', { x: 1, y: 1 });
+    finger(svg, 'pointerup', { x: 1, y: 1 });
+
+    expect(handlers.onMoveBatch).toHaveBeenCalledWith({
+      space: 'board',
+      value: '1',
+      cells: [{ x: 1, y: 1, previousValue: '' }],
+    });
+  });
+
+  it('paints nothing when a finger travels, so a scroll over the grid is free', () => {
+    const svg = mount();
+
+    finger(svg, 'pointerdown', { x: 0, y: 2 });
+    finger(svg, 'pointermove', { x: 3, y: 2 });
+    finger(svg, 'pointerup', { x: 3, y: 2 });
+
+    expect(handlers.onMoveBatch).not.toHaveBeenCalled();
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);
+  });
+
+  it('abandons a drag when a second finger lands, so a pinch draws nothing', () => {
+    const svg = mount();
+
+    pointer(svg, 'pointerdown', { x: 0, y: 2 });
+    pointer(svg, 'pointermove', { x: 3, y: 2 });
+    // The second finger: a pinch starting over the grid, not a stroke.
+    pointer(svg, 'pointerdown', { x: 1, y: 4 });
+    pointer(svg, 'pointerup', { x: 1, y: 4 });
+
+    expect(handlers.onMoveBatch).not.toHaveBeenCalled();
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);
+  });
+
+  it('abandons a drag the browser takes back for a gesture', () => {
+    const svg = mount();
+
+    pointer(svg, 'pointerdown', { x: 0, y: 2 });
+    pointer(svg, 'pointermove', { x: 3, y: 2 });
+    pointer(svg, 'pointercancel', { x: 3, y: 2 });
+
+    expect(handlers.onMoveBatch).not.toHaveBeenCalled();
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);
   });
 
   it('keeps a drag that is released past the edge of the grid', () => {
