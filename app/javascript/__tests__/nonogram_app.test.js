@@ -57,7 +57,6 @@ const mount = (props = {}) => {
   document.body.appendChild(container);
   root = createRoot(container);
   handlers = {
-    onMove: vi.fn(),
     onMoveBatch: vi.fn(),
     onCursor: vi.fn(),
   };
@@ -121,7 +120,6 @@ describe('Nonogram', () => {
       new MouseEvent('click', { bubbles: true }),
     ); });
     handlers.onMoveBatch.mockClear();
-    handlers.onMove.mockClear();
 
     const startOver = container.querySelector('.nonogram-actions button');
     act(() => { startOver.click(); });
@@ -327,7 +325,7 @@ describe('Nonogram', () => {
     expect(derived()).toBe(0);
   });
 
-  it('sends a clue tick as a move in that line\'s mark space', () => {
+  it('sends a clue tick in that line\'s mark space', () => {
     const svg = mount();
 
     act(() => {
@@ -336,9 +334,44 @@ describe('Nonogram', () => {
       );
     });
 
-    expect(handlers.onMove).toHaveBeenCalledWith({
-      space: 'row_marks', x: 0, y: 0, value: '1', previousValue: '',
+    expect(handlers.onMoveBatch).toHaveBeenCalledWith({
+      space: 'row_marks',
+      value: '1',
+      cells: [{ x: 0, y: 0, previousValue: '' }],
     });
+  });
+
+  it('undoes a clue tick alongside the strokes around it', () => {
+    const svg = mount();
+    const tick = () => act(() => {
+      svg.querySelector('[data-clue="row-0-0"]').dispatchEvent(
+        new MouseEvent('click', { bubbles: true }),
+      );
+    });
+    const marked = () => container.querySelectorAll('.nonogram-clue.is-marked').length;
+    const [undo, redo] = container.querySelectorAll('.nonogram-history button');
+
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+    tick();
+    expect(marked()).toBe(1);
+
+    act(() => { undo.click(); });
+    expect(marked()).toBe(0);
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(1);
+    expect(handlers.onMoveBatch).toHaveBeenLastCalledWith({
+      space: 'row_marks',
+      value: '',
+      cells: [{ x: 0, y: 0, previousValue: '1' }],
+    });
+
+    act(() => { undo.click(); });
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);
+
+    act(() => { redo.click(); });
+    act(() => { redo.click(); });
+    expect(marked()).toBe(1);
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(1);
   });
 
   it('applies a batch arriving from another player', () => {

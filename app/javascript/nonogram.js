@@ -59,14 +59,13 @@ const buildCellMap = () => {
   remotePresence.setCellMap(cellMap);
 };
 
-const mount = (onMove, onMoveBatch, onCursor) => {
+const mount = (onMoveBatch, onCursor) => {
   flushSync(() => {
     root.render(<Nonogram
       data={data}
       storageKey={`${crosswordIdentifier}-${room}`}
       randomPath={`/${series}/random`}
       controlRef={controlRef}
-      onMove={onMove}
       onMoveBatch={onMoveBatch}
       onCursor={onCursor}
     />);
@@ -110,7 +109,6 @@ const { moves: movesSub, presence: presenceSub } = createSubscriptions(
 
     if (!mounted) {
       mount(
-        (move) => movesSub.move(move),
         (batch) => movesSub.moveBatch(batch),
         (payload) => sendCursor(presenceSub, payload),
       );

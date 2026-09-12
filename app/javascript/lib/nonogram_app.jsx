@@ -80,7 +80,7 @@ const formatTime = (seconds) => {
 const emptyBoard = (dimensions) =>
   Array.from({ length: dimensions.cols }, () => Array(dimensions.rows).fill(EMPTY));
 
-function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor, controlRef }) {
+function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, controlRef }) {
   const { dimensions } = data;
 
   const boardRef = useRef(emptyBoard(dimensions));
@@ -136,28 +136,44 @@ function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor,
     return written;
   }, [commitBoard]);
 
-  const sendStroke = useCallback((cells, value, record = true) => {
-    const written = writeCells(cells, value);
+  // The clue-tick counterpart of `writeCells`, down to the previous values, so
+  // a tick travels and is undone by the same machinery a stroke is.
+  const writeMarks = useCallback((space, cells, value) => {
+    const field = space === 'row_marks' ? 'rowMarks' : 'colMarks';
+    const updated = { ...marksRef.current[field] };
+    const written = cells.map(({ x, y }) => {
+      const key = markKey(x, y);
+      const previousValue = updated[key] || EMPTY;
+      updated[key] = value;
+      return { x, y, previousValue };
+    }).filter((cell) => cell.previousValue !== value);
+    if (written.length === 0) return [];
+    commitMarks({ ...marksRef.current, [field]: updated });
+    return written;
+  }, [commitMarks]);
+
+  const sendStroke = useCallback((space, cells, value, record = true) => {
+    const written = space === 'board'
+      ? writeCells(cells, value)
+      : writeMarks(space, cells, value);
     if (written.length === 0) return;
-    onMoveBatch({ space: 'board', value, cells: written });
+    onMoveBatch({ space, value, cells: written });
     if (record && undoRef.current) {
       undoRef.current.push({
-        space: 'board',
+        space,
         value,
         cells: written,
-        span: cells.map(({ x, y }) => cellKey(x, y)),
+        // Only board cells can be outlined; a tick has nothing to highlight.
+        span: space === 'board' ? cells.map(({ x, y }) => cellKey(x, y)) : [],
       });
     }
-  }, [onMoveBatch, writeCells]);
+  }, [onMoveBatch, writeCells, writeMarks]);
 
   const setMark = useCallback((axis, line, index) => {
     const field = axis === ROW ? 'rowMarks' : 'colMarks';
-    const key = markKey(line, index);
-    const previousValue = marksRef.current[field][key] || EMPTY;
-    const value = previousValue ? EMPTY : '1';
-    commitMarks({ ...marksRef.current, [field]: { ...marksRef.current[field], [key]: value } });
-    onMove({ space: axis === ROW ? 'row_marks' : 'col_marks', x: line, y: index, value, previousValue });
-  }, [commitMarks, onMove]);
+    const value = marksRef.current[field][markKey(line, index)] ? EMPTY : '1';
+    sendStroke(axis === ROW ? 'row_marks' : 'col_marks', [{ x: line, y: index }], value);
+  }, [sendStroke]);
 
   // The entry point drives these as messages arrive from the other players.
   useImperativeHandle(controlRef, () => ({
@@ -250,7 +266,7 @@ function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor,
     strokeRef.current = null;
     const cell = cellFromEvent(event) || stroke.last;
     setPending(null);
-    sendStroke(dragCells(stroke.start, cell), stroke.value);
+    sendStroke('board', dragCells(stroke.start, cell), stroke.value);
   }, [cellFromEvent, sendStroke]);
 
   const handleClueClick = useCallback((axis, line, index) => {
@@ -291,7 +307,7 @@ function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor,
     const batches = forward
       ? [{ space: stroke.space, value: stroke.value, cells: stroke.cells }]
       : invertStroke(stroke);
-    batches.forEach((batch) => sendStroke(batch.cells, batch.value, false));
+    batches.forEach((batch) => sendStroke(batch.space, batch.cells, batch.value, false));
   }, [sendStroke]);
 
   // The highlight always sits on the stroke a further undo would revert, so
@@ -333,25 +349,21 @@ function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor,
         if (boardRef.current[x][y] !== EMPTY) cells.push({ x, y });
       }
     }
-    sendStroke(cells, EMPTY, false);
+    sendStroke('board', cells, EMPTY, false);
 
     [['row_marks', 'rowMarks'], ['col_marks', 'colMarks']].forEach(([space, field]) => {
-      const ticked = Object.entries(marksRef.current[field]).filter(([, tick]) => tick);
-      if (ticked.length === 0) return;
-      onMoveBatch({
-        space,
-        value: EMPTY,
-        cells: ticked.map(([key, tick]) => {
+      const ticked = Object.keys(marksRef.current[field])
+        .filter((key) => marksRef.current[field][key])
+        .map((key) => {
           const [line, index] = key.split('-');
-          return { x: Number(line), y: Number(index), previousValue: tick };
-        }),
-      });
+          return { x: Number(line), y: Number(index) };
+        });
+      sendStroke(space, ticked, EMPTY, false);
     });
-    commitMarks({ rowMarks: {}, colMarks: {} });
 
     undoRef.current = new UndoStack();
     setLastChange(null);
-  }, [commitMarks, confirmingClear, dimensions, onMoveBatch, sendStroke]);
+  }, [confirmingClear, dimensions, sendStroke]);
 
   useEffect(() => () => clearTimeout(confirmRef.current), []);
 
