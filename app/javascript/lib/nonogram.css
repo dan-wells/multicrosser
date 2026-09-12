@@ -135,8 +135,7 @@
 
 .nonogram-wrapper {
   overflow-x: auto;
-  width: fit-content;
-  max-width: 100%;
+  width: 100%;
 }
 
 .nonogram-wrapper:focus {

@@ -423,7 +423,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     const update = () => {
       const available = wrapper.clientWidth;
       if (!available) return;
-      const fitted = Math.floor(available / layout.totalCols);
+      const fitted = Math.floor((available / layout.totalCols) * 100) / 100;
       setCellSize(Math.min(Math.max(fitted, MIN_CELL), MAX_CELL));
     };
     const observer = new ResizeObserver(update);
