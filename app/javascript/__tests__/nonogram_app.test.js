@@ -48,6 +48,10 @@ const pointer = (svg, type, cell, init = {}) => {
   });
 };
 
+const outlined = () => Array.from(
+  container.querySelectorAll('.nonogram-cell-outline'),
+).map((rect) => rect.dataset.cell);
+
 const mount = (props = {}) => {
   container = document.createElement('div');
   document.body.appendChild(container);
@@ -108,17 +112,122 @@ describe('Nonogram', () => {
     expect(payload.entry_cells.filter(([x, y]) => x === 2 && y === 3)).toHaveLength(1);
   });
 
+  it('clears every cell and clue tick for the room, on a second click', () => {
+    const svg = mount();
+
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+    act(() => { container.querySelector('[data-clue="row-0-0"]').dispatchEvent(
+      new MouseEvent('click', { bubbles: true }),
+    ); });
+    handlers.onMoveBatch.mockClear();
+    handlers.onMove.mockClear();
+
+    const startOver = container.querySelector('.nonogram-actions button');
+    act(() => { startOver.click(); });
+    expect(handlers.onMoveBatch).not.toHaveBeenCalled();
+    expect(startOver.textContent).toBe('Confirm start over');
+    expect(startOver.hasAttribute('data-confirming')).toBe(true);
+
+    act(() => { startOver.click(); });
+    expect(startOver.textContent).toBe('Start over');
+
+    const spaces = handlers.onMoveBatch.mock.calls.map(([batch]) => batch.space);
+    expect(spaces).toContain('board');
+    expect(spaces).toContain('row_marks');
+    expect(handlers.onMoveBatch.mock.calls.every(([batch]) => batch.value === '')).toBe(true);
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);
+    expect(container.querySelectorAll('.nonogram-clue.is-marked')).toHaveLength(0);
+    expect(container.querySelectorAll('.nonogram-cell-outline')).toHaveLength(0);
+  });
+
+  it('disarms start over again if the second click never comes', () => {
+    mount();
+    vi.useFakeTimers();
+    const startOver = container.querySelector('.nonogram-actions button');
+
+    act(() => { startOver.click(); });
+    expect(startOver.textContent).toBe('Confirm start over');
+
+    act(() => { vi.advanceTimersByTime(3000); });
+    expect(startOver.textContent).toBe('Start over');
+    vi.useRealTimers();
+  });
+
+  it('keeps the solved time as it stood, even if the clock is reset after', () => {
+    // The clock is picked up mid-solve, as it would be on a page reload.
+    window.localStorage.setItem('nonogram-timer-test-room', '125');
+    const svg = mount();
+
+    for (let y = 0; y < 5; y += 1) {
+      for (let x = 0; x < 5; x += 1) {
+        if (DATA.solution[y * 5 + x] !== 'y') continue;
+        pointer(svg, 'pointerdown', { x, y });
+        pointer(svg, 'pointerup', { x, y });
+      }
+    }
+    expect(container.querySelector('.nonogram-solved').textContent).toBe('Puzzle solved in 02:05');
+
+    act(() => { container.querySelectorAll('.nonogram-actions button')[1].click(); });
+    expect(container.querySelector('.nonogram-timer').textContent).toBe('00:00');
+    expect(container.querySelector('.nonogram-solved').textContent).toBe('Puzzle solved in 02:05');
+  });
+
+  it('zeroes the timer without touching the grid', () => {
+    const svg = mount();
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+    window.localStorage.setItem('nonogram-timer-test-room', '90');
+
+    const reset = container.querySelectorAll('.nonogram-actions button')[1];
+    act(() => { reset.click(); });
+
+    expect(container.querySelector('.nonogram-timer').textContent).toBe('00:00');
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(1);
+  });
+
+  it('links a new puzzle at the series random route', () => {
+    mount({ randomPath: '/nonogram-5/random' });
+    const link = container.querySelector('.nonogram-actions a');
+
+    expect(link.getAttribute('href')).toBe('/nonogram-5/random');
+    expect(link.textContent).toBe('New puzzle');
+  });
+
+  it('keeps the options panel behind the cog, every aid off to begin with', () => {
+    mount();
+    const panel = container.querySelector('.nonogram-options');
+    const cog = container.querySelector('.nonogram-settings button');
+
+    expect(panel.hidden).toBe(true);
+    expect(Array.from(panel.querySelectorAll('input')).map((box) => box.checked))
+      .toEqual([false, false, false]);
+
+    act(() => { cog.click(); });
+    expect(panel.hidden).toBe(false);
+  });
+
   it('exposes the line-highlight setting so remote lines follow it too', () => {
     mount();
     const wrapper = container.querySelector('.nonogram');
-    expect(wrapper.dataset.highlightLines).toBe('true');
+    expect(wrapper.dataset.highlightLines).toBe('false');
 
     const toggle = Array.from(container.querySelectorAll('label'))
       .find((label) => label.textContent.includes('Highlight row and column'))
       .querySelector('input');
     act(() => { toggle.click(); });
 
-    expect(wrapper.dataset.highlightLines).toBe('false');
+    expect(wrapper.dataset.highlightLines).toBe('true');
+  });
+
+  it('remembers a setting the player changed', () => {
+    mount();
+    const toggle = Array.from(container.querySelectorAll('label'))
+      .find((label) => label.textContent.includes('Auto cross and tick'))
+      .querySelector('input');
+    act(() => { toggle.click(); });
+
+    expect(JSON.parse(window.localStorage.getItem('nonogram-settings')).autoMark).toBe(true);
   });
 
   it('sends a click as a single-cell batch carrying the previous value', () => {
@@ -144,6 +253,36 @@ describe('Nonogram', () => {
 
     expect(handlers.onMoveBatch).toHaveBeenCalledTimes(1);
     expect(handlers.onMoveBatch.mock.calls[0][0].cells).toHaveLength(4);
+  });
+
+  it('outlines a whole drag, cells that already held the value included', () => {
+    const svg = mount();
+
+    pointer(svg, 'pointerdown', { x: 2, y: 0 });
+    pointer(svg, 'pointerup', { x: 2, y: 0 });
+    pointer(svg, 'pointerdown', { x: 0, y: 0 });
+    pointer(svg, 'pointermove', { x: 3, y: 0 });
+    pointer(svg, 'pointerup', { x: 3, y: 0 });
+
+    // (2,0) was filled already, so the batch leaves it out -- but the run the
+    // drag laid down is unbroken on screen.
+    expect(handlers.onMoveBatch.mock.calls[1][0].cells).toHaveLength(3);
+    expect(outlined()).toEqual(['0-0', '1-0', '2-0', '3-0']);
+  });
+
+  it('walks the last-move outline back through the stack on undo', () => {
+    const svg = mount();
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+    pointer(svg, 'pointerdown', { x: 3, y: 3 });
+    pointer(svg, 'pointerup', { x: 3, y: 3 });
+    expect(outlined()).toEqual(['3-3']);
+
+    act(() => { container.querySelector('.nonogram-history button').click(); });
+    expect(outlined()).toEqual(['1-1']);
+
+    act(() => { container.querySelector('.nonogram-history button').click(); });
+    expect(outlined()).toEqual([]);
   });
 
   it('sends a clue tick as a move in that line\'s mark space', () => {

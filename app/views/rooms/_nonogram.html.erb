@@ -9,7 +9,7 @@
 <%= stylesheet_link_tag "nonogram" %>
 <%= javascript_include_tag "nonogram" %>
 
-<p class="crossword-footer" style="clear: both;">
+<p class="crossword-footer nonogram-footer" style="clear: both;">
   Share this page with others to solve this nonogram with them.
   <br><%= link_to "Print this page", print_crossword_path(series: params[:series], identifier: params[:identifier]), target: "_blank" %>
 </p>

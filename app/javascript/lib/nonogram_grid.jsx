@@ -7,6 +7,23 @@ import {
 // Every five cells, so the eye can count along a long line without losing place.
 const BLOCK = 5;
 
+// Rule weights live here rather than in the stylesheet because the cells are
+// laid out around them: a rule is centred on the boundary, so half of it eats
+// into the cell, and a block rule eats three times as much as a thin one.
+const RULE = 1;
+const BLOCK_RULE = 3;
+const OUTLINE = 2.5;
+
+const isBlockBoundary = (boundary, count) => boundary % BLOCK === 0 || boundary === count;
+
+// How far the rule along a boundary reaches into the cell on either side.
+const edgeReach = (boundary, count) =>
+  (isBlockBoundary(boundary, count) ? BLOCK_RULE : RULE) / 2;
+
+const CLUE_SCALE = 0.75;
+
+const NO_CHANGE = new Set();
+
 const clueLengths = (clues) => clues.reduce((longest, clue) => Math.max(longest, clue.length), 1);
 
 // The clue strips are measured in cells, so the whole drawing scales with one
@@ -22,29 +39,48 @@ export function gridLayout(data, settings) {
     gutterCols,
     gutterRows,
     counter,
-    totalCols: gutterCols + cols + counter,
-    totalRows: gutterRows + rows + counter,
+    clueScale: CLUE_SCALE,
+    gutterWidth: gutterCols * CLUE_SCALE,
+    gutterHeight: gutterRows * CLUE_SCALE,
+    totalCols: gutterCols * CLUE_SCALE + cols + counter,
+    totalRows: gutterRows * CLUE_SCALE + rows + counter,
   };
 }
 
-function Cell({ x, y, value, size, left, top, classes }) {
-  const inset = size * 0.22;
+// The white margin left between the rules and whatever the cell holds, wide
+// enough for the cursor outline to sit in it.
+const cellGap = (size) => Math.max(2, Math.round(size * 0.12)) - RULE / 2;
+
+// What is left of a cell once the rules around it have taken their share. Every
+// mark a cell carries is placed in this box rather than against the cell's
+// nominal bounds, so a square beside a block rule is not pushed off centre.
+const innerBox = (size, left, top, reach) => ({
+  x: left + reach.left,
+  y: top + reach.top,
+  width: size - reach.left - reach.right,
+  height: size - reach.top - reach.bottom,
+});
+
+function Cell({ x, y, value, size, left, top, reach, classes }) {
+  const box = innerBox(size, left, top, reach);
+  const gap = cellGap(size);
+  const arm = Math.min(box.width, box.height) * 0.325;
   return (
     <g className={classes} data-cell={cellKey(x, y)}>
       <rect className="nonogram-cell-bg" x={left} y={top} width={size} height={size} />
       {value === FILLED && (
         <rect
           className="nonogram-cell-fill"
-          x={left + 1}
-          y={top + 1}
-          width={size - 2}
-          height={size - 2}
+          x={box.x + gap}
+          y={box.y + gap}
+          width={box.width - gap * 2}
+          height={box.height - gap * 2}
         />
       )}
       {value === CROSS && (
         <g className="nonogram-cell-cross">
-          <line x1={left + inset} y1={top + inset} x2={left + size - inset} y2={top + size - inset} />
-          <line x1={left + size - inset} y1={top + inset} x2={left + inset} y2={top + size - inset} />
+          <line x1={box.x + arm} y1={box.y + arm} x2={box.x + box.width - arm} y2={box.y + box.height - arm} />
+          <line x1={box.x + box.width - arm} y1={box.y + arm} x2={box.x + arm} y2={box.y + box.height - arm} />
         </g>
       )}
     </g>
@@ -52,7 +88,7 @@ function Cell({ x, y, value, size, left, top, classes }) {
 }
 
 function ClueNumber({
-  axis, line, index, total, value, size, left, top, marked, highlighted, onClueClick,
+  axis, line, index, total, value, width, height, left, top, marked, highlighted, onClueClick,
 }) {
   const classes = [
     'nonogram-clue',
@@ -69,25 +105,16 @@ function ClueNumber({
       tabIndex={-1}
       aria-label={`${axis} ${line + 1} clue ${index + 1} of ${total}, ${value}`}
     >
-      <rect className="nonogram-clue-hit" x={left} y={top} width={size} height={size} />
+      <rect className="nonogram-clue-hit" x={left} y={top} width={width} height={height} />
       <text
-        x={left + size / 2}
-        y={top + size / 2}
+        x={left + width / 2}
+        y={top + height / 2}
         textAnchor="middle"
         dominantBaseline="central"
-        fontSize={size * 0.55}
+        fontSize={Math.min(width, height) * 0.82}
       >
         {value}
       </text>
-      {marked && (
-        <line
-          className="nonogram-clue-strike"
-          x1={left + size * 0.15}
-          y1={top + size * 0.5}
-          x2={left + size * 0.85}
-          y2={top + size * 0.5}
-        />
-      )}
     </g>
   );
 }
@@ -99,13 +126,19 @@ export default function NonogramGrid({
   const layout = gridLayout(data, settings);
   const { cols, rows, gutterCols, gutterRows } = layout;
   const size = cellSize;
+  const clueSize = size * CLUE_SCALE;
   const width = layout.totalCols * size;
   const height = layout.totalRows * size;
 
-  const originX = gutterCols * size;
-  const originY = gutterRows * size;
+  const originX = gutterCols * clueSize;
+  const originY = gutterRows * clueSize;
+  const endX = originX + cols * size;
+  const endY = originY + rows * size;
+
+  const changed = lastChange || NO_CHANGE;
 
   const cells = [];
+  const outlines = [];
   for (let x = 0; x < cols; x += 1) {
     for (let y = 0; y < rows; y += 1) {
       const key = cellKey(x, y);
@@ -113,12 +146,19 @@ export default function NonogramGrid({
         ? pending.value
         : effectiveValue(board, x, y, derived);
       const isDerived = stored === CROSS && ((board[x] && board[x][y]) || EMPTY) === EMPTY;
+      const left = originX + x * size;
+      const top = originY + y * size;
+      const reach = {
+        left: edgeReach(x, cols),
+        right: edgeReach(x + 1, cols),
+        top: edgeReach(y, rows),
+        bottom: edgeReach(y + 1, rows),
+      };
       const classes = [
         'nonogram-cell',
         isDerived ? 'is-derived' : '',
         settings.highlightLines && (x === cursor.x || y === cursor.y) ? 'is-lined' : '',
-        cursor.x === x && cursor.y === y ? 'is-cursor' : '',
-        lastChange === key ? 'is-last-change' : '',
+        settings.highlightLines && cursor.x === x && cursor.y === y ? 'is-cursor' : '',
       ].filter(Boolean).join(' ');
 
       cells.push(
@@ -128,11 +168,28 @@ export default function NonogramGrid({
           y={y}
           value={stored}
           size={size}
-          left={originX + x * size}
-          top={originY + y * size}
+          left={left}
+          top={top}
+          reach={reach}
           classes={classes}
         />,
       );
+
+      if (changed.has(key)) {
+        const box = innerBox(size, left, top, reach);
+        outlines.push(
+          <rect
+            key={key}
+            className="nonogram-cell-outline"
+            data-cell={key}
+            x={box.x + OUTLINE / 2}
+            y={box.y + OUTLINE / 2}
+            width={box.width - OUTLINE}
+            height={box.height - OUTLINE}
+            strokeWidth={OUTLINE}
+          />,
+        );
+      }
     }
   }
 
@@ -149,8 +206,9 @@ export default function NonogramGrid({
           index={index}
           total={clue.length}
           value={value}
-          size={size}
-          left={originX - (clue.length - index) * size}
+          width={clueSize}
+          height={size}
+          left={originX - (clue.length - index) * clueSize}
           top={originY + line * size}
           marked={Boolean(marks.rowMarks[markKey(line, index)])}
           highlighted={derived.highlightedRows.has(line)}
@@ -169,9 +227,10 @@ export default function NonogramGrid({
           index={index}
           total={clue.length}
           value={value}
-          size={size}
+          width={size}
+          height={clueSize}
           left={originX + line * size}
-          top={originY - (clue.length - index) * size}
+          top={originY - (clue.length - index) * clueSize}
           marked={Boolean(marks.colMarks[markKey(line, index)])}
           highlighted={derived.highlightedCols.has(line)}
           onClueClick={onClueClick}
@@ -182,29 +241,44 @@ export default function NonogramGrid({
 
   const rules = [];
   for (let x = 0; x <= cols; x += 1) {
+    const block = isBlockBoundary(x, cols);
     rules.push(
       <line
         key={`v${x}`}
-        className={x % BLOCK === 0 || x === cols ? 'nonogram-rule is-block' : 'nonogram-rule'}
+        className={block ? 'nonogram-rule is-block' : 'nonogram-rule'}
+        strokeWidth={block ? BLOCK_RULE : RULE}
         x1={originX + x * size}
-        y1={x % BLOCK === 0 || x === cols ? 0 : originY}
+        y1={0}
         x2={originX + x * size}
-        y2={originY + rows * size}
+        y2={endY}
       />,
     );
   }
   for (let y = 0; y <= rows; y += 1) {
+    const block = isBlockBoundary(y, rows);
     rules.push(
       <line
         key={`h${y}`}
-        className={y % BLOCK === 0 || y === rows ? 'nonogram-rule is-block' : 'nonogram-rule'}
-        x1={y % BLOCK === 0 || y === rows ? 0 : originX}
+        className={block ? 'nonogram-rule is-block' : 'nonogram-rule'}
+        strokeWidth={block ? BLOCK_RULE : RULE}
+        x1={0}
         y1={originY + y * size}
-        x2={originX + cols * size}
+        x2={endX}
         y2={originY + y * size}
       />,
     );
   }
+  rules.push(
+    <rect
+      key="border"
+      className="nonogram-border"
+      strokeWidth={BLOCK_RULE}
+      x={0}
+      y={0}
+      width={endX}
+      height={endY}
+    />,
+  );
 
   // Running count of filled cells per line, which is the quickest check on a
   // big grid that a line holds as many squares as its clue asks for.
@@ -215,8 +289,8 @@ export default function NonogramGrid({
       for (let line = 0; line < lineCount(axis, data.dimensions); line += 1) {
         const filled = filledCount(board, axis, line, data.dimensions);
         const wanted = clueList[line].reduce((sum, run) => sum + run, 0);
-        const left = axis === ROW ? originX + cols * size : originX + line * size;
-        const top = axis === ROW ? originY + line * size : originY + rows * size;
+        const left = axis === ROW ? endX : originX + line * size;
+        const top = axis === ROW ? originY + line * size : endY;
         counters.push(
           <text
             key={`count-${axis}-${line}`}
@@ -250,6 +324,7 @@ export default function NonogramGrid({
       onContextMenu={(event) => event.preventDefault()}
     >
       {cells}
+      {outlines}
       {rules}
       {clues}
       {counters}

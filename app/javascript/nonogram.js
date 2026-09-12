@@ -64,6 +64,7 @@ const mount = (onMove, onMoveBatch, onCursor) => {
     root.render(<Nonogram
       data={data}
       storageKey={`${crosswordIdentifier}-${room}`}
+      randomPath={`/${series}/random`}
       controlRef={controlRef}
       onMove={onMove}
       onMoveBatch={onMoveBatch}

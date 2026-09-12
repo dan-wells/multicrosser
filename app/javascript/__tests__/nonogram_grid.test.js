@@ -51,12 +51,13 @@ describe('gridLayout', () => {
     const layout = gridLayout(DATA, SETTINGS);
     expect(layout.gutterCols).toBe(2);
     expect(layout.gutterRows).toBe(2);
-    expect(layout.totalCols).toBe(7);
-    expect(layout.totalRows).toBe(7);
+    // The clue strips are packed at 0.75 of a cell, so each gutter is 1.5 wide.
+    expect(layout.totalCols).toBe(6.5);
+    expect(layout.totalRows).toBe(6.5);
   });
 
   it('makes room for the counter strip only when it is switched on', () => {
-    expect(gridLayout(DATA, { ...SETTINGS, showCounter: true }).totalCols).toBe(8);
+    expect(gridLayout(DATA, { ...SETTINGS, showCounter: true }).totalCols).toBe(7.5);
   });
 
   it('keeps a one-cell gutter for a puzzle whose clues are all single numbers', () => {
@@ -68,7 +69,7 @@ describe('gridLayout', () => {
 describe('NonogramGrid', () => {
   it('renders a cell group for every square in the grid', () => {
     const markup = render();
-    expect(markup.match(/data-cell="/g)).toHaveLength(25);
+    expect(markup.match(/<g class="nonogram-cell/g)).toHaveLength(25);
   });
 
   it('renders a clue number for every entry in every clue', () => {
@@ -100,12 +101,11 @@ describe('NonogramGrid', () => {
     expect(markup.match(/is-derived/g)).toHaveLength(5);
   });
 
-  it('strikes through a clue number the player has ticked', () => {
+  it('marks a clue number the player has ticked', () => {
     const marks = { rowMarks: { [markKey(0, 0)]: '1' }, colMarks: {} };
     const markup = render({ marks });
 
-    expect(markup).toContain('is-marked');
-    expect(markup).toContain('nonogram-clue-strike');
+    expect(markup.match(/is-marked/g)).toHaveLength(1);
   });
 
   it('marks the clue numbers of an auto-highlighted line', () => {
@@ -135,8 +135,21 @@ describe('NonogramGrid', () => {
     expect(plain).not.toContain('is-lined');
   });
 
-  it('marks the last changed cell', () => {
-    expect(render({ lastChange: '2-2' })).toContain('is-last-change');
+  it('outlines every cell the last stroke touched', () => {
+    const markup = render({ lastChange: new Set(['2-2', '3-2']) });
+    expect(markup.match(/nonogram-cell-outline/g)).toHaveLength(2);
+  });
+
+  it('tints the cursor cell rather than outlining it, and only when lines are on', () => {
+    const markup = render({ cursor: { x: 2, y: 2 } });
+    expect(markup.match(/is-cursor/g)).toHaveLength(1);
+    expect(markup).not.toContain('nonogram-cell-outline');
+
+    const plain = render({
+      cursor: { x: 2, y: 2 },
+      settings: { ...SETTINGS, highlightLines: false },
+    });
+    expect(plain).not.toContain('is-cursor');
   });
 
   it('shows a filled-cell count per line when the counter is on', () => {
@@ -162,5 +175,6 @@ describe('NonogramGrid', () => {
     const markup = render();
     // 6 verticals and 6 horizontals, of which 0 and 5 are block rules on each axis.
     expect(markup.match(/nonogram-rule is-block/g)).toHaveLength(4);
+    expect(markup).toContain('nonogram-border');
   });
 });

@@ -7,14 +7,52 @@ import {
   cellKey, markKey, derive, clickValue, dragCells, isSolved, invertStroke,
 } from './nonogram_logic';
 
-const MIN_CELL = 14;
-const MAX_CELL = 32;
+const MIN_CELL = 12;
+const MAX_CELL = 26;
+
+const CONFIRM_MS = 3000;
+
+const CROSS_COLOR = '#cc0000';
+
+const crossArms = (x, y, side, inset) => (
+  <g stroke={CROSS_COLOR} strokeWidth={side * 0.17} strokeLinecap="round">
+    <line x1={x + inset} y1={y + inset} x2={x + side - inset} y2={y + side - inset} />
+    <line x1={x + side - inset} y1={y + inset} x2={x + inset} y2={y + side - inset} />
+  </g>
+);
+
+const CURSOR_ICONS = {
+  rotate: (
+    <g>
+      <rect x="7" y="2" width="11" height="11" fill="#fff" stroke="#222" strokeWidth="1.4" />
+      <rect x="2" y="7" width="11" height="11" fill="#fff" stroke="#222" strokeWidth="1.4" />
+      {crossArms(2, 7, 11, 3)}
+      <rect x="11" y="10" width="12" height="12" fill="#222" />
+    </g>
+  ),
+  black: <rect x="3" y="3" width="18" height="18" fill="#222" />,
+  cross: crossArms(2, 2, 20, 4.5),
+  blank: <rect x="3.75" y="3.75" width="16.5" height="16.5" fill="#fff" stroke="#222" strokeWidth="1.5" />,
+};
+
+const GLYPHS = {
+  undo: 'M12.5 8c-2.65 0-5.05.99-6.9 2.6L2 7v9h9l-3.62-3.62c1.39-1.16 3.16-1.88 5.12-1.88 3.54 0 6.55 2.31 7.6 5.5l2.37-.78C21.08 11.03 17.15 8 12.5 8z',
+  redo: 'M18.4 10.6C16.55 8.99 14.15 8 11.5 8c-4.65 0-8.58 3.03-9.96 7.22L3.9 16c1.05-3.19 4.05-5.5 7.6-5.5 1.95 0 3.73.72 5.12 1.88L13 16h9V7l-3.6 3.6z',
+  settings: 'M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z',
+};
+
+const CURSOR_LABELS = {
+  rotate: 'Click cycles filled, crossed, blank',
+  black: 'Click fills a square',
+  cross: 'Click crosses a square off',
+  blank: 'Click clears a square',
+};
 
 const DEFAULT_SETTINGS = {
   cursorMode: 'rotate',
   showCounter: false,
-  highlightLines: true,
-  autoMark: true,
+  highlightLines: false,
+  autoMark: false,
 };
 
 const safeGet = (key) => {
@@ -42,7 +80,7 @@ const formatTime = (seconds) => {
 const emptyBoard = (dimensions) =>
   Array.from({ length: dimensions.cols }, () => Array(dimensions.rows).fill(EMPTY));
 
-function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef }) {
+function Nonogram({ data, storageKey, randomPath, onMove, onMoveBatch, onCursor, controlRef }) {
   const { dimensions } = data;
 
   const boardRef = useRef(emptyBoard(dimensions));
@@ -54,21 +92,26 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
   const [cursor, setCursor] = useState({ x: 0, y: 0 });
   const [lastChange, setLastChange] = useState(null);
   const [pending, setPending] = useState(null);
+  const [showOptions, setShowOptions] = useState(false);
+  const [confirmingClear, setConfirmingClear] = useState(false);
   const [cellSize, setCellSize] = useState(MAX_CELL);
   const [elapsed, setElapsed] = useState(() => Number(safeGet(`nonogram-timer-${storageKey}`)) || 0);
-  const [solved, setSolved] = useState(false);
+  const [solvedAt, setSolvedAt] = useState(null);
+  const solved = solvedAt !== null;
 
   const wrapperRef = useRef(null);
   const svgRef = useRef(null);
   const strokeRef = useRef(null);
   const undoRef = useRef(new UndoStack());
   const engagedRef = useRef(false);
+  const confirmRef = useRef(null);
+  const elapsedRef = useRef(elapsed);
 
-  const commitBoard = useCallback((next, changedKey) => {
+  const commitBoard = useCallback((next, changedKeys) => {
     boardRef.current = next;
     setBoard(next);
-    if (changedKey) setLastChange(changedKey);
-    setSolved(isSolved(data, next));
+    if (changedKeys && changedKeys.length) setLastChange(new Set(changedKeys));
+    setSolvedAt(isSolved(data, next) ? elapsedRef.current : null);
   }, [data]);
 
   const commitMarks = useCallback((next) => {
@@ -89,7 +132,7 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
       return { x, y, previousValue };
     }).filter((cell) => cell.previousValue !== value);
     if (written.length === 0) return [];
-    commitBoard(next, cellKey(cells[cells.length - 1].x, cells[cells.length - 1].y));
+    commitBoard(next, cells.map(({ x, y }) => cellKey(x, y)));
     return written;
   }, [commitBoard]);
 
@@ -97,7 +140,14 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
     const written = writeCells(cells, value);
     if (written.length === 0) return;
     onMoveBatch({ space: 'board', value, cells: written });
-    if (record && undoRef.current) undoRef.current.push({ space: 'board', value, cells: written });
+    if (record && undoRef.current) {
+      undoRef.current.push({
+        space: 'board',
+        value,
+        cells: written,
+        span: cells.map(({ x, y }) => cellKey(x, y)),
+      });
+    }
   }, [onMoveBatch, writeCells]);
 
   const setMark = useCallback((axis, line, index) => {
@@ -123,7 +173,7 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
       const next = boardRef.current.map((column) => column.slice());
       if (!next[x]) return;
       next[x][y] = value;
-      commitBoard(next, cellKey(x, y));
+      commitBoard(next, [cellKey(x, y)]);
     },
 
     applyBatch({ space, value, cells }) {
@@ -136,14 +186,14 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
       }
       const next = boardRef.current.map((column) => column.slice());
       cells.forEach(({ x, y }) => { if (next[x]) next[x][y] = value; });
-      commitBoard(next, cells.length ? cellKey(cells[cells.length - 1].x, cells[cells.length - 1].y) : null);
+      commitBoard(next, cells.map(({ x, y }) => cellKey(x, y)));
     },
 
     // A fresh subscription replaces everything wholesale.
     replaceState(nextBoard, spaces) {
       boardRef.current = nextBoard;
       setBoard(nextBoard);
-      setSolved(isSolved(data, nextBoard));
+      setSolvedAt(isSolved(data, nextBoard) ? elapsedRef.current : null);
       commitMarks({
         rowMarks: (spaces && spaces.row_marks) || {},
         colMarks: (spaces && spaces.col_marks) || {},
@@ -160,8 +210,8 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
     if (!svg) return null;
     const rect = svg.getBoundingClientRect();
     const scale = rect.width / (layout.totalCols * cellSize);
-    const x = Math.floor((event.clientX - rect.left) / (cellSize * scale)) - layout.gutterCols;
-    const y = Math.floor((event.clientY - rect.top) / (cellSize * scale)) - layout.gutterRows;
+    const x = Math.floor((event.clientX - rect.left) / (cellSize * scale) - layout.gutterWidth);
+    const y = Math.floor((event.clientY - rect.top) / (cellSize * scale) - layout.gutterHeight);
     if (x < 0 || y < 0 || x >= layout.cols || y >= layout.rows) return null;
     return { x, y };
   }, [cellSize, layout]);
@@ -243,15 +293,73 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
     batches.forEach((batch) => sendStroke(batch.cells, batch.value, false));
   }, [sendStroke]);
 
+  // The highlight always sits on the stroke a further undo would revert, so
+  // stepping back through the stack walks it back through the grid.
+  const highlightUndoTop = useCallback(() => {
+    const stroke = undoRef.current.current;
+    setLastChange(stroke ? new Set(stroke.span) : null);
+  }, []);
+
   const handleUndo = useCallback(() => {
     const stroke = undoRef.current.undo();
     if (stroke) replayStroke(stroke, false);
-  }, [replayStroke]);
+    highlightUndoTop();
+  }, [highlightUndoTop, replayStroke]);
 
   const handleRedo = useCallback(() => {
     const stroke = undoRef.current.redo();
     if (stroke) replayStroke(stroke, true);
-  }, [replayStroke]);
+    highlightUndoTop();
+  }, [highlightUndoTop, replayStroke]);
+
+  // --- whole-puzzle actions ---------------------------------------------
+
+  // Clearing the grid clears it for everyone in the room and cannot be undone,
+  // so the first click only arms the button. The clue ticks go with the cells:
+  // leaving them behind would keep crossing out lines just emptied.
+  const handleStartOver = useCallback(() => {
+    if (!confirmingClear) {
+      setConfirmingClear(true);
+      confirmRef.current = setTimeout(() => setConfirmingClear(false), CONFIRM_MS);
+      return;
+    }
+    clearTimeout(confirmRef.current);
+    setConfirmingClear(false);
+
+    const cells = [];
+    for (let x = 0; x < dimensions.cols; x += 1) {
+      for (let y = 0; y < dimensions.rows; y += 1) {
+        if (boardRef.current[x][y] !== EMPTY) cells.push({ x, y });
+      }
+    }
+    sendStroke(cells, EMPTY, false);
+
+    [['row_marks', 'rowMarks'], ['col_marks', 'colMarks']].forEach(([space, field]) => {
+      const ticked = Object.entries(marksRef.current[field]).filter(([, tick]) => tick);
+      if (ticked.length === 0) return;
+      onMoveBatch({
+        space,
+        value: EMPTY,
+        cells: ticked.map(([key, tick]) => {
+          const [line, index] = key.split('-');
+          return { x: Number(line), y: Number(index), previousValue: tick };
+        }),
+      });
+    });
+    commitMarks({ rowMarks: {}, colMarks: {} });
+
+    undoRef.current = new UndoStack();
+    setLastChange(null);
+  }, [commitMarks, confirmingClear, dimensions, onMoveBatch, sendStroke]);
+
+  useEffect(() => () => clearTimeout(confirmRef.current), []);
+
+  // The timer is this player's own, kept in local storage rather than shared.
+  const handleResetTimer = useCallback(() => {
+    elapsedRef.current = 0;
+    setElapsed(0);
+    safeSet(`nonogram-timer-${storageKey}`, '0');
+  }, [storageKey]);
 
   // --- scaling ----------------------------------------------------------
 
@@ -277,8 +385,9 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
     const tick = setInterval(() => {
       if (document.hidden) return;
       setElapsed((seconds) => {
-        safeSet(`nonogram-timer-${storageKey}`, String(seconds + 1));
-        return seconds + 1;
+        elapsedRef.current = seconds + 1;
+        safeSet(`nonogram-timer-${storageKey}`, String(elapsedRef.current));
+        return elapsedRef.current;
       });
     }, 1000);
     return () => clearInterval(tick);
@@ -317,47 +426,45 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
   return (
     <div className="nonogram" data-highlight-lines={settings.highlightLines ? 'true' : 'false'}>
       <div className="nonogram-controls">
-        <label>
-          Click
-          <select
-            value={settings.cursorMode}
-            onChange={(event) => updateSetting('cursorMode', event.target.value)}
-          >
-            {CURSOR_MODES.map((mode) => (
-              <option key={mode} value={mode}>{mode}</option>
-            ))}
-          </select>
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={settings.showCounter}
-            onChange={(event) => updateSetting('showCounter', event.target.checked)}
-          />
-          Cell counter
-        </label>
-        <label>
-          <input
-            type="checkbox"
-            checked={settings.highlightLines}
-            onChange={(event) => updateSetting('highlightLines', event.target.checked)}
-          />
-          Highlight row and column
-        </label>
-        <label title="Ticking off every clue on a line crosses out the rest of it; filling a line in completely ticks off its clues.">
-          <input
-            type="checkbox"
-            checked={settings.autoMark}
-            onChange={(event) => updateSetting('autoMark', event.target.checked)}
-          />
-          Auto cross and tick
-        </label>
-        <button type="button" onClick={handleUndo} disabled={!undoRef.current.canUndo}>Undo</button>
-        <button type="button" onClick={handleRedo} disabled={!undoRef.current.canRedo}>Redo</button>
+        <div className="nonogram-modes" role="group" aria-label="Click behaviour">
+          {CURSOR_MODES.map((mode) => (
+            <button
+              key={mode}
+              type="button"
+              title={CURSOR_LABELS[mode]}
+              aria-label={CURSOR_LABELS[mode]}
+              aria-pressed={settings.cursorMode === mode}
+              onClick={() => updateSetting('cursorMode', mode)}
+            >
+              <svg viewBox="0 0 24 24" role="presentation">{CURSOR_ICONS[mode]}</svg>
+            </button>
+          ))}
+        </div>
+
+        <div className="nonogram-history">
+          {[['undo', 'Undo', handleUndo, !undoRef.current.canUndo],
+            ['redo', 'Redo', handleRedo, !undoRef.current.canRedo]].map(
+            ([name, label, onClick, disabled]) => (
+              <button
+                key={name}
+                type="button"
+                title={label}
+                aria-label={label}
+                onClick={onClick}
+                disabled={disabled}
+              >
+                <svg viewBox="0 0 24 24" role="presentation">
+                  <path d={GLYPHS[name]} fill="#222" />
+                </svg>
+              </button>
+            ),
+          )}
+        </div>
+
         <span className="nonogram-timer">{formatTime(elapsed)}</span>
       </div>
 
-      {solved && <p className="nonogram-solved" role="status">Solved in {formatTime(elapsed)}.</p>}
+      {solved && <p className="nonogram-solved" role="status">Puzzle solved in {formatTime(solvedAt)}</p>}
 
       <div
         className="nonogram-wrapper"
@@ -382,6 +489,59 @@ function Nonogram({ data, storageKey, onMove, onMoveBatch, onCursor, controlRef 
           onPointerUp={handlePointerUp}
           onClueClick={handleClueClick}
         />
+      </div>
+
+      <div className="nonogram-actions">
+        <button
+          type="button"
+          data-confirming={confirmingClear ? '' : undefined}
+          onClick={handleStartOver}
+        >
+          {confirmingClear ? 'Confirm start over' : 'Start over'}
+        </button>
+        <button type="button" onClick={handleResetTimer}>Reset timer</button>
+        <a href={randomPath}>New puzzle</a>
+        <div className="nonogram-settings">
+          <button
+            type="button"
+            title="Settings"
+            aria-label="Settings"
+            aria-pressed={showOptions}
+            aria-expanded={showOptions}
+            onClick={() => setShowOptions((open) => !open)}
+          >
+            <svg viewBox="0 0 24 24" role="presentation">
+              <path d={GLYPHS.settings} fill="#222" />
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <div className="nonogram-options" hidden={!showOptions}>
+        <label title="Ticking off every clue on a line crosses out the rest of it; filling a line in completely ticks off its clues.">
+          <input
+            type="checkbox"
+            checked={settings.autoMark}
+            onChange={(event) => updateSetting('autoMark', event.target.checked)}
+          />
+          Auto cross and tick
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={settings.showCounter}
+            onChange={(event) => updateSetting('showCounter', event.target.checked)}
+          />
+          Show cell counters
+        </label>
+        <label>
+          <input
+            type="checkbox"
+            checked={settings.highlightLines}
+            onChange={(event) => updateSetting('highlightLines', event.target.checked)}
+          />
+          Highlight row and column
+        </label>
       </div>
     </div>
   );

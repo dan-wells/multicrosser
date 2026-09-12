@@ -1,17 +1,135 @@
+.nonogram {
+  --nonogram-line-color: #fff7b2;
+  --nonogram-cursor-tint: #ffe500;
+  --nonogram-cursor-color: #2196f3;
+  --nonogram-cross-color: #cc0000;
+  --nonogram-mark-color: #ff6600;
+  --nonogram-done-color: #2a7;
+}
+
 .nonogram-controls {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   gap: 0.75em;
+  margin-top: 0.9em;
   margin-bottom: 0.75em;
+}
+
+.nonogram-modes,
+.nonogram-settings,
+.nonogram-history {
+  display: flex;
+  gap: 4px;
+}
+
+.nonogram-settings,
+.nonogram-history {
+  margin-left: 10px;
+}
+
+.nonogram-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.9em;
+}
+
+.nonogram-options {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75em;
+  margin-top: 0.6em;
+}
+
+/* Beats the flex above when the cog closes the panel. */
+.nonogram-options[hidden] {
+  display: none;
+}
+
+.nonogram-footer {
+  margin-top: 1.4em;
+}
+
+/* The icon buttons: the click selectors, undo and redo, and the settings cog. */
+.nonogram-controls button,
+.nonogram-settings button {
+  display: flex;
+  padding: 4px;
+  line-height: 0;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  color: #222;
+  cursor: pointer;
+}
+
+.nonogram-controls button:hover:not(:disabled),
+.nonogram-settings button:hover {
+  background: #eef3fb;
+}
+
+.nonogram-controls button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* The labelled buttons under the grid controlling the puzzle page. */
+.nonogram-actions > button,
+.nonogram-actions > a {
+  display: inline-flex;
+  align-items: center;
+  height: 30px;
+  padding: 0 10px;
+  border: none;
+  border-radius: 2px;
+  background-color: #e0e0e0;
+  color: #767676;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.nonogram-actions > button:hover,
+.nonogram-actions > a:hover {
+  background-color: #ccc;
+  color: #333;
+}
+
+/* Waiting on the second click to confirm start-over. */
+.nonogram-actions > button[data-confirming] {
+  background-color: #333;
+  color: #fff;
+}
+
+.nonogram-actions > button[data-confirming]:hover {
+  background-color: #222;
+  color: #fff;
+}
+
+.nonogram-controls button[aria-pressed="true"],
+.nonogram-settings button[aria-pressed="true"] {
+  border-color: var(--nonogram-cursor-color);
+  box-shadow: inset 0 0 0 1px var(--nonogram-cursor-color);
+}
+
+.nonogram-controls button svg,
+.nonogram-settings button svg {
+  width: 20px;
+  height: 20px;
 }
 
 .nonogram-timer {
   font-variant-numeric: tabular-nums;
-  margin-left: auto;
 }
 
 .nonogram-solved {
+  color: var(--nonogram-done-color);
   font-weight: bold;
 }
 
@@ -29,15 +147,11 @@
 }
 
 .nonogram-cell.is-lined .nonogram-cell-bg {
-  fill: rgba(0, 0, 0, 0.06);
+  fill: var(--nonogram-line-color);
 }
 
 .nonogram-cell.is-cursor .nonogram-cell-bg {
-  fill: rgba(0, 0, 0, 0.12);
-}
-
-.nonogram-cell.is-last-change .nonogram-cell-bg {
-  fill: rgba(255, 200, 0, 0.35);
+  fill: var(--nonogram-cursor-tint);
 }
 
 .nonogram-cell-fill {
@@ -45,23 +159,29 @@
 }
 
 .nonogram-cell-cross line {
-  stroke: #555;
-  stroke-width: 1.5;
+  stroke: var(--nonogram-cross-color);
+  stroke-width: 2.75;
+  stroke-linecap: round;
 }
 
-/* Crosses the player never drew, standing in for a line they have marked off. */
+/* Auto-marked crosses, in case we want different styling later. */
 .nonogram-cell.is-derived .nonogram-cell-cross line {
-  stroke: #aaa;
+  stroke: var(--nonogram-cross-color);
 }
 
-.nonogram-rule {
-  stroke: #bbb;
-  stroke-width: 1;
+/* The cells the last stroke touched */
+.nonogram-cell-outline {
+  fill: none;
+  stroke: var(--nonogram-cursor-color);
 }
 
-.nonogram-rule.is-block {
-  stroke: #444;
-  stroke-width: 2;
+.nonogram-rule,
+.nonogram-border {
+  stroke: #000;
+}
+
+.nonogram-border {
+  fill: none;
 }
 
 .nonogram-clue {
@@ -73,23 +193,21 @@
 }
 
 .nonogram-clue text {
+  font-family: 'Catamaran', sans-serif;
   fill: #222;
 }
 
+/* A ticked-off clue, whether the player ticked it or a completed line did. */
 .nonogram-clue.is-marked text,
 .nonogram-clue.is-highlighted text {
-  fill: #999;
-}
-
-.nonogram-clue-strike {
-  stroke: #999;
-  stroke-width: 1.5;
+  fill: var(--nonogram-mark-color);
 }
 
 .nonogram-counter {
+  font-family: 'Catamaran', sans-serif;
   fill: #888;
 }
 
 .nonogram-counter.is-complete {
-  fill: #2a7;
+  fill: var(--nonogram-done-color);
 }

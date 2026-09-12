@@ -215,6 +215,8 @@ export class UndoStack {
     return stroke;
   }
 
+  get current() { return this.done.length ? this.done[this.done.length - 1] : null; }
+
   get canUndo() { return this.done.length > 0; }
 
   get canRedo() { return this.undone.length > 0; }
