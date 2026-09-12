@@ -325,6 +325,100 @@ describe('Nonogram', () => {
     expect(derived()).toBe(0);
   });
 
+  it('takes focus when the grid is clicked, so the arrow keys reach it', () => {
+    const svg = mount();
+    const wrapper = container.querySelector('.nonogram-wrapper');
+
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+
+    expect(document.activeElement).toBe(wrapper);
+  });
+
+  it('clears the cursor cell on backspace or delete, whatever it holds', () => {
+    const svg = mount();
+    const wrapper = container.querySelector('.nonogram-wrapper');
+    const key = (name) => act(() => {
+      wrapper.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }));
+    });
+
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(1);
+
+    key('Backspace');
+    expect(container.querySelectorAll('.nonogram-cell-fill')).toHaveLength(0);
+
+    key('x');
+    expect(container.querySelectorAll('.nonogram-cell-cross')).toHaveLength(1);
+    key('Delete');
+    expect(container.querySelectorAll('.nonogram-cell-cross')).toHaveLength(0);
+
+    // Nothing to clear, so nothing goes over the wire.
+    handlers.onMoveBatch.mockClear();
+    key('Backspace');
+    expect(handlers.onMoveBatch).not.toHaveBeenCalled();
+  });
+
+  it('undoes and redoes from the keyboard', () => {
+    const svg = mount();
+    const wrapper = container.querySelector('.nonogram-wrapper');
+    const key = (name) => act(() => {
+      wrapper.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }));
+    });
+    const filled = () => container.querySelectorAll('.nonogram-cell-fill').length;
+
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+    expect(filled()).toBe(1);
+
+    key('u');
+    expect(filled()).toBe(0);
+
+    key('i');
+    expect(filled()).toBe(1);
+  });
+
+  it('shows the cursor when focus arrives from the keyboard, but not from a click', () => {
+    const svg = mount();
+    const wrapper = container.querySelector('.nonogram-wrapper');
+    const tinted = () => container.querySelectorAll('.nonogram-cell.is-cursor').length;
+
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+    expect(tinted()).toBe(0);
+
+    act(() => { wrapper.blur(); });
+    act(() => { wrapper.focus(); });
+    expect(tinted()).toBe(1);
+  });
+
+  it('moves the cursor with the arrow keys and fills the cell it lands on', () => {
+    const svg = mount();
+    const wrapper = container.querySelector('.nonogram-wrapper');
+    const key = (name) => act(() => {
+      wrapper.dispatchEvent(new KeyboardEvent('keydown', { key: name, bubbles: true }));
+    });
+    const cursorCell = () => container.querySelector('.nonogram-cell.is-cursor').dataset.cell;
+
+    pointer(svg, 'pointerdown', { x: 0, y: 0 });
+    pointer(svg, 'pointerup', { x: 0, y: 0 });
+    handlers.onMoveBatch.mockClear();
+
+    key('ArrowRight');
+    key('ArrowDown');
+    key('ArrowDown');
+    // The tint follows the keys even with the highlight setting off.
+    expect(cursorCell()).toBe('1-2');
+
+    key(' ');
+    expect(handlers.onMoveBatch).toHaveBeenCalledWith({
+      space: 'board',
+      value: '1',
+      cells: [{ x: 1, y: 2, previousValue: '' }],
+    });
+  });
+
   it('sends a clue tick in that line\'s mark space', () => {
     const svg = mount();
 

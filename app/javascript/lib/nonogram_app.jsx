@@ -94,6 +94,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   const [pending, setPending] = useState(null);
   const [showOptions, setShowOptions] = useState(false);
   const [confirmingClear, setConfirmingClear] = useState(false);
+  const [keyboardCursor, setKeyboardCursor] = useState(false);
   const [cellSize, setCellSize] = useState(MAX_CELL);
   const [elapsed, setElapsed] = useState(() => Number(safeGet(`nonogram-timer-${storageKey}`)) || 0);
   const [solvedAt, setSolvedAt] = useState(null);
@@ -105,6 +106,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   const undoRef = useRef(new UndoStack());
   const engagedRef = useRef(false);
   const confirmRef = useRef(null);
+  const pointerFocusRef = useRef(false);
   const elapsedRef = useRef(elapsed);
 
   const commitBoard = useCallback((next, changedKeys) => {
@@ -244,6 +246,11 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     engagedRef.current = true;
     setCursor(cell);
     setPending({ value, keys: new Set([cellKey(cell.x, cell.y)]) });
+    setKeyboardCursor(false);
+    if (wrapperRef.current && document.activeElement !== wrapperRef.current) {
+      pointerFocusRef.current = true;
+      wrapperRef.current.focus();
+    }
     try { event.currentTarget.setPointerCapture(event.pointerId); } catch (e) { /* no capture in jsdom */ }
   }, [cellFromEvent, settings.cursorMode]);
 
@@ -272,31 +279,6 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
   const handleClueClick = useCallback((axis, line, index) => {
     setMark(axis, line, index);
   }, [setMark]);
-
-  // --- keyboard ---------------------------------------------------------
-
-  const handleKeyDown = useCallback((event) => {
-    const moves = {
-      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
-      a: [-1, 0], d: [1, 0], w: [0, -1], s: [0, 1],
-    };
-    const step = moves[event.key];
-    if (step) {
-      event.preventDefault();
-      engagedRef.current = true;
-      setCursor((current) => ({
-        x: Math.min(Math.max(current.x + step[0], 0), dimensions.cols - 1),
-        y: Math.min(Math.max(current.y + step[1], 0), dimensions.rows - 1),
-      }));
-      return;
-    }
-    if (event.key === ' ' || event.key === 'Enter' || event.key === 'x') {
-      event.preventDefault();
-      const mode = event.key === 'x' ? 'cross' : settings.cursorMode;
-      const value = clickValue(mode, boardRef.current[cursor.x][cursor.y]);
-      sendStroke([cursor], value);
-    }
-  }, [cursor, dimensions, sendStroke, settings.cursorMode]);
 
   // --- undo / redo ------------------------------------------------------
 
@@ -328,6 +310,48 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     if (stroke) replayStroke(stroke, true);
     highlightUndoTop();
   }, [highlightUndoTop, replayStroke]);
+
+  // --- keyboard ---------------------------------------------------------
+
+  const handleFocus = useCallback(() => {
+    if (pointerFocusRef.current) {
+      pointerFocusRef.current = false;
+      return;
+    }
+    setKeyboardCursor(true);
+  }, []);
+
+  const handleKeyDown = useCallback((event) => {
+    const moves = {
+      ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1],
+      a: [-1, 0], d: [1, 0], w: [0, -1], s: [0, 1],
+    };
+    const step = moves[event.key];
+    if (step) {
+      event.preventDefault();
+      engagedRef.current = true;
+      setKeyboardCursor(true);
+      setCursor((current) => ({
+        x: Math.min(Math.max(current.x + step[0], 0), dimensions.cols - 1),
+        y: Math.min(Math.max(current.y + step[1], 0), dimensions.rows - 1),
+      }));
+      return;
+    }
+    const clears = event.key === 'Backspace' || event.key === 'Delete';
+    if (event.key === ' ' || event.key === 'Enter' || event.key === 'x' || clears) {
+      event.preventDefault();
+      const current = boardRef.current[cursor.x][cursor.y];
+      const value = clears ? EMPTY : clickValue(
+        event.key === 'x' ? 'cross' : settings.cursorMode, current,
+      );
+      sendStroke('board', [cursor], value);
+      return;
+    }
+    if (event.key === 'u' || event.key === 'i') {
+      event.preventDefault();
+      if (event.key === 'u') handleUndo(); else handleRedo();
+    }
+  }, [cursor, dimensions, handleRedo, handleUndo, sendStroke, settings.cursorMode]);
 
   // --- whole-puzzle actions ---------------------------------------------
 
@@ -487,6 +511,8 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
         className="nonogram-wrapper"
         ref={wrapperRef}
         onKeyDown={handleKeyDown}
+        onFocus={handleFocus}
+        onBlur={() => setKeyboardCursor(false)}
         role="application"
         tabIndex={0}
       >
@@ -497,6 +523,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
           marks={marks}
           settings={settings}
           cursor={cursor}
+          showCursor={settings.highlightLines || keyboardCursor}
           lastChange={lastChange}
           pending={pending}
           cellSize={cellSize}

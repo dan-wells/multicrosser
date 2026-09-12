@@ -138,6 +138,10 @@
   touch-action: none;
 }
 
+.nonogram-wrapper:focus {
+  outline: none;
+}
+
 .nonogram-grid {
   user-select: none;
 }

@@ -120,7 +120,7 @@ function ClueNumber({
 }
 
 export default function NonogramGrid({
-  data, board, derived, marks, settings, cursor, lastChange, pending,
+  data, board, derived, marks, settings, cursor, showCursor, lastChange, pending,
   cellSize, onPointerDown, onPointerMove, onPointerUp, onClueClick, svgRef,
 }) {
   const layout = gridLayout(data, settings);
@@ -158,7 +158,7 @@ export default function NonogramGrid({
         'nonogram-cell',
         isDerived ? 'is-derived' : '',
         settings.highlightLines && (x === cursor.x || y === cursor.y) ? 'is-lined' : '',
-        settings.highlightLines && cursor.x === x && cursor.y === y ? 'is-cursor' : '',
+        showCursor && cursor.x === x && cursor.y === y ? 'is-cursor' : '',
       ].filter(Boolean).join(' ');
 
       cells.push(

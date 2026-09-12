@@ -34,6 +34,7 @@ const render = (overrides = {}) => renderToStaticMarkup(
     marks: { rowMarks: {}, colMarks: {} },
     settings: SETTINGS,
     cursor: { x: 0, y: 0 },
+    showCursor: true,
     lastChange: null,
     pending: null,
     cellSize: 20,
@@ -140,16 +141,12 @@ describe('NonogramGrid', () => {
     expect(markup.match(/nonogram-cell-outline/g)).toHaveLength(2);
   });
 
-  it('tints the cursor cell rather than outlining it, and only when lines are on', () => {
+  it('tints the cursor cell rather than outlining it, and only when asked to', () => {
     const markup = render({ cursor: { x: 2, y: 2 } });
     expect(markup.match(/is-cursor/g)).toHaveLength(1);
     expect(markup).not.toContain('nonogram-cell-outline');
 
-    const plain = render({
-      cursor: { x: 2, y: 2 },
-      settings: { ...SETTINGS, highlightLines: false },
-    });
-    expect(plain).not.toContain('is-cursor');
+    expect(render({ cursor: { x: 2, y: 2 }, showCursor: false })).not.toContain('is-cursor');
   });
 
   it('shows a filled-cell count per line when the counter is on', () => {
