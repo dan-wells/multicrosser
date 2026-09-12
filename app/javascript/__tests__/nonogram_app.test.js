@@ -460,6 +460,36 @@ describe('Nonogram', () => {
     expect(tinted()).toBe(1);
   });
 
+  it('keeps the cursor off while the pointer is the thing in use', () => {
+    const svg = mount();
+    const wrapper = container.querySelector('.nonogram-wrapper');
+    const tinted = () => container.querySelectorAll('.nonogram-cell.is-cursor').length;
+    const highlight = Array.from(container.querySelectorAll('label'))
+      .find((label) => label.textContent.includes('Highlight row and column'))
+      .querySelector('input');
+
+    act(() => { highlight.click(); });
+    pointer(svg, 'pointerdown', { x: 1, y: 1 });
+    pointer(svg, 'pointerup', { x: 1, y: 1 });
+    expect(tinted()).toBe(0);
+
+    act(() => {
+      wrapper.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true }));
+    });
+    expect(tinted()).toBe(1);
+
+    // A clue number is outside the grid proper, but clicking one is still the
+    // pointer taking over -- and it takes focus with it, which bubbles up to
+    // the wrapper and must not read as the grid being tabbed into.
+    const clue = svg.querySelector('[data-clue="row-0-0"]');
+    act(() => {
+      clue.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true }));
+      clue.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+      clue.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    expect(tinted()).toBe(0);
+  });
+
   it('moves the cursor with the arrow keys and fills the cell it lands on', () => {
     const svg = mount();
     const wrapper = container.querySelector('.nonogram-wrapper');

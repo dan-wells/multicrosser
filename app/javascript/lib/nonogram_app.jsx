@@ -243,6 +243,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
       abandonStroke();
       return;
     }
+    setKeyboardCursor(false);
     const cell = cellFromEvent(event);
     if (!cell) return;
     // A drag paints the value the starting cell would have taken on a click,
@@ -258,7 +259,6 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     if (tap) return;
     event.preventDefault();
     setPending({ value, keys: new Set([cellKey(cell.x, cell.y)]) });
-    setKeyboardCursor(false);
     if (wrapperRef.current && document.activeElement !== wrapperRef.current) {
       pointerFocusRef.current = true;
       wrapperRef.current.focus();
@@ -327,7 +327,8 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
 
   // --- keyboard ---------------------------------------------------------
 
-  const handleFocus = useCallback(() => {
+  const handleFocus = useCallback((event) => {
+    if (event.target !== wrapperRef.current) return;
     if (pointerFocusRef.current) {
       pointerFocusRef.current = false;
       return;
@@ -354,6 +355,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
     const clears = event.key === 'Backspace' || event.key === 'Delete';
     if (event.key === ' ' || event.key === 'Enter' || event.key === 'x' || clears) {
       event.preventDefault();
+      setKeyboardCursor(true);
       const current = boardRef.current[cursor.x][cursor.y];
       const value = clears ? EMPTY : clickValue(
         event.key === 'x' ? 'cross' : settings.cursorMode, current,
@@ -537,7 +539,7 @@ function Nonogram({ data, storageKey, randomPath, onMoveBatch, onCursor, control
           marks={marks}
           settings={settings}
           cursor={cursor}
-          showCursor={settings.highlightLines || keyboardCursor}
+          showCursor={keyboardCursor}
           lastChange={lastChange}
           pending={pending}
           cellSize={cellSize}
