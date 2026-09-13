@@ -28,6 +28,8 @@ class RoomsControllerTest < ActionDispatch::IntegrationTest
     get "/garbage/123/room1"
     assert_response :not_found
     assert_match(/Puzzle not found/i, response.body)
+    # Routed rather than literal, so the way back works wherever the app is mounted.
+    assert_match(/href="#{root_path}"/, response.body)
   end
 
   test "show renders 404 puzzle_not_found when the fetcher returns nil" do
@@ -95,6 +97,10 @@ class RoomsControllerTest < ActionDispatch::IntegrationTest
     assert_response :success
     assert_match(/js-nonogram/, response.body)
     assert_match(/15x15 Nonogram No 2,401,181/, response.body)
+    # The new-puzzle link is built here rather than in the client, so that it
+    # carries whatever path the app is mounted under.
+    assert_match(/data-random-path="#{random_crossword_path(series: 'nonogram-15', room: 'room1')}"/,
+                 response.body)
     # Nonograms are generated here, so there is no publisher to credit.
     assert_no_match(/Published by/, response.body)
   end

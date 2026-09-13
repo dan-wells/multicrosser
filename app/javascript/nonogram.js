@@ -13,7 +13,7 @@ import { recordSeries, recordPuzzle, recordRoom } from './lib/history_storage';
 
 const nonogramElement = document.getElementsByClassName('js-nonogram')[0];
 
-const { crossword, crosswordIdentifier, room } = nonogramElement.dataset;
+const { crossword, crosswordIdentifier, room, randomPath } = nonogramElement.dataset;
 const data = JSON.parse(crossword);
 
 const [series, identifier] = crosswordIdentifier.split('/');
@@ -58,7 +58,7 @@ const mount = (onMoveBatch, onCursor) => {
     root.render(<Nonogram
       data={data}
       storageKey={`${crosswordIdentifier}-${room}`}
-      randomPath={`/${series}/random/${room}`}
+      randomPath={randomPath}
       controlRef={controlRef}
       onMoveBatch={onMoveBatch}
       onCursor={onCursor}

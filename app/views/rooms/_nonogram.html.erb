@@ -4,6 +4,7 @@
   crossword: @crossword,
   'crossword-identifier': crossword_identifier,
   room: params[:room],
+  'random-path': random_crossword_path(series: params[:series], room: params[:room]),
 }) %>
 
 <%= stylesheet_link_tag "nonogram" %>
