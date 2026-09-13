@@ -70,7 +70,7 @@
 
   <div class="homepage-main">
     <p class="intro">
-      Pick one of the crosswords below then share the link with friends to solve together.
+      Pick one of the puzzles below then share the link with friends to solve together.
     </p>
 
     <div class="series-columns">
@@ -92,6 +92,20 @@
       </div>
     <%- end -%>
     </div>
+
+    <%- Series.picker_groups.each do |group, members| -%>
+      <%- next if members.length == 1 -%>
+      <div class="series-block">
+        <h3><%= group.titleize %></h3>
+        <ul>
+        <%- members.each do |name, _meta| -%>
+          <li class="crossword-link">
+            <%= link_to("#{Source.for(name).picker_label(name)}", random_crossword_path(series: name)) %>
+          </li>
+        <%- end -%>
+        </ul>
+      </div>
+    <%- end -%>
 
     <p class="about">
       <strong>Several People are Solving</strong> is an experiment with multiplayer crosswords created by <a href="https://chriszetter.com">Chris Zetter</a>. You can <a href="https://github.com/dan-wells/multicrosser">view the code on GitHub</a>.
