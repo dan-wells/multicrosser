@@ -229,19 +229,20 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to "/cryptic/21620/my-room"
   end
 
-  # Nonograms have no feed and so no most recent puzzle, but their ID range is
-  # known, so any puzzle in it will do.
-  test "latest falls back to a random puzzle for a series with an ID range" do
+  # Nonograms have no feed and so no most recent puzzle, but they take today's
+  # date as a seed, which is what makes one of them the daily puzzle.
+  test "latest picks today's puzzle for a feedless series that has one" do
     get "/nonogram-15/latest"
 
     assert_response :redirect
-    assert_match %r{/nonogram-15/random\z}, response.location
+    assert_match %r{/nonogram-15/#{Time.current.in_time_zone('London').strftime('%y%m%d')}/[0-9a-f]{8}\z},
+                 response.location
   end
 
-  test "latest carries the room into the random fallback" do
+  test "latest keeps a room the player named for today's puzzle" do
     get "/nonogram-15/latest/my-room"
 
-    assert_redirected_to "/nonogram-15/random/my-room"
+    assert_redirected_to "/nonogram-15/#{Time.current.in_time_zone('London').strftime('%y%m%d')}/my-room"
   end
 
   test "latest redirects to root with latest_failed when the series cache is empty" do
@@ -279,9 +280,12 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
     assert_redirected_to root_path(error: 'latest_failed')
   end
 
-  test "print_latest falls back to a random puzzle for a series with an ID range" do
+  test "print_latest prints today's puzzle for a feedless series that has one" do
     get "/print/nonogram-15/latest"
 
-    assert_redirected_to print_random_path(series: 'nonogram-15')
+    assert_redirected_to print_crossword_path(
+      series: 'nonogram-15',
+      identifier: Time.current.in_time_zone('London').strftime('%y%m%d'),
+    )
   end
 end

@@ -51,6 +51,11 @@ class Source::Nonograms < Source
     false
   end
 
+  # Use today's date as the seed for a proxy daily puzzle.
+  def latest_identifier(_series)
+    Time.current.in_time_zone('London').strftime('%y%m%d')
+  end
+
   private
 
   # Returns nil for an identifier outside the series' seed range, so that a

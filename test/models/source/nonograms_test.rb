@@ -172,9 +172,32 @@ class Source::NonogramsTest < ActiveSupport::TestCase
 
   # --- feed ---
 
-  test "the source reports no feed, which is what sends latest to a random puzzle" do
+  test "the source reports no feed, so latest asks it for a puzzle of its own" do
     refute source.has_feed?
     assert Source.for('cryptic').has_feed?
+  end
+
+  # Where a source with a feed names its most recent puzzle, this one names the
+  # puzzle of the day, so `latest` has one question to ask either way.
+  test "latest_identifier is today's date in London, within the series range" do
+    travel_to Time.utc(2026, 6, 1, 23, 30) do
+      assert_equal '260602', source.latest_identifier('nonogram-15')
+    end
+
+    identifier = source.latest_identifier('nonogram-5')
+    assert_includes 1..Series::SERIES['nonogram-5'][:last_puzzle], identifier.to_i
+  end
+
+  test "a source with a feed answers the same question from its cache" do
+    REDIS.set('crossword-series-cryptic', [{ 'identifier' => '21620' }].to_json)
+
+    assert_equal '21620', Source.for('cryptic').latest_identifier('cryptic')
+  end
+
+  test "a date seed generates a puzzle like any other ID" do
+    data = JSON.parse(source.fetch('nonogram-5', source.latest_identifier('nonogram-5')))
+
+    assert_equal 5, data['dimensions']['cols']
   end
 
   # --- picker ---

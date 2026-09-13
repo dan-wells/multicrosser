@@ -100,7 +100,7 @@
         <ul>
         <%- members.each do |name, _meta| -%>
           <li class="crossword-link">
-            <%= link_to("#{Source.for(name).picker_label(name)}", random_crossword_path(series: name)) %>
+            <%= link_to("#{Source.for(name).picker_label(name)}", latest_crossword_path(series: name)) %>
           </li>
         <%- end -%>
         </ul>

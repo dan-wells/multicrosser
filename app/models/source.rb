@@ -25,6 +25,10 @@ class Source
     true
   end
 
+  def latest_identifier(series)
+    Series.latest_puzzle(series)
+  end
+
   def fetch(series, identifier)
     raise NotImplementedError
   end

@@ -50,9 +50,9 @@ class CrosswordsController < ApplicationController
 
   # Returns the identifier of the most recent puzzle in the requested series, or
   # nil after having already issued a redirect (caller should bail with `or
-  # return`). A series with a known ID range needs no feed to offer a puzzle and
-  # has no most recent one to offer either, so the block is given the chance to
-  # send the player to a random puzzle instead.
+  # return`). A feedless series may still name a current puzzle of its own; where
+  # it does not, the block is given the chance to send the player to a random
+  # puzzle instead.
   def resolve_latest_identifier
     series = params[:series]
     unless Series::SERIES.key?(series)
@@ -60,10 +60,11 @@ class CrosswordsController < ApplicationController
       return nil
     end
 
-    identifier = Series.latest_puzzle(series)
+    source = Source.for(series)
+    identifier = source.latest_identifier(series)
     return identifier if identifier
 
-    if Source.for(series).has_feed?
+    if source.has_feed?
       redirect_to root_path(error: 'latest_failed')
     else
       yield
