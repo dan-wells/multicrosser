@@ -4,15 +4,17 @@ This is a Rails Application that uses WebSockets and the [@guardian/react-crossw
 
 You can see a demo at [wellsd.net/crosswords](https://wellsd.net/crosswords).
 
-## The Source of the Crosswords Data
+## The Source of the Puzzle Data
 
 Crosswords are scraped from the Guardian Crossword pages which contain a JSON representation of each crossword. The crosswords are re-used following their [Open Licence Terms](https://syndication.theguardian.com/open-licence-terms/).
+
+Nonograms are generated locally by `ext/nonogen`, a small C program that produces puzzles from a numeric seed. See `ext/nonogen/README.md` for details on the algorithm.
 
 ## Setup
 
 To run this project:
 + Install Redis and make sure the server is running
-+ Run `./bin/setup` to install Ruby and JavaScript dependencies
++ Run `./bin/setup` to install Ruby and JavaScript dependencies and build the nonogram generator
 + Run `./bin/rails crosswords:load_from_feed` to load the latest crosswords to display on the homepage
 + Run `yarn build` to compile JavaScript and CSS assets
 + Run `bin/dev` to start the Rails server and esbuild watch process together (or run `bin/rails server` and `yarn build --watch` in separate terminals)
@@ -35,20 +37,23 @@ This pulls the latest code, installs dependencies, builds JS/CSS assets, precomp
 
 - `/` — the homepage
 - `/:series/:identifier` — generates a random room ID and redirects to the URL below (so each visitor gets a fresh private session unless they share the link)
-- `/:series/:identifier/:room` — the actual multiplayer crossword page
+- `/:series/:identifier/:room` — the actual multiplayer puzzle page
+- `/:series/latest(/:room)` — most recent puzzle in the series feed
 - `/:series/random(/:room)` — picks a random puzzle for the series and redirects
+- `/print/:series/:identifier` — printable view of a puzzle
 
 ### Backend: Controllers (`app/controllers/`)
 
 - `page_controller.rb` — serves the homepage; asks `Series` for the list of recent crosswords to display
-- `crosswords_controller.rb` — handles crossword URLs that don't yet have a room ID; generates a random room ID and redirects
-- `rooms_controller.rb` — serves the crossword page; fetches the puzzle JSON from the Guardian (or from Redis if already cached) and passes it to the view
+- `crosswords_controller.rb` — handles puzzle URLs that don't yet have a room ID; generates a random room ID and redirects. Also serves print views and the latest/random redirects
+- `rooms_controller.rb` — serves the puzzle page; fetches the puzzle data via the series' `Source` (from the Guardian for crosswords, generated locally for nonograms, or from Redis if already cached) and passes it to the view
 
 ### Backend: Models (`app/models/`)
 
 - `series.rb` — holds the list of active crossword series (quiptic, quick, weekend, etc.); `get_all` reads their metadata from Redis and returns the most recent 5 per series
 - `crossword.rb` — represents a crossword's metadata (title, series, identifier, date); `save` writes it to the Redis series list
 - `crossword_feed.rb` — fetches the Guardian's RSS feed and saves metadata for recent crosswords into Redis
+- `source.rb` — base class for per-type puzzle fetching/generation and view dispatch; `Source.for(series)` returns the right subclass. `source/guardian.rb` and `source/nonograms.rb` are the concrete implementations
 
 ### Backend: Channels (`app/channels/`)
 
@@ -57,7 +62,7 @@ Two Action Cable channels share the single WebSocket connection per page.
 `moves_channel.rb` — durable per-cell state:
 
 - When a client joins: sends them the current grid state from Redis
-- When a client sends a move: records the letter in Redis and broadcasts it to everyone else in the room
+- When a client sends a move: records the value in Redis and broadcasts it to everyone else in the room
 
 `presence_channel.rb` — ephemeral per-session cursor and selected-clue state:
 
@@ -67,16 +72,19 @@ Two Action Cable channels share the single WebSocket connection per page.
 
 ### Frontend (`app/javascript/`)
 
-- `crossword.js` — entry point; renders the `@guardian/react-crossword` component and wires up multiplayer sync
 - `homepage.js` — entry point for the homepage; handles form state, puzzle/room history, and navigation
+- `crossword.js` — entry point for the crossword page; renders the `@guardian/react-crossword` component and wires up multiplayer sync
+- `nonogram.js` — entry point for the nonogram page; the grid is a custom React component in `lib/nonogram_app.jsx` (state) and `lib/nonogram_grid.jsx` (SVG rendering), with pure logic in `lib/nonogram_logic.js`
 - `lib/subscription.js` — connects to the server over WebSocket; sends moves the user types, and applies moves received from other players
 - `lib/move_buffer.js` — queues moves in the browser's local storage while offline; replays them when the connection is restored
 - `lib/remote_presence.js` — applies other players' cursors and selected clues as DOM data-attributes on the grid and clue list
 
 ### Views (`app/views/`)
 
-- `page/index.html.erb` — the homepage: lists recent crosswords grouped by series
-- `rooms/show.html.erb` — the crossword page: shows the title, date, setter, and the interactive grid
+- `page/index.html.erb` — the homepage: lists recent puzzles grouped by series
+- `rooms/show.html.erb` — the base puzzle page; dispatches to the appropriate partial based on the series' `Source`
+- `rooms/_crossword.html.erb` — the crossword page: shows the title, date, setter, and the interactive grid
+- `rooms/_nonogram.html.erb` — the nonogram page: shows the title, puzzle controls, and the interactive grid
 
 ### Styling
 
@@ -90,7 +98,7 @@ RAILS_ENV=production yarn build
 RAILS_ENV=production bundle exec rails assets:precompile
 ```
 
-`yarn build` runs esbuild and outputs `crossword.js` and `homepage.js` to `app/assets/builds/`. Sprockets then fingerprints everything (including those files) into `public/assets/`.
+`yarn build` runs esbuild and outputs `homepage.js`, `crossword.js`, `nonogram.js` and the print entry points to `app/assets/builds/`. Sprockets then fingerprints everything (including those files) into `public/assets/`.
 
 ### Crossword Component Patch
 
@@ -125,6 +133,7 @@ Make sure Redis is running, then:
 ```
 bundle exec rails test                              # all tests
 bundle exec rails test test/models/crossword_test.rb  # a single file
+yarn test                                            # vitest (frontend)
 ```
 
 Tests use a separate Redis database (db 1) so they won't affect your development data.
@@ -154,6 +163,8 @@ The homepage displays a list of recent crosswords per series. This metadata (tit
 
 Any crossword can also be accessed directly by URL (e.g. `/quiptic/1`) without appearing on the homepage. The first time a crossword is opened, `RoomsController` fetches the puzzle data from the Guardian website, extracts the JSON from the page's `CrosswordComponent` element, and caches it in Redis for subsequent visits.
 
+Nonograms are generated on demand from a numeric seed, so they don't need a feed – any valid seed in the URL produces a puzzle. The generated JSON is cached in Redis the same way crossword data is.
+
 ### Working with Intermittent Connections
 
 If the move can't be broadcast with Action Cable it's stored in the `MoveBuffer`. On reconnection:
@@ -172,4 +183,5 @@ Redis is used for four purposes:
 + **Homepage crossword lists** — keyed by `crossword-series-{name}` (e.g. `crossword-series-quiptic`). Each key holds a JSON array of crossword metadata objects (title, series, identifier, date), ordered most recent first.
 + **Cached puzzle data** — keyed by `{series}/{identifier}` (e.g. `quiptic/1289`). Each key holds the full crossword JSON fetched from the Guardian. Populated lazily the first time a crossword is opened.
 + **Room grid state** — keyed by `moves_channel-{crossword}-{room}`. A Redis hash mapping cell coordinates (`x-y`) to their current values. This is the authoritative state of each multiplayer solving session.
++ **Row/column marks** (nonograms only) — keyed by `row_marks-{crossword}-{room}` and `col_marks-{crossword}-{room}`. Redis hashes mapping `line-clueIndex` to a tick, tracking which clue numbers a player has marked off.
 + **Per-session presence** — keyed by `presence-{crossword}-{room}`. A Redis hash mapping each connected client's `session_id` to JSON describing their current cursor cell and selected clue. Ephemeral: each connection's entry is deleted on disconnect, and the whole hash has a 24h TTL as a safety net for sessions that drop without a clean unsubscribe.

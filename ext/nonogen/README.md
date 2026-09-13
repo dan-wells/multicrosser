@@ -68,24 +68,18 @@ Output is one line of JSON on stdout:
 
 ### Why the solution is unique
 
-Every cell the solver fixes is *entailed*: it holds that value in every grid satisfying the clues and the cells fixed so far.
-By induction every solution of the puzzle agrees with it, so a fully fixed grid means at most one solution exists – and the grid we started from is one.
-Acceptance also means no guessing is needed, since the solver only ever reasons about a single line.
-
-This means that correctness rests entirely on one function, `line_solve`, which is small, pure and exhaustively testable.
-There is no uniqueness search and no backtracking anywhere in the program.
+Each cell the solver fixes is *entailed* – it holds that value in every valid placement of its line's clue, given what is already known.
+By induction, the fully fixed grid is the only solution, and acceptance means no guessing is needed, since the solver only ever reasons about a single line.
+There is no uniqueness search and no backtracking; correctness rests on one function, `line_solve`, which is small, pure and exhaustively testable.
 
 ### Why the grid is clustered
 
-A uniformly random half-filled grid gives lines of many one- and two-cell runs: 6.4 runs per line at 25x25, which fills the clue gutters and reads as noise.
-Puzzles of that size published on [puzzle-nonograms.com](https://www.puzzle-nonograms.com/) average nearer 3.4.
+A uniformly random half-filled grid produces many one- and two-cell runs per line (6.4 at 25×25, vs ~3.4 in puzzles published on [puzzle-nonograms.com](https://www.puzzle-nonograms.com/)), which reads as noise and fills the clue gutters.
 
 `anneal` fixes this before the clues are derived.
-It repeatedly proposes swapping a random filled cell with a random empty one and accepts with probability `min(1, exp(-beta * dE))`, where the energy is the number of adjacent unlike pairs – the boundary length of the filled region.
-Shorter boundary (higher `beta`) means fewer, longer runs.
-The filled count never changes, and both cells are drawn uniformly, so no position in the grid is favoured.
-
-Clustered grids are also markedly easier to line-solve, so this makes generation several times faster at the larger sizes compared to uniform sampling.
+It proposes swapping a random filled cell with a random empty one and accepts with Metropolis probability `min(1, exp(-beta * dE))`, where the energy is the boundary length of the filled region – fewer boundary edges means fewer, longer runs.
+Higher `--beta` clusters more strongly; the default per size is calibrated to match published puzzle density.
+Clustered grids are also easier to line-solve, so this also speeds up generation at larger puzzle sizes compared to uniform sampling.
 
 `--beta` defaults per size (`default_beta`), calibrated so a line carries about as many runs as a published puzzle of that size:
 

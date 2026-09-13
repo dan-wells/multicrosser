@@ -311,12 +311,9 @@ static int local_energy(const u64 *grid, int rows, int cols, int r, int c)
     return e;
 }
 
-/* Clumps the filled cells together, leaving their number untouched: propose
- * swapping a random filled cell with a random empty one and accept with
- * probability min(1, exp(-beta * dE)) on the total boundary length. Shorter
- * boundary means fewer, longer runs per line. `beta` 0 leaves the grid
- * uniformly random; both cells are drawn uniformly, so no position in the
- * grid is favoured. `sweeps` counts proposals per cell.
+/* Metropolis walk that clumps filled cells together without changing their
+ * count. `beta` 0 leaves the grid uniformly random; both cells are drawn
+ * uniformly, so no position is favoured. `sweeps` counts proposals per cell.
  */
 static void anneal(u64 *grid, int rows, int cols, double beta, int sweeps)
 {
@@ -356,10 +353,9 @@ static void anneal(u64 *grid, int rows, int cols, double beta, int sweeps)
     }
 }
 
-/* Clustering strength per size, calibrated so a line carries about as many
- * runs as one from puzzle-nonograms of that size does. Keyed on the longer
- * side, so a non-square grid still has an answer. Changing these changes
- * every puzzle: bump GENERATOR_VERSION with them.
+/* Clustering strength per size, calibrated so a line carries about as many runs as on
+ * puzzle-nonograms. Keyed on the longer side so a non-square grid still has an answer.
+ * Changing these changes every puzzle: bump GENERATOR_VERSION with them.
  */
 static double default_beta(int rows, int cols)
 {
@@ -394,10 +390,8 @@ static int has_long_line(const Puzzle *p, int max_spans)
     return 0;
 }
 
-/* Rejects a line whose longest run is too long. `max_run` 0 asks for the
- * implicit cap of one cell short of the line, which is what keeps a solid row
- * or column -- the one clue that gives its whole line away -- out of the small
- * sizes, where half-filled grids throw them up often.
+/* The default cap (`max_run` 0 -> line length minus one) prevents solid
+ * lines, which are trivially solvable.
  */
 static int has_long_run(const Puzzle *p, int max_run)
 {
