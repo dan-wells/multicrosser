@@ -6,6 +6,7 @@ import './lib/print-page.css';
 import './lib/nonogram-print.css';
 import NonogramGrid, { gridLayout } from './lib/nonogram_grid';
 import { EMPTY, NOTHING_DERIVED } from './lib/nonogram_logic';
+import { fitToPage } from './lib/print_page';
 
 // A CSS pixel is 1/96 of an inch (25.4 mm) by definition; with this we can
 // specify lengths in millimetres and have that be what we get on paper.
@@ -51,3 +52,6 @@ flushSync(() => {
     onClueClick={noop}
   />);
 });
+
+const grid = mountElement.querySelector('svg.nonogram-grid');
+fitToPage(grid, grid);

@@ -12,6 +12,7 @@ class CrosswordsController < ApplicationController
     @crossword = fetch_crossword!
     @parsed_crossword = JSON.parse(@crossword)
     @source_type = Source.for(params[:series]).name
+    @tight = params[:layout] == 'tight'
     render layout: 'print'
   end
 

@@ -218,3 +218,27 @@
 .print-page.print-large .print-clues [role="option"] > span[aria-hidden="true"]:first-child {
   padding-right: 4px !important;
 }
+
+/* -----------------------------------------------------------------
+   Tight (any source): below the header, the grid fills the page width,
+   with every clue in one column below it, wrapping at the grid's width. On
+   paper the whole layout narrows if need be so that the grid also fits the
+   page height (`.print-fit` in `print-page.css`).
+   ----------------------------------------------------------------- */
+.print-tight .print-grid {
+  margin: 0 0 8px 0;
+}
+
+.print-tight .print-grid svg[role="grid"] {
+  width: 100%;
+  max-width: none;
+  height: auto;
+}
+
+.print-tight .print-clues label {
+  font-size: 21px;
+}
+
+.print-tight .print-clues [role="option"] {
+  font-size: 18px !important;
+}

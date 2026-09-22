@@ -1,5 +1,5 @@
-/* Page chrome shared by every print view: the sheet itself, and the header
-   above whichever puzzle is being printed. */
+/* Page chrome shared by every print view: the sheet itself, the header above
+   whichever puzzle is being printed, and the tight layout's fit to the page. */
 
 @page {
   size: A4 portrait;
@@ -19,6 +19,23 @@ body.print-body {
   body.print-body {
     padding: 0;
     width: auto;
+  }
+}
+
+/* The tight layout (`?layout=tight`): no body padding or fixed width, so the
+   puzzle spans whatever page it is printed on. */
+.print-body:has(.print-tight) {
+  padding: 0;
+  width: auto;
+}
+
+/* On paper, the tight layout narrows the block holding the grid so that the
+   grid also fits the height left below the header. Only on paper: some in-app
+   browsers report a zero-height viewport on screen, which would shrink the
+   grid to nothing. `print_page.js` sets both variables. */
+@media print {
+  .print-tight .print-fit {
+    max-width: calc((100vh - var(--header-height, 0px)) * var(--grid-aspect));
   }
 }
 
@@ -54,4 +71,22 @@ body.print-body {
   margin: 2px 0 0 0;
   font-size: 12px;
   color: #333;
+}
+
+/* The tight layout's grid fills the page, so its header is scaled up to
+   match, as its clue text is in `crossword-print.css`. */
+.print-tight .print-header {
+  margin-bottom: 9px;
+}
+
+.print-tight .print-header h1 {
+  font-size: 24px;
+}
+
+.print-tight .print-header .crossword-subtitle {
+  font-size: 21px;
+}
+
+.print-tight .print-header .print-meta {
+  font-size: 18px;
 }

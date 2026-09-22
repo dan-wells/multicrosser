@@ -1,4 +1,4 @@
-<div class="print-page print-nonogram">
+<%= tag.div class: token_list('print-page print-nonogram', 'print-tight': @tight) do %>
   <header class="print-header">
     <h1><%= @parsed_crossword['name'] %></h1>
   </header>
@@ -6,7 +6,7 @@
   <%= content_tag(:div, '', class: 'js-print-nonogram', data: {
     crossword: @crossword,
   }) %>
-</div>
+<% end %>
 
 <%= stylesheet_link_tag "print_nonogram" %>
 <%= javascript_include_tag "print_nonogram" %>

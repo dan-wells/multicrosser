@@ -105,6 +105,26 @@ class RoomsControllerTest < ActionDispatch::IntegrationTest
     assert_no_match(/Published by/, response.body)
   end
 
+  test "show links a crossword to both print layouts" do
+    CrosswordFetcher.stub(:fetch, CROSSWORD_JSON) do
+      get "/cryptic/21620/room1"
+    end
+
+    print_path = print_crossword_path(series: 'cryptic', identifier: '21620')
+    assert_match(/href="#{Regexp.escape(print_path)}"/, response.body)
+    assert_match(/href="#{Regexp.escape(print_path)}\?layout=tight"/, response.body)
+  end
+
+  test "show links a nonogram to both print layouts" do
+    CrosswordFetcher.stub(:fetch, NONOGRAM_JSON) do
+      get "/nonogram-15/2401181/room1"
+    end
+
+    print_path = print_crossword_path(series: 'nonogram-15', identifier: '2401181')
+    assert_match(/href="#{Regexp.escape(print_path)}"/, response.body)
+    assert_match(/href="#{Regexp.escape(print_path)}\?layout=tight"/, response.body)
+  end
+
   # A nonogram carries no `date` or `creator`, so rendering the crossword
   # partial for one would raise rather than merely look wrong.
   test "show does not render crossword furniture for a nonogram" do

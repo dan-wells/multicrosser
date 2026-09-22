@@ -38,9 +38,9 @@ This pulls the latest code, installs dependencies, builds JS/CSS assets, precomp
 - `/` — the homepage
 - `/:series/:identifier` — generates a random room ID and redirects to the URL below (so each visitor gets a fresh private session unless they share the link)
 - `/:series/:identifier/:room` — the actual multiplayer puzzle page
-- `/:series/latest(/:room)` — most recent puzzle in the series feed
+- `/:series/latest(/:room)` — most recent puzzle in the series feed (for nonograms, the puzzle seeded from today's date)
 - `/:series/random(/:room)` — picks a random puzzle for the series and redirects
-- `/print/:series/:identifier` — printable view of a puzzle
+- `/print/:series/:identifier` — printable view of a puzzle on A4; add `?layout=tight` for a version with no page margin, the grid filling the width of the printed page
 
 ### Backend: Controllers (`app/controllers/`)
 

@@ -9,3 +9,11 @@
 .print-nonogram .nonogram-clue text {
   fill: #000;
 }
+
+/* The tight layout: the grid below its title fills the page width, or on
+   paper the height left below the title if that runs out first (`.print-fit`
+   in `print-page.css`). */
+.print-tight .nonogram-grid {
+  width: 100%;
+  height: auto;
+}

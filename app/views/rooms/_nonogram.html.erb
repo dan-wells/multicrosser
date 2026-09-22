@@ -13,4 +13,5 @@
 <p class="crossword-footer nonogram-footer" style="clear: both;">
   Share this page with others to solve this nonogram with them.
   <br><%= link_to "Print this page", print_crossword_path(series: params[:series], identifier: params[:identifier]), target: "_blank" %>
+  / <%= link_to "tight", print_crossword_path(series: params[:series], identifier: params[:identifier], layout: 'tight'), target: "_blank" %>
 </p>

@@ -45,4 +45,5 @@
   Share this page with others to solve this crossword with them.
   <br><a href="<%= @publisher_url %>">Published by <%= @publisher_name %></a>
   | <%= link_to "Print this page", print_crossword_path(series: params[:series], identifier: params[:identifier]), target: "_blank" %>
+  / <%= link_to "tight", print_crossword_path(series: params[:series], identifier: params[:identifier], layout: 'tight'), target: "_blank" %>
 </p>

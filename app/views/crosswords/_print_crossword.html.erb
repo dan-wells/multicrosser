@@ -1,4 +1,5 @@
-<div class="print-page" data-source="<%= @source_type %>">
+<%= tag.div class: token_list('print-page', 'print-tight': @tight),
+            data: { source: (@source_type unless @tight) } do %>
   <header class="print-header">
     <h1><%= @parsed_crossword['name'] %></h1>
     <%- if @parsed_crossword['subtitle'].present? -%>
@@ -16,7 +17,7 @@
     crossword: @crossword,
     source: @source_type,
   }) %>
-</div>
+<% end %>
 
 <%= stylesheet_link_tag "print_crossword" %>
 <%= javascript_include_tag "print_crossword" %>

@@ -5,13 +5,16 @@ import { Crossword } from '@guardian/react-crossword';
 import './lib/crossword-overrides.css';
 import './lib/print-page.css';
 import './lib/crossword-print.css';
+import { fitToPage } from './lib/print_page';
 
 const mountElement = document.getElementsByClassName('js-print-crossword')[0];
 const printPage = mountElement.closest('.print-page');
 const crosswordData = JSON.parse(mountElement.dataset.crossword);
 const sourceType = mountElement.dataset.source;
 
-if (sourceType === 'nytimes' && crosswordData.dimensions.cols >= 17) {
+const tight = printPage.classList.contains('print-tight');
+
+if (!tight && sourceType === 'nytimes' && crosswordData.dimensions.cols >= 17) {
   printPage.classList.add('print-large');
 }
 
@@ -102,6 +105,7 @@ function buildLayout(retries = 0) {
 
   mountElement.innerHTML = '';
   mountElement.appendChild(layout);
+  fitToPage(layout, grid);
   root.unmount();
   staging.remove();
 }

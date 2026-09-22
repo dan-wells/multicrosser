@@ -16,14 +16,25 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
 
   # --- print ---
 
+  CROSSWORD_JSON = {
+    "name" => "Cryptic crossword No 21620",
+    "date" => 1_700_000_000_000,
+    "dimensions" => { "cols" => 15, "rows" => 15 },
+    "creator" => { "name" => "Picaroon" }
+  }.to_json
+
+  NONOGRAM_JSON = {
+    "type" => "nonogram",
+    "dimensions" => { "cols" => 15, "rows" => 15 },
+    "task" => "6/6.1.1",
+    "colClues" => [[6], [6, 1, 1]],
+    "rowClues" => [[5, 1]],
+    "solution" => "n" * 225,
+    "name" => "15x15 Nonogram No 2,401,181"
+  }.to_json
+
   test "print renders the crossword in a stripped-down layout" do
-    crossword_json = {
-      "name" => "Cryptic crossword No 21620",
-      "date" => 1_700_000_000_000,
-      "dimensions" => { "cols" => 15, "rows" => 15 },
-      "creator" => { "name" => "Picaroon" }
-    }.to_json
-    CrosswordFetcher.stub(:fetch, crossword_json) do
+    CrosswordFetcher.stub(:fetch, CROSSWORD_JSON) do
       get "/print/cryptic/21620"
     end
 
@@ -49,17 +60,26 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/data-source="nytimes"/, response.body)
   end
 
+  test "print keeps the header but drops the page margin and per-source layout for a tight crossword" do
+    CrosswordFetcher.stub(:fetch, CROSSWORD_JSON) do
+      get "/print/cryptic/21620"
+      assert_select '.print-page.print-tight', 0
+      assert_no_match(/@page/, response.body)
+
+      get "/print/cryptic/21620?layout=tight"
+    end
+
+    assert_response :success
+    assert_select '.print-page.print-tight .print-header', /Set by Picaroon/
+    assert_match(/@page\s*\{[^}]*margin:\s*0/, response.body)
+    # The tight layout is the same for every source; the client still needs
+    # to know the source, but the page does not carry it as a layout hook.
+    assert_select '.print-page[data-source]', 0
+    assert_select '.js-print-crossword[data-source=guardian]'
+  end
+
   test "print renders the nonogram partial for a nonogram series" do
-    nonogram_json = {
-      "type" => "nonogram",
-      "dimensions" => { "cols" => 15, "rows" => 15 },
-      "task" => "6/6.1.1",
-      "colClues" => [[6], [6, 1, 1]],
-      "rowClues" => [[5, 1]],
-      "solution" => "n" * 225,
-      "name" => "15x15 Nonogram No 2,401,181"
-    }.to_json
-    CrosswordFetcher.stub(:fetch, nonogram_json) do
+    CrosswordFetcher.stub(:fetch, NONOGRAM_JSON) do
       get "/print/nonogram-15/2401181"
     end
 
@@ -67,6 +87,21 @@ class CrosswordsControllerTest < ActionDispatch::IntegrationTest
     assert_match(/js-print-nonogram/, response.body)
     assert_match(/15x15 Nonogram No 2,401,181/, response.body)
     assert_no_match(/js-print-crossword/, response.body)
+  end
+
+  test "print keeps the header but drops the page margin for a tight nonogram" do
+    CrosswordFetcher.stub(:fetch, NONOGRAM_JSON) do
+      get "/print/nonogram-15/2401181"
+      assert_select '.print-page.print-tight', 0
+      assert_no_match(/@page/, response.body)
+
+      get "/print/nonogram-15/2401181?layout=tight"
+    end
+
+    assert_response :success
+    assert_select '.print-page.print-tight .js-print-nonogram'
+    assert_select '.print-page.print-tight .print-header', /15x15 Nonogram No 2,401,181/
+    assert_match(/@page\s*\{[^}]*margin:\s*0/, response.body)
   end
 
   test "print renders 404 for an unknown series" do

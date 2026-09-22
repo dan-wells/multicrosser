@@ -1,1 +1,6 @@
 <%= render partial: Source.for(params[:series]).print_partial %>
+<% if @tight %>
+  <%# `@page` cannot be scoped to a class, so the tight layout undoes the A4
+      page set by `print-page.css` here, after it in the cascade. %>
+  <style>@page { size: auto; margin: 0; }</style>
+<% end %>
